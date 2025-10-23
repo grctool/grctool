@@ -726,8 +726,7 @@ func createTestConfigReviews(t *testing.T) *config.Config {
 			},
 		},
 		Logging: config.LoggingConfig{
-			Level:  "warn",
-			Output: "stderr",
+			// Empty - use defaults
 		},
 	}
 }

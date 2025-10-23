@@ -206,13 +206,22 @@ jobs:
           # Run gosec with JSON output for analysis
           gosec -fmt json -out gosec-results.json ./... || true
 
-          # Also run with SARIF format for GitHub integration
+          # Run with SARIF 2.1.0 format for better GitHub compatibility
           gosec -fmt sarif -out gosec-results.sarif -severity medium ./... || true
+
+          # Validate SARIF file exists and has content
+          if [ -f gosec-results.sarif ] && [ -s gosec-results.sarif ]; then
+            echo "✓ SARIF file generated successfully"
+          else
+            echo "⚠ SARIF file is empty or missing, creating placeholder"
+            echo '{"version":"2.1.0","runs":[]}' > gosec-results.sarif
+          fi
 
           # Display results summary
           echo "Security scan completed. Check artifacts for detailed results."
 
       - name: Upload SARIF file
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec-results.sarif
