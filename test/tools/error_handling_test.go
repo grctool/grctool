@@ -302,10 +302,6 @@ resource "aws_s3_bucket" "bucket_%d" {
 }
 
 func TestGitHubTool_ErrorHandling(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub error handling tests: GITHUB_TOKEN not set (mock server not properly configured)")
-	}
-
 	tests := []struct {
 		name         string
 		serverFunc   func() *httptest.Server
@@ -585,7 +581,6 @@ func TestEdgeCases_FileSystemOperations(t *testing.T) {
 	})
 
 	t.Run("Special Characters in Filenames", func(t *testing.T) {
-		t.Skip("Skipping: test fails to find Terraform resources - needs investigation")
 		tempDir := t.TempDir()
 
 		// Create files with special characters

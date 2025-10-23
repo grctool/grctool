@@ -18,6 +18,7 @@ package submission
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/grctool/grctool/internal/domain"
@@ -33,6 +34,7 @@ type SubmissionService struct {
 	tugboatClient *tugboat.Client
 	validator     *validation.EvidenceValidationService
 	orgID         string
+	collectorURLs map[string]string // TaskRef -> Collector URL mapping
 }
 
 // NewSubmissionService creates a new submission service
@@ -40,12 +42,14 @@ func NewSubmissionService(
 	storage *storage.Storage,
 	tugboatClient *tugboat.Client,
 	orgID string,
+	collectorURLs map[string]string,
 ) *SubmissionService {
 	return &SubmissionService{
 		storage:       storage,
 		tugboatClient: tugboatClient,
 		validator:     validation.NewEvidenceValidationService(storage),
 		orgID:         orgID,
+		collectorURLs: collectorURLs,
 	}
 }
 
@@ -209,37 +213,94 @@ func (s *SubmissionService) prepareSubmission(
 	return submission, nil
 }
 
-// submitToTugboat submits evidence to Tugboat API
+// submitToTugboat submits evidence to Tugboat Custom Evidence Integration API
 func (s *SubmissionService) submitToTugboat(
 	ctx context.Context,
 	submission *models.EvidenceSubmission,
 	task *domain.EvidenceTask,
 ) (*models.TugboatSubmissionResponse, error) {
-	// Build submission request
-	submitReq := &models.SubmitEvidenceRequest{
-		TaskID:           task.ID,
-		Content:          s.buildEvidenceContent(submission),
-		ContentType:      "markdown",
-		CollectionWindow: submission.Window,
-		CollectionDate:   time.Now().Format(time.RFC3339),
-		Sources:          s.buildEvidenceSources(submission),
-		Notes:            submission.Notes,
-		ControlsCovered:  s.extractControlsCovered(submission),
+	// Get collector URL for this task from config
+	collectorURL, ok := s.collectorURLs[submission.TaskRef]
+	if !ok || collectorURL == "" {
+		return nil, fmt.Errorf("collector URL not configured for task %s - add to tugboat.collector_urls in config", submission.TaskRef)
 	}
 
-	// Submit to Tugboat
-	resp, err := s.tugboatClient.SubmitEvidence(ctx, s.orgID, task.ID, submitReq)
-	if err != nil {
-		return nil, err
+	// Get storage base directory to resolve file paths
+	baseDir := s.storage.GetBaseDir()
+
+	// Submit each evidence file individually
+	// Note: Custom Evidence Integration API accepts one file per submission
+	var lastResponse *tugboat.SubmitEvidenceResponse
+	submittedFiles := 0
+	collectionDate := time.Now() // Use current time as collection date
+
+	for _, fileRef := range submission.EvidenceFiles {
+		// Resolve full file path
+		filePath := filepath.Join(baseDir, fileRef.RelativePath)
+
+		// Validate file type before submission
+		if err := tugboat.ValidateFileType(fileRef.Filename); err != nil {
+			return nil, fmt.Errorf("file %s validation failed: %w", fileRef.Filename, err)
+		}
+
+		// Build submission request for this file
+		submitReq := &tugboat.SubmitEvidenceRequest{
+			CollectorURL:  collectorURL,
+			FilePath:      filePath,
+			CollectedDate: collectionDate,
+			ContentType:   s.getContentType(fileRef.Filename),
+		}
+
+		// Submit to Tugboat
+		resp, err := s.tugboatClient.SubmitEvidence(ctx, submitReq)
+		if err != nil {
+			return nil, fmt.Errorf("failed to submit file %s: %w", fileRef.Filename, err)
+		}
+
+		lastResponse = resp
+		submittedFiles++
 	}
 
+	if submittedFiles == 0 {
+		return nil, fmt.Errorf("no evidence files to submit")
+	}
+
+	// Return response from last submission
+	// Note: In the Custom Evidence Integration API, each file is submitted separately
+	// so we track the last successful response
 	return &models.TugboatSubmissionResponse{
-		SubmissionID: resp.SubmissionID,
-		Status:       resp.Status,
-		Message:      resp.Message,
-		ReceivedAt:   resp.ReceivedAt,
-		Metadata:     resp.Metadata,
+		SubmissionID: fmt.Sprintf("batch-%d-files-%d", time.Now().Unix(), submittedFiles),
+		Status:       "submitted",
+		Message:      fmt.Sprintf("Successfully submitted %d file(s) to Tugboat", submittedFiles),
+		ReceivedAt:   lastResponse.ReceivedAt,
+		Metadata:     map[string]interface{}{"files_submitted": submittedFiles},
 	}, nil
+}
+
+// getContentType determines the MIME type based on file extension
+func (s *SubmissionService) getContentType(filename string) string {
+	ext := filepath.Ext(filename)
+	if ext == "" {
+		return "application/octet-stream"
+	}
+	ext = ext[1:] // Remove leading dot
+
+	contentTypes := map[string]string{
+		"txt":  "text/plain",
+		"csv":  "text/csv",
+		"json": "application/json",
+		"pdf":  "application/pdf",
+		"png":  "image/png",
+		"gif":  "image/gif",
+		"jpg":  "image/jpeg",
+		"jpeg": "image/jpeg",
+		"md":   "text/markdown",
+	}
+
+	if ct, ok := contentTypes[ext]; ok {
+		return ct
+	}
+	return "application/octet-stream"
 }
 
 // buildEvidenceContent builds the evidence content from files
@@ -312,22 +373,9 @@ func (s *SubmissionService) GetSubmissionStatus(ctx context.Context, taskRef, wi
 		return nil, fmt.Errorf("submission not found: %w", err)
 	}
 
-	// Optionally refresh from Tugboat if we have a submission ID
-	if submission.SubmissionID != "" && s.tugboatClient != nil {
-		task, err := s.getEvidenceTask(taskRef)
-		if err == nil {
-			tugboatStatus, err := s.tugboatClient.GetSubmissionStatus(ctx, s.orgID, task.ID, submission.SubmissionID)
-			if err == nil {
-				// Update local status
-				submission.Status = tugboatStatus.Status
-				if tugboatStatus.ReviewedAt != nil {
-					submission.AcceptedAt = tugboatStatus.ReviewedAt
-				}
-				// Save updated status
-				s.storage.SaveSubmission(submission)
-			}
-		}
-	}
+	// Note: Custom Evidence Integration API does not support status queries
+	// Status is tracked locally only
+	// The API is fire-and-forget for file uploads
 
 	return submission, nil
 }

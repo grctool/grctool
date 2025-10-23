@@ -56,6 +56,7 @@ func NewEvidenceSubmitterTool(cfg *config.Config, log logger.Logger) (*EvidenceS
 		storage,
 		tugboatClient,
 		cfg.Tugboat.OrgID,
+		cfg.Tugboat.CollectorURLs,
 	)
 
 	return &EvidenceSubmitterTool{

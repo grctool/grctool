@@ -51,7 +51,8 @@ A CLI application for managing security program compliance through Tugboat Logic
 - **29 Evidence Collection Tools**: Comprehensive toolset for Terraform, GitHub, Google Workspace, and more
   - **7 Terraform Tools**: Security analysis, indexing, snippets, HCL parsing, and Atmos support
   - **6 GitHub Tools**: Permissions, workflows, reviews, security features, and deployment controls
-  - **Plus**: Google Workspace, evidence assembly, and utility tools
+  - **Google Workspace Tool**: Document evidence from Drive folders, Docs, Sheets, and Forms
+  - **Plus**: Evidence assembly, validation, and utility tools
 - **Security Control Mapping**: Automated mapping of infrastructure to compliance controls
 - **Multiple Output Formats**: Generate evidence in CSV, Markdown, and JSON formats
 - **High-Performance Indexing**: Sub-100ms queries with persistent caching
@@ -65,6 +66,7 @@ A CLI application for managing security program compliance through Tugboat Logic
 - macOS (for automated browser authentication)
 - Access to Tugboat Logic account
 - Claude AI API key (for evidence generation)
+- Google Cloud service account credentials (optional, for Google Workspace integration)
 
 ### Installation
 
@@ -100,24 +102,6 @@ curl -fsSL https://raw.githubusercontent.com/grctool/grctool/main/scripts/instal
 **Verify installation:**
 ```bash
 grctool version
-```
-
-### Updating
-
-Keep grctool up to date with the latest features and bug fixes:
-
-```bash
-# Check for available updates
-grctool update check
-
-# Install the latest version
-grctool update install
-
-# Install system-wide (requires sudo)
-grctool update install --system
-
-# Skip confirmation prompt
-grctool update install --yes
 ```
 
 #### Option 2: Manual Build from Source
@@ -191,10 +175,13 @@ logging:
 - `TUGBOAT_BASE_URL`: Override the base URL
 - `TUGBOAT_ORG_ID`: Your organization ID (find in URL: /org/{org_id}/policies)
 - `LOG_LEVEL`: Override the log level (debug, info, warn, error)
+- `GOOGLE_APPLICATION_CREDENTIALS`: Path to Google service account credentials JSON (required for Google Workspace integration)
 
 ## Usage
 
 ### Authentication
+
+#### Tugboat Logic Authentication
 
 ```bash
 # Login using Safari browser (macOS only)
@@ -206,6 +193,28 @@ logging:
 # Logout and remove credentials
 ./bin/grctool auth logout
 ```
+
+#### Google Workspace Authentication (Optional)
+
+For collecting evidence from Google Workspace documents (Drive, Docs, Sheets, Forms):
+
+```bash
+# 1. Set up Google Cloud service account and download credentials
+#    See: docs/01-User-Guide/google-workspace-setup.md
+
+# 2. Configure environment variable
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-credentials.json"
+
+# 3. Test connection
+grctool tool google-workspace --document-id YOUR_TEST_DOC_ID --document-type docs
+```
+
+**Note**: Google Workspace integration requires:
+- Google Cloud project with enabled APIs (Drive, Docs, Sheets, Forms)
+- Service account with appropriate permissions
+- Documents shared with the service account email (Viewer permission)
+
+For complete setup instructions, see: `docs/01-User-Guide/google-workspace-setup.md`
 
 ### Data Synchronization
 

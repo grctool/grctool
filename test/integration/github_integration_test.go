@@ -435,9 +435,6 @@ func TestGitHubSecurity_ComprehensiveWorkflow(t *testing.T) {
 
 	// Cross-validate all collected evidence
 	t.Run("Evidence Cross-Validation", func(t *testing.T) {
-		if len(allSources) == 0 {
-			t.Skip("Skipping cross-validation: no evidence sources collected (likely due to auth failures)")
-		}
 		require.Greater(t, len(allSources), 0, "Should have collected evidence sources")
 
 		// All sources should be from GitHub

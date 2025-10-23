@@ -22,14 +22,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/tools"
-
 	// "github.com/grctool/grctool/internal/vcr" // Disabled - VCR config removed
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -99,10 +97,6 @@ var mockTreeResponse = map[string]interface{}{
 }
 
 func TestGitHubTool_BasicProperties(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	// Create test configuration
 	cfg := &config.Config{
 		Evidence: config.EvidenceConfig{
@@ -147,10 +141,6 @@ func TestGitHubTool_BasicProperties(t *testing.T) {
 }
 
 func TestGitHubTool_SearchCode(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	// Create mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -238,10 +228,6 @@ func TestGitHubTool_SearchCode(t *testing.T) {
 }
 
 func TestGitHubTool_GetContent(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	// Create mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -298,10 +284,6 @@ func TestGitHubTool_GetContent(t *testing.T) {
 }
 
 func TestGitHubTool_ListFiles(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	// Create mock HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -372,10 +354,6 @@ func TestGitHubTool_ListFiles(t *testing.T) {
 }
 
 func TestGitHubTool_WithVCR(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	t.Skip("VCR tests disabled - config.VCR field no longer exists. TODO: Update to current VCR implementation")
 
 	// Create temporary directory for VCR cassettes
@@ -416,10 +394,6 @@ func TestGitHubTool_WithVCR(t *testing.T) {
 }
 
 func TestGitHubTool_BasicErrorHandling(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	// Create mock HTTP server that returns errors
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -505,10 +479,6 @@ func TestGitHubTool_BasicErrorHandling(t *testing.T) {
 }
 
 func TestGitHubTool_ParameterValidation(t *testing.T) {
-	if os.Getenv("GITHUB_TOKEN") == "" {
-		t.Skip("Skipping GitHub tests: GITHUB_TOKEN not set (requires real API access)")
-	}
-
 	cfg := &config.Config{
 		Evidence: config.EvidenceConfig{
 			Tools: config.ToolsConfig{

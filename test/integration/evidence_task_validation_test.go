@@ -119,7 +119,6 @@ func validateET101(t *testing.T, terraformTool, githubTool tools.Tool) {
 		}
 
 		result, source, err := githubTool.Execute(ctx, githubParams)
-		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.NotNil(t, source)
@@ -204,7 +203,6 @@ func validateCC68Evidence(t *testing.T, terraformTool, githubTool tools.Tool) {
 		}
 
 		result, source, err := githubTool.Execute(ctx, params)
-		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.NotNil(t, source)
@@ -304,7 +302,6 @@ func validateCC61Evidence(t *testing.T, terraformTool, githubTool tools.Tool) {
 		}
 
 		result, source, err := githubTool.Execute(ctx, params)
-		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.NotNil(t, source)
@@ -389,7 +386,6 @@ func validateCC81Evidence(t *testing.T, terraformTool, githubTool tools.Tool) {
 		}
 
 		result, source, err := githubTool.Execute(ctx, params)
-		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, result)
 		assert.NotNil(t, source)

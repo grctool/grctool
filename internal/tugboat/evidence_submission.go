@@ -16,104 +16,154 @@
 package tugboat
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"time"
-
-	"github.com/grctool/grctool/internal/models"
 )
 
-// SubmitEvidence submits evidence content for a task
-// NOTE: This is a placeholder implementation until we have confirmed Tugboat API endpoints
-func (c *Client) SubmitEvidence(ctx context.Context, orgID string, taskID int, req *models.SubmitEvidenceRequest) (*models.SubmitEvidenceResponse, error) {
-	// Construct endpoint
-	endpoint := fmt.Sprintf("/api/org_evidence/%d/submissions/?org=%s", taskID, orgID)
+// SubmitEvidenceRequest represents a request to submit evidence via Custom Evidence Integration API
+type SubmitEvidenceRequest struct {
+	CollectorURL  string    // Full collector URL (e.g., https://openapi.tugboatlogic.com/api/v0/evidence/collector/805/)
+	FilePath      string    // Path to the evidence file to upload
+	CollectedDate time.Time // Date the evidence was collected
+	ContentType   string    // MIME type of the file (e.g., "text/csv", "application/json")
+}
 
-	// Make POST request
-	var response models.SubmitEvidenceResponse
-	if err := c.post(ctx, endpoint, req, &response); err != nil {
+// SubmitEvidenceResponse represents the response from submitting evidence
+type SubmitEvidenceResponse struct {
+	Success    bool      `json:"success"`
+	Message    string    `json:"message,omitempty"`
+	ReceivedAt time.Time `json:"received_at"`
+}
+
+// SubmitEvidence submits evidence using the Tugboat Logic Custom Evidence Integration API
+// Uses HTTP Basic Auth + X-API-KEY header with multipart/form-data upload
+// API Documentation: https://support.tugboatlogic.com/hc/en-us/articles/360049620392
+func (c *Client) SubmitEvidence(ctx context.Context, req *SubmitEvidenceRequest) (*SubmitEvidenceResponse, error) {
+	// Validate request
+	if req.CollectorURL == "" {
+		return nil, fmt.Errorf("collector URL is required")
+	}
+	if req.FilePath == "" {
+		return nil, fmt.Errorf("file path is required")
+	}
+
+	// Open the evidence file
+	file, err := os.Open(req.FilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file %s: %w", req.FilePath, err)
+	}
+	defer file.Close()
+
+	// Get file info for validation
+	fileInfo, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	// Validate file size (max 20MB as per Tugboat API docs)
+	const maxFileSize = 20 * 1024 * 1024 // 20MB
+	if fileInfo.Size() > maxFileSize {
+		return nil, fmt.Errorf("file size %d bytes exceeds maximum allowed size of %d bytes (20MB)", fileInfo.Size(), maxFileSize)
+	}
+
+	// Create multipart form-data body
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	// Add collected date field (ISO8601 format: yyyy-mm-dd)
+	collectedDate := req.CollectedDate.Format("2006-01-02")
+	if err := writer.WriteField("collected", collectedDate); err != nil {
+		return nil, fmt.Errorf("failed to write collected field: %w", err)
+	}
+
+	// Add file field
+	filename := filepath.Base(req.FilePath)
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create form file: %w", err)
+	}
+
+	// Copy file content to multipart form
+	if _, err := io.Copy(part, file); err != nil {
+		return nil, fmt.Errorf("failed to copy file content: %w", err)
+	}
+
+	// Close the multipart writer to finalize the body
+	contentType := writer.FormDataContentType()
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Make request using Custom Evidence Integration API authentication
+	resp, err := c.makeEvidenceRequest(ctx, "POST", req.CollectorURL, body, contentType)
+	if err != nil {
 		return nil, fmt.Errorf("failed to submit evidence: %w", err)
 	}
+	defer resp.Body.Close()
 
-	return &response, nil
+	// Read response body
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check response status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("evidence submission failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Parse response (Tugboat might return empty body on success or JSON)
+	result := &SubmitEvidenceResponse{
+		Success:    true,
+		ReceivedAt: time.Now(),
+	}
+
+	// Try to parse JSON response if present
+	if len(respBody) > 0 {
+		if err := json.Unmarshal(respBody, result); err != nil {
+			// If JSON parsing fails, just use the default success response
+			result.Message = string(respBody)
+		}
+	}
+
+	return result, nil
 }
 
-// UpdateTaskCompletionStatus marks a task as completed
-func (c *Client) UpdateTaskCompletionStatus(ctx context.Context, orgID string, taskID int, completed bool, lastCollected time.Time) error {
-	// Construct endpoint
-	endpoint := fmt.Sprintf("/api/org_evidence/%d/?org=%s", taskID, orgID)
+// ValidateFileType validates that the file extension is supported by Tugboat
+// Supported: txt, csv, odt, ods, xls, json, pdf, png, gif, jpg, jpeg
+// Not supported: html, htm, js, exe, php5, pht, phtml, shtml, asa, cer, asax, swf, xap
+func ValidateFileType(filename string) error {
+	ext := filepath.Ext(filename)
+	if ext == "" {
+		return fmt.Errorf("file has no extension")
+	}
+	ext = ext[1:] // Remove leading dot
 
-	// Prepare update payload
-	payload := map[string]interface{}{
-		"completed":      completed,
-		"last_collected": lastCollected.Format(time.RFC3339),
+	// Check unsupported extensions first
+	unsupported := map[string]bool{
+		"html": true, "htm": true, "js": true, "exe": true,
+		"php5": true, "pht": true, "phtml": true, "shtml": true,
+		"asa": true, "cer": true, "asax": true, "swf": true, "xap": true,
+	}
+	if unsupported[ext] {
+		return fmt.Errorf("file extension .%s is not supported by Tugboat", ext)
 	}
 
-	// Make PATCH request
-	if err := c.patch(ctx, endpoint, payload, nil); err != nil {
-		return fmt.Errorf("failed to update task status: %w", err)
+	// Check supported extensions
+	supported := map[string]bool{
+		"txt": true, "csv": true, "odt": true, "ods": true,
+		"xls": true, "json": true, "pdf": true, "png": true,
+		"gif": true, "jpg": true, "jpeg": true,
 	}
-
-	return nil
-}
-
-// GetSubmissionStatus retrieves submission status
-func (c *Client) GetSubmissionStatus(ctx context.Context, orgID string, taskID int, submissionID string) (*models.SubmissionStatusResponse, error) {
-	// Construct endpoint
-	endpoint := fmt.Sprintf("/api/org_evidence/%d/submissions/%s/?org=%s", taskID, submissionID, orgID)
-
-	// Make GET request
-	var response models.SubmissionStatusResponse
-	if err := c.get(ctx, endpoint, &response); err != nil {
-		return nil, fmt.Errorf("failed to get submission status: %w", err)
-	}
-
-	return &response, nil
-}
-
-// ListTaskSubmissions lists all submissions for a task
-func (c *Client) ListTaskSubmissions(ctx context.Context, orgID string, taskID int) (*models.SubmissionListResponse, error) {
-	// Construct endpoint
-	endpoint := fmt.Sprintf("/api/org_evidence/%d/submissions/?org=%s", taskID, orgID)
-
-	// Make GET request
-	var response models.SubmissionListResponse
-	if err := c.get(ctx, endpoint, &response); err != nil {
-		return nil, fmt.Errorf("failed to list submissions: %w", err)
-	}
-
-	return &response, nil
-}
-
-// UploadEvidenceFile uploads an evidence file
-// NOTE: This is a placeholder - actual implementation will need multipart/form-data
-func (c *Client) UploadEvidenceFile(ctx context.Context, orgID string, taskID int, filename string, content []byte) (*models.FileUploadResponse, error) {
-	// Construct endpoint
-	endpoint := fmt.Sprintf("/api/org_evidence/%d/files/?org=%s", taskID, orgID)
-
-	// For now, this is a simple POST
-	// Real implementation would use multipart/form-data
-	payload := map[string]interface{}{
-		"filename": filename,
-		"content":  content,
-	}
-
-	var response models.FileUploadResponse
-	if err := c.post(ctx, endpoint, payload, &response); err != nil {
-		return nil, fmt.Errorf("failed to upload file: %w", err)
-	}
-
-	return &response, nil
-}
-
-// DeleteSubmission deletes a submission
-func (c *Client) DeleteSubmission(ctx context.Context, orgID string, taskID int, submissionID string) error {
-	// Construct endpoint
-	endpoint := fmt.Sprintf("/api/org_evidence/%d/submissions/%s/?org=%s", taskID, submissionID, orgID)
-
-	// Make DELETE request
-	if err := c.delete(ctx, endpoint); err != nil {
-		return fmt.Errorf("failed to delete submission: %w", err)
+	if !supported[ext] {
+		return fmt.Errorf("file extension .%s is not in the list of supported types", ext)
 	}
 
 	return nil

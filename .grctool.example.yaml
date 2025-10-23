@@ -9,6 +9,28 @@ tugboat:
   timeout: 30s
   rate_limit: 10
 
+  # Custom Evidence Integration API Configuration
+  # Used for evidence submission via the Custom Evidence Integration API
+  # See: https://support.tugboatlogic.com/hc/en-us/articles/360049620392
+
+  # HTTP Basic Auth credentials (from Tugboat Custom Integrations setup)
+  username: ""  # Generated in Tugboat UI: Integrations > Custom Integrations
+  password: ""  # Generated password (can also use ${TUGBOAT_PASSWORD} for env var)
+
+  # IMPORTANT: API Key must be set via TUGBOAT_API_KEY environment variable
+  # This is the X-API-KEY header value generated in Tugboat Custom Integrations
+  # Example: export TUGBOAT_API_KEY="762bbc8a-0363-11eb-ae9b-0e8ffbd46778-org-id-11455"
+  # Or with 1Password: op run --env-file=".env.tugboat" -- grctool evidence submit ET-0001
+
+  # Evidence Task -> Collector URL mappings
+  # Each evidence task needs its own collector URL generated in Tugboat UI
+  # Format: "Task Reference": "Full Collector URL"
+  collector_urls:
+    # Example entries (replace with your actual task refs and collector URLs):
+    # "ET-0001": "https://openapi.tugboatlogic.com/api/v0/evidence/collector/805/"
+    # "ET-0047": "https://openapi.tugboatlogic.com/api/v0/evidence/collector/806/"
+    # Add more mappings as needed for each evidence task you want to submit
+
 # Local Data Storage
 storage:
   data_dir: "./data"  # Where to store downloaded policies, controls, etc.

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build disabled
-// +build disabled
+//go:build integration
+// +build integration
 
 package tugboat
 

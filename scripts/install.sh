@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # GRCTool installer script
-# Usage: curl -fsSL https://raw.githubusercontent.com/grctool/grctool/main/scripts/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/telepathdata/grctool/main/scripts/install.sh | bash
 
 set -e
 

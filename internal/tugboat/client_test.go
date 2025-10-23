@@ -13,13 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build disabled
-// +build disabled
-
-// NOTE: These tests are temporarily disabled due to VCR cassette hash mismatches.
-// The cassettes need to be re-recorded with updated request parameters.
-// To re-enable: change build tag back to "integration" and run:
-//   VCR_MODE=record TUGBOAT_BEARER=<token> go test -tags=integration -v ./internal/tugboat/...
+//go:build integration
+// +build integration
 
 package tugboat
 
@@ -43,7 +38,7 @@ func TestClient_PolicyOperations(t *testing.T) {
 
 	t.Run("GetPolicies_WithPagination", func(t *testing.T) {
 		opts := &PolicyListOptions{
-			Org:      "999999",
+			Org:      "13888",
 			Page:     1,
 			PageSize: 5,
 		}
@@ -90,7 +85,7 @@ func TestClient_PolicyOperations(t *testing.T) {
 	})
 
 	t.Run("GetAllPolicies", func(t *testing.T) {
-		policies, err := client.GetAllPolicies(ctx, "999999", "")
+		policies, err := client.GetAllPolicies(ctx, "13888", "")
 		if err != nil {
 			t.Fatalf("Failed to get all policies: %v", err)
 		}
@@ -111,7 +106,7 @@ func TestClient_ControlOperations(t *testing.T) {
 
 	t.Run("GetControls_WithPagination", func(t *testing.T) {
 		opts := &ControlListOptions{
-			Org:      "999999",
+			Org:      "13888",
 			Page:     1,
 			PageSize: 5,
 		}
@@ -159,7 +154,7 @@ func TestClient_ControlOperations(t *testing.T) {
 	})
 
 	t.Run("GetAllControls", func(t *testing.T) {
-		controls, err := client.GetAllControls(ctx, "999999", "")
+		controls, err := client.GetAllControls(ctx, "13888", "")
 		if err != nil {
 			t.Fatalf("Failed to get all controls: %v", err)
 		}
@@ -180,7 +175,7 @@ func TestClient_EvidenceTaskOperations(t *testing.T) {
 
 	t.Run("GetEvidenceTasks_WithPagination", func(t *testing.T) {
 		opts := &EvidenceTaskListOptions{
-			Org:      "999999",
+			Org:      "13888",
 			Page:     1,
 			PageSize: 5,
 		}
@@ -228,7 +223,7 @@ func TestClient_EvidenceTaskOperations(t *testing.T) {
 	})
 
 	t.Run("GetAllEvidenceTasks", func(t *testing.T) {
-		tasks, err := client.GetAllEvidenceTasks(ctx, "999999", "")
+		tasks, err := client.GetAllEvidenceTasks(ctx, "13888", "")
 		if err != nil {
 			t.Fatalf("Failed to get all evidence tasks: %v", err)
 		}

@@ -81,7 +81,7 @@ changelog:
 
 release:
   github:
-    owner: grctool
+    owner: your-org
     name: grctool
   draft: false
   prerelease: auto
@@ -91,27 +91,7 @@ release:
 
     **Release Date:** {{ .Date }}
 
-    ### Quick Installation
-
-    Use the automated installer script (recommended):
-
-    ```bash
-    # Install to ~/.local/bin (no sudo required)
-    curl -fsSL https://raw.githubusercontent.com/grctool/grctool/main/scripts/install.sh | bash
-
-    # Or install system-wide to /usr/local/bin (requires sudo)
-    curl -fsSL https://raw.githubusercontent.com/grctool/grctool/main/scripts/install.sh | bash -s -- --system
-    ```
-
-    ### Update Existing Installation
-
-    If you already have grctool installed:
-
-    ```bash
-    grctool update install
-    ```
-
-    ### Manual Installation
+    ### Installation
 
     Download the appropriate binary for your platform below and extract it:
 
