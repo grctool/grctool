@@ -104,7 +104,7 @@ Example: "ET-0047 - GitHub Repository Access Controls - Show team permissions"
 Automated scanners and analyzers that collect evidence from infrastructure:
 - **Terraform Tools** (7 tools) - Infrastructure as Code security
 - **GitHub Tools** (6 tools) - Repository access, workflows, security features
-- **Google Workspace Tools** - User access, groups, drive permissions
+- **Google Workspace Tools** - Document evidence from Drive, Docs, Sheets, Forms
 - **Atmos Tools** - Multi-environment stack analysis
 
 ## 🔍 COMMON USER QUESTIONS
@@ -138,7 +138,27 @@ grctool tool terraform-security-indexer --query-type control_mapping
 grctool tool terraform-security-analyzer --security-domain all
 ```
 
+### "How do I collect evidence from Google Workspace?"
+```bash
+# First, ensure you have Google Workspace authentication configured
+# See: docs/01-User-Guide/google-workspace-setup.md for setup instructions
+
+# Extract policy documents from a Drive folder
+grctool tool google-workspace --document-id 1A2B3C4D5E6F7G8H9I0J --document-type drive
+
+# Extract content from a Google Doc (policy, procedure)
+grctool tool google-workspace --document-id 1K2L3M4N5O6P7Q8R9S0T --document-type docs
+
+# Extract data from a Google Sheet (access reviews, training records)
+grctool tool google-workspace --document-id 1U2V3W4X5Y6Z7A8B9C0D --document-type sheets --sheet-range "Sheet1!A1:D50"
+
+# Extract responses from a Google Form (training quiz, security questionnaire)
+grctool tool google-workspace --document-id 1E2F3G4H5I6J7K8L9M0N --document-type forms
+```
+
 ## 🔐 AUTHENTICATION
+
+### Tugboat Logic Authentication
 
 GRCTool uses **browser-based authentication** with Tugboat Logic:
 
@@ -154,6 +174,29 @@ grctool auth logout
 ```
 
 **Note**: Credentials are stored securely in the auth directory and are automatically refreshed.
+
+### Google Workspace Authentication
+
+Google Workspace tools use **service account authentication** with JSON credentials:
+
+**Setup Steps:**
+1. Create Google Cloud project and enable APIs (Drive, Docs, Sheets, Forms)
+2. Create service account with appropriate permissions
+3. Download service account JSON credentials
+4. Set environment variable or use explicit path
+
+**Quick Setup:**
+```bash
+# Set environment variable (recommended)
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/google-credentials.json"
+
+# Or use explicit path in commands
+grctool tool google-workspace --credentials-path /path/to/google-credentials.json --document-id <ID>
+```
+
+**Important:** The service account email must have Viewer permission on the documents you want to access. Share documents with the service account email found in your credentials file.
+
+**Detailed Setup Guide:** See `docs/01-User-Guide/google-workspace-setup.md` for complete step-by-step instructions.
 
 ## 🎯 HELPING USERS WITH EVIDENCE
 
@@ -180,6 +223,59 @@ grctool tool github-permissions --repository org/repo --output-format matrix
 # 4. Review and format the output for compliance
 ```
 
+### Example: Helping with Google Workspace Evidence (Policy Documentation)
+
+```bash
+# User asks: "I need to collect evidence of our security policies from Google Docs"
+
+# 1. Verify Google Workspace authentication is configured
+echo $GOOGLE_APPLICATION_CREDENTIALS
+# If not set, guide user through: docs/01-User-Guide/google-workspace-setup.md
+
+# 2. Identify the policy folder/document IDs
+# User provides: "Our policies are in this folder: https://drive.google.com/drive/folders/1A2B3C4D5E6F7G8H9I0J"
+# Extract folder ID: 1A2B3C4D5E6F7G8H9I0J
+
+# 3. Extract folder contents to see what policies exist
+grctool tool google-workspace \
+  --document-id 1A2B3C4D5E6F7G8H9I0J \
+  --document-type drive
+
+# 4. For each policy document, extract full content
+# Example: Information Security Policy ID is 1K2L3M4N5O6P7Q8R9S0T
+grctool tool google-workspace \
+  --document-id 1K2L3M4N5O6P7Q8R9S0T \
+  --document-type docs \
+  > evidence/information-security-policy.json
+
+# 5. If collecting access reviews from a spreadsheet
+grctool tool google-workspace \
+  --document-id 1U2V3W4X5Y6Z7A8B9C0D \
+  --document-type sheets \
+  --sheet-range "Q3 2025!A1:F100" \
+  > evidence/access-review-q3-2025.json
+
+# 6. If collecting training quiz responses
+grctool tool google-workspace \
+  --document-id 1E2F3G4H5I6J7K8L9M0N \
+  --document-type forms \
+  > evidence/security-training-completions.json
+```
+
+**Troubleshooting Tips for AI Assistants:**
+
+When users encounter Google Workspace authentication issues:
+1. **"credentials not found"** → Check `GOOGLE_APPLICATION_CREDENTIALS` is set
+2. **"403 Forbidden"** → Verify document is shared with service account email
+3. **"404 Not Found"** → Confirm document ID is correct (check URL)
+4. **"API not enabled"** → User needs to enable APIs in Google Cloud Console
+
+To help users find document IDs:
+- **Drive folder**: `https://drive.google.com/drive/folders/FOLDER_ID_HERE`
+- **Google Docs**: `https://docs.google.com/document/d/DOCUMENT_ID_HERE/edit`
+- **Google Sheets**: `https://docs.google.com/spreadsheets/d/SHEET_ID_HERE/edit`
+- **Google Forms**: `https://docs.google.com/forms/d/FORM_ID_HERE/edit`
+
 ## 📚 GETTING MORE HELP
 
 ```bash
@@ -199,11 +295,14 @@ grctool tool github-permissions --help
 When helping users:
 - [ ] Confirm data is synced (`grctool sync`)
 - [ ] Verify authentication is valid (`grctool auth status`)
+- [ ] For Google Workspace: Check `GOOGLE_APPLICATION_CREDENTIALS` is set
+- [ ] For Google Workspace: Verify documents are shared with service account
 - [ ] Read evidence task files to understand requirements
 - [ ] Suggest appropriate tools for evidence collection
 - [ ] Help interpret tool output for compliance purposes
 - [ ] Ensure evidence is properly documented and formatted
 - [ ] Never commit secrets, tokens, or credentials
+- [ ] Guide users to setup docs if authentication is not configured
 
 ---
 

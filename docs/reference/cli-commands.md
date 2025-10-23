@@ -445,20 +445,55 @@ grctool tool github-review-analyzer --repository org/repo --since 2025-01-01 --u
 
 #### Document Management Tools
 
-**google-workspace**: Google Workspace document analysis
+**google-workspace**: Google Workspace document extraction (Drive, Docs, Sheets, Forms)
+
+**Authentication Setup:**
 ```bash
-# Policy document collection
-grctool tool google-workspace --document-type policies
+# Set credentials via environment variable (recommended)
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
 
-# Search for specific content
-grctool tool google-workspace --search-term "information security policy"
-
-# Folder-specific analysis
-grctool tool google-workspace --folder-id folder-123456 --include-metadata
-
-# Training materials collection
-grctool tool google-workspace --document-type training --include-completion-data
+# Or use explicit path in each command
+--credentials-path /path/to/credentials.json
 ```
+
+**Usage Examples:**
+```bash
+# Extract folder contents from Google Drive
+grctool tool google-workspace \
+  --document-id 1A2B3C4D5E6F7G8H9I0J \
+  --document-type drive
+
+# Extract policy document from Google Docs
+grctool tool google-workspace \
+  --document-id 1K2L3M4N5O6P7Q8R9S0T \
+  --document-type docs \
+  --include-metadata
+
+# Extract access review from Google Sheets with specific range
+grctool tool google-workspace \
+  --document-id 1U2V3W4X5Y6Z7A8B9C0D \
+  --document-type sheets \
+  --sheet-range "Q3 2025!A1:F100"
+
+# Extract training quiz responses from Google Forms
+grctool tool google-workspace \
+  --document-id 1E2F3G4H5I6J7K8L9M0N \
+  --document-type forms
+
+# With explicit credentials path
+grctool tool google-workspace \
+  --document-id 1K2L3M4N5O6P7Q8R9S0T \
+  --document-type docs \
+  --credentials-path ~/.config/grctool/google-credentials.json
+```
+
+**Finding Document IDs:**
+- Drive folder: `https://drive.google.com/drive/folders/DOCUMENT_ID`
+- Google Docs: `https://docs.google.com/document/d/DOCUMENT_ID/edit`
+- Google Sheets: `https://docs.google.com/spreadsheets/d/DOCUMENT_ID/edit`
+- Google Forms: `https://docs.google.com/forms/d/DOCUMENT_ID/edit`
+
+**Setup Guide:** See `docs/01-User-Guide/google-workspace-setup.md` for authentication setup
 
 #### Evidence Management Tools
 
