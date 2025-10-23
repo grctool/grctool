@@ -104,6 +104,24 @@ curl -fsSL https://raw.githubusercontent.com/grctool/grctool/main/scripts/instal
 grctool version
 ```
 
+### Updating
+
+Keep grctool up to date with the latest features and bug fixes:
+
+```bash
+# Check for available updates
+grctool update check
+
+# Install the latest version
+grctool update install
+
+# Install system-wide (requires sudo)
+grctool update install --system
+
+# Skip confirmation prompt
+grctool update install --yes
+```
+
 #### Option 2: Manual Build from Source
 
 1. **Clone and build:**
