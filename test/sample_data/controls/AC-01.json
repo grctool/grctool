@@ -1,0 +1,72 @@
+{
+  "id": 778773,
+  "reference_id": "AC-01",
+  "name": "Access Control - User Registration and Provisioning",
+  "description": "Access to system components requires documented access request and approval from authorized personnel prior to provisioning. User accounts are created, enabled, modified, disabled, and removed in accordance with organizational access control policies and procedures.",
+  "objective": "Ensure that access to organizational systems and data is granted only to authorized individuals following proper request and approval procedures, and that accounts are managed throughout their lifecycle.",
+  "framework": "SOC2 Type II",
+  "category": "Logical and Physical Access Controls",
+  "subcategory": "Access Provisioning",
+  "status": "implemented",
+  "risk_rating": "high",
+  "control_type": "preventive",
+  "frequency": "continuous",
+  "owner": "Information Technology",
+  "responsible_party": "IT Security Manager",
+  "implementation_date": "2023-01-01T00:00:00Z",
+  "last_review_date": "2024-08-15T00:00:00Z",
+  "next_review_date": "2025-02-15T00:00:00Z",
+  "testing_frequency": "quarterly",
+  "control_activities": [
+    "Access requests are submitted through formal request process",
+    "Requests are reviewed and approved by appropriate management",
+    "User accounts are provisioned based on approved requests",
+    "Account creation follows principle of least privilege",
+    "Access is reviewed periodically for appropriateness",
+    "Accounts are disabled or removed upon termination or role change"
+  ],
+  "key_attributes": [
+    "Formal access request and approval process",
+    "Segregation of duties between requestors and approvers",
+    "Documentation of access decisions",
+    "Timely provisioning and de-provisioning",
+    "Audit trail of access changes"
+  ],
+  "evidence_requirements": [
+    "Access request forms and approvals",
+    "User access provisioning procedures",
+    "System access logs showing account creation",
+    "Access review reports",
+    "User access matrices or role definitions",
+    "Termination checklist evidence"
+  ],
+  "related_controls": ["AC-02", "CC6.1", "CC6.2"],
+  "related_policies": ["POL-003"],
+  "compliance_mappings": [
+    {
+      "framework": "SOC2",
+      "control_id": "CC6.1",
+      "requirement": "Logical and Physical Access Controls"
+    },
+    {
+      "framework": "ISO27001",
+      "control_id": "A.9.2.1",
+      "requirement": "User registration and de-registration"
+    },
+    {
+      "framework": "NIST",
+      "control_id": "AC-2",
+      "requirement": "Account Management"
+    }
+  ],
+  "testing_procedures": [
+    "Review sample of access requests for proper approval",
+    "Verify account creation follows approved requests",
+    "Test segregation of duties in access provisioning",
+    "Examine access review documentation",
+    "Verify termination procedures disable access timely"
+  ],
+  "automation_level": "medium",
+  "maturity_level": "managed",
+  "tags": ["access_control", "provisioning", "user_management", "soc2", "iso27001"]
+}

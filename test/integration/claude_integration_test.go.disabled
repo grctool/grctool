@@ -1,0 +1,548 @@
+package integration_test
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/7thsense/isms/grctool/internal/models"
+	"github.com/7thsense/isms/grctool/internal/tools"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// ClaudeIntegrationTestSuite provides testing for Claude integration scenarios
+type ClaudeIntegrationTestSuite struct {
+	*WorkflowTestSuite
+}
+
+// NewClaudeIntegrationTestSuite creates a new Claude integration test suite
+func NewClaudeIntegrationTestSuite(t *testing.T) *ClaudeIntegrationTestSuite {
+	return &ClaudeIntegrationTestSuite{
+		WorkflowTestSuite: NewWorkflowTestSuite(t),
+	}
+}
+
+func TestClaudeToolDefinitions(t *testing.T) {
+	suite := NewClaudeIntegrationTestSuite(t)
+	suite.RegisterTools(t)
+
+	t.Run("Tool Definitions for Claude", func(t *testing.T) {
+		definitions := suite.ToolRegistry.GetClaudeToolDefinitions()
+		
+		// Should have at least the registered tools
+		assert.GreaterOrEqual(t, len(definitions), 2)
+
+		// Check each definition
+		for _, def := range definitions {
+			t.Run(def.Name, func(t *testing.T) {
+				// Validate required fields
+				assert.NotEmpty(t, def.Name)
+				assert.NotEmpty(t, def.Description)
+				assert.NotNil(t, def.InputSchema)
+
+				// Validate schema structure if InputSchema exists
+				if def.InputSchema != nil {
+					schema := def.InputSchema
+					require.NotNil(t, schema, "InputSchema should not be nil")
+
+					// Should have type and properties
+					assert.Equal(t, "object", schema["type"])
+					assert.Contains(t, schema, "properties")
+
+					properties, ok := schema["properties"].(map[string]interface{})
+					require.True(t, ok, "Properties should be a map")
+					assert.Greater(t, len(properties), 0, "Should have at least one property")
+
+					// Validate property definitions
+					for propName, propDef := range properties {
+						propDefMap, ok := propDef.(map[string]interface{})
+						require.True(t, ok, "Property %s should be a map", propName)
+						
+						assert.Contains(t, propDefMap, "type", "Property %s should have type", propName)
+						assert.Contains(t, propDefMap, "description", "Property %s should have description", propName)
+					}
+				}
+
+				t.Logf("Tool %s: %s", def.Name, def.Description)
+			})
+		}
+	})
+
+	t.Run("JSON Serialization of Tool Definitions", func(t *testing.T) {
+		definitions := suite.ToolRegistry.GetClaudeToolDefinitions()
+		
+		// Should be serializable to JSON
+		jsonData, err := json.MarshalIndent(definitions, "", "  ")
+		require.NoError(t, err)
+		assert.NotEmpty(t, jsonData)
+
+		// Should be deserializable from JSON
+		var parsedDefinitions []models.ClaudeTool
+		err = json.Unmarshal(jsonData, &parsedDefinitions)
+		require.NoError(t, err)
+		assert.Equal(t, len(definitions), len(parsedDefinitions))
+
+		t.Logf("Tool definitions JSON size: %d bytes", len(jsonData))
+	})
+}
+
+func TestClaudeWorkflowScenarios(t *testing.T) {
+	suite := NewClaudeIntegrationTestSuite(t)
+	suite.RegisterTools(t)
+
+	t.Run("Evidence Collection Workflow", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Simulate Claude workflow for evidence collection
+		workflow := []struct {
+			step        string
+			toolName    string
+			params      map[string]interface{}
+			validation  func(t *testing.T, result string, source *models.EvidenceSource)
+		}{
+			{
+				step:     "1. Search for encryption policies",
+				toolName: "docs-reader",
+				params: map[string]interface{}{
+					"keywords":        []interface{}{"encryption", "data protection"},
+					"include_content": true,
+					"max_results":     5,
+				},
+				validation: func(t *testing.T, result string, source *models.EvidenceSource) {
+					assert.Contains(t, result, "security-policy.md")
+					assert.Contains(t, result, "AES-256")
+					assert.Equal(t, "docs-reader", source.Type)
+				},
+			},
+			{
+				step:     "2. Analyze Terraform encryption implementation",
+				toolName: "terraform_analyzer",
+				params: map[string]interface{}{
+					"analysis_type":     "security_controls",
+					"security_controls": []interface{}{"encryption"},
+				},
+				validation: func(t *testing.T, result string, source *models.EvidenceSource) {
+					assert.Contains(t, result, "aws_kms_key")
+					assert.Contains(t, result, "enable_key_rotation")
+					assert.Equal(t, "terraform_analyzer", source.Type)
+				},
+			},
+			{
+				step:     "3. Find KMS key resources specifically",
+				toolName: "terraform_analyzer",
+				params: map[string]interface{}{
+					"analysis_type":  "resource_types",
+					"resource_types": []interface{}{"aws_kms_key", "aws_kms_alias"},
+				},
+				validation: func(t *testing.T, result string, source *models.EvidenceSource) {
+					assert.Contains(t, result, "main_encryption_key")
+					assert.Contains(t, result, "kms_alias")
+				},
+			},
+			{
+				step:     "4. Search for access control documentation",
+				toolName: "docs-reader",
+				params: map[string]interface{}{
+					"keywords":      []interface{}{"access control", "authentication", "authorization"},
+					"file_patterns": []interface{}{"*.md"},
+					"max_results":   3,
+				},
+				validation: func(t *testing.T, result string, source *models.EvidenceSource) {
+					assert.Contains(t, result, "multi-factor")
+					assert.Contains(t, result, "RBAC")
+				},
+			},
+			{
+				step:     "5. Analyze IAM access controls in Terraform",
+				toolName: "terraform_analyzer",
+				params: map[string]interface{}{
+					"analysis_type":  "resource_types",
+					"resource_types": []interface{}{"aws_iam_role", "aws_iam_policy"},
+				},
+				validation: func(t *testing.T, result string, source *models.EvidenceSource) {
+					assert.Contains(t, result, "application_role")
+					assert.Contains(t, result, "application_policy")
+				},
+			},
+		}
+
+		// Execute workflow steps
+		evidenceCollection := make(map[string]interface{})
+		for _, step := range workflow {
+			t.Run(step.step, func(t *testing.T) {
+				result, source, err := suite.ToolRegistry.Execute(ctx, step.toolName, step.params)
+				require.NoError(t, err)
+				assert.NotEmpty(t, result)
+				assert.NotNil(t, source)
+
+				// Run step-specific validation
+				step.validation(t, result, source)
+
+				// Store evidence
+				evidenceCollection[step.step] = map[string]interface{}{
+					"tool":        step.toolName,
+					"parameters":  step.params,
+					"result":      result,
+					"source":      source,
+					"executed_at": time.Now().Format(time.RFC3339),
+				}
+
+				t.Logf("Step completed: %s", step.step)
+			})
+		}
+
+		// Verify complete evidence collection
+		assert.Equal(t, len(workflow), len(evidenceCollection))
+		t.Logf("Evidence collection workflow completed with %d steps", len(evidenceCollection))
+	})
+}
+
+func TestClaudeErrorHandlingScenarios(t *testing.T) {
+	suite := NewClaudeIntegrationTestSuite(t)
+	suite.RegisterTools(t)
+
+	t.Run("Claude Error Recovery Scenarios", func(t *testing.T) {
+		ctx := context.Background()
+
+		errorScenarios := []struct {
+			scenario    string
+			toolName    string
+			params      map[string]interface{}
+			expectError bool
+			recovery    func(t *testing.T) (string, *models.EvidenceSource, error)
+		}{
+			{
+				scenario:    "Invalid tool parameters with fallback",
+				toolName:    "terraform_analyzer",
+				params:      map[string]interface{}{"analysis_type": "invalid"},
+				expectError: true,
+				recovery: func(t *testing.T) (string, *models.EvidenceSource, error) {
+					// Fallback to valid parameters
+					return suite.ToolRegistry.Execute(ctx, "terraform_analyzer", map[string]interface{}{
+						"analysis_type": "security_controls",
+						"security_controls": []interface{}{"encryption"},
+					})
+				},
+			},
+			{
+				scenario:    "Empty search with alternative approach",
+				toolName:    "docs-reader",
+				params:      map[string]interface{}{"keywords": []interface{}{}},
+				expectError: true,
+				recovery: func(t *testing.T) (string, *models.EvidenceSource, error) {
+					// Fallback to broader search
+					return suite.ToolRegistry.Execute(ctx, "docs-reader", map[string]interface{}{
+						"keywords":      []interface{}{"security"},
+						"max_results":   5,
+					})
+				},
+			},
+		}
+
+		for _, scenario := range errorScenarios {
+			t.Run(scenario.scenario, func(t *testing.T) {
+				// Try initial execution
+				result, source, err := suite.ToolRegistry.Execute(ctx, scenario.toolName, scenario.params)
+
+				if scenario.expectError {
+					assert.Error(t, err)
+					t.Logf("Expected error occurred: %v", err)
+
+					// Try recovery
+					if scenario.recovery != nil {
+						recoveryResult, recoverySource, recoveryErr := scenario.recovery(t)
+						require.NoError(t, recoveryErr)
+						assert.NotEmpty(t, recoveryResult)
+						assert.NotNil(t, recoverySource)
+						t.Logf("Recovery successful")
+					}
+				} else {
+					require.NoError(t, err)
+					assert.NotEmpty(t, result)
+					assert.NotNil(t, source)
+				}
+			})
+		}
+	})
+}
+
+func TestClaudeToolOrchestration(t *testing.T) {
+	suite := NewClaudeIntegrationTestSuite(t)
+	suite.RegisterTools(t)
+
+	t.Run("Complex Tool Orchestration", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Simulate complex Claude orchestration for compliance assessment
+		orchestrationPlan := []struct {
+			phase       string
+			tools       []struct {
+				name   string
+				params map[string]interface{}
+			}
+			synthesis func(t *testing.T, results []map[string]interface{}) string
+		}{
+			{
+				phase: "Discovery Phase",
+				tools: []struct {
+					name   string
+					params map[string]interface{}
+				}{
+					{
+						name: "docs-reader",
+						params: map[string]interface{}{
+							"keywords":      []interface{}{"compliance", "policy"},
+							"max_results":   10,
+						},
+					},
+					{
+						name: "terraform_analyzer",
+						params: map[string]interface{}{
+							"analysis_type": "security_controls",
+							"security_controls": []interface{}{"encryption", "access_control", "logging"},
+						},
+					},
+				},
+				synthesis: func(t *testing.T, results []map[string]interface{}) string {
+					// Synthesize discovery results
+					synthesis := "Discovery Phase Results:\n"
+					for i, result := range results {
+						synthesis += fmt.Sprintf("Tool %d: Found %d characters of evidence\n", 
+							i+1, len(result["result"].(string)))
+					}
+					return synthesis
+				},
+			},
+			{
+				phase: "Deep Analysis Phase",
+				tools: []struct {
+					name   string
+					params map[string]interface{}
+				}{
+					{
+						name: "docs-reader",
+						params: map[string]interface{}{
+							"keywords":        []interface{}{"SOC", "audit", "control"},
+							"include_content": true,
+							"max_results":     5,
+						},
+					},
+					{
+						name: "terraform_analyzer",
+						params: map[string]interface{}{
+							"analysis_type":  "resource_types",
+							"resource_types": []interface{}{"aws_cloudtrail", "aws_kms_key", "aws_iam_role"},
+						},
+					},
+				},
+				synthesis: func(t *testing.T, results []map[string]interface{}) string {
+					// Synthesize deep analysis results
+					synthesis := "Deep Analysis Phase Results:\n"
+					for i, result := range results {
+						resultStr := result["result"].(string)
+						if len(resultStr) > 100 {
+							synthesis += fmt.Sprintf("Tool %d: %s...\n", i+1, resultStr[:100])
+						} else {
+							synthesis += fmt.Sprintf("Tool %d: %s\n", i+1, resultStr)
+						}
+					}
+					return synthesis
+				},
+			},
+		}
+
+		finalReport := make(map[string]interface{})
+
+		for _, phase := range orchestrationPlan {
+			t.Run(phase.phase, func(t *testing.T) {
+				phaseResults := make([]map[string]interface{}, 0, len(phase.tools))
+
+				// Execute all tools in the phase
+				for _, tool := range phase.tools {
+					result, source, err := suite.ToolRegistry.Execute(ctx, tool.name, tool.params)
+					require.NoError(t, err)
+					assert.NotEmpty(t, result)
+					assert.NotNil(t, source)
+
+					phaseResults = append(phaseResults, map[string]interface{}{
+						"tool":   tool.name,
+						"result": result,
+						"source": source,
+					})
+				}
+
+				// Synthesize phase results
+				synthesis := phase.synthesis(t, phaseResults)
+				assert.NotEmpty(t, synthesis)
+
+				finalReport[phase.phase] = map[string]interface{}{
+					"results":   phaseResults,
+					"synthesis": synthesis,
+				}
+
+				t.Logf("Phase completed: %s", phase.phase)
+			})
+		}
+
+		// Verify orchestration completed
+		assert.Equal(t, len(orchestrationPlan), len(finalReport))
+		t.Logf("Tool orchestration completed with %d phases", len(finalReport))
+	})
+}
+
+func TestClaudeResponseFormats(t *testing.T) {
+	suite := NewClaudeIntegrationTestSuite(t)
+	suite.RegisterTools(t)
+
+	t.Run("Evidence Response Formats", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Test different output formats that Claude might request
+		formatTests := []struct {
+			name       string
+			toolName   string
+			params     map[string]interface{}
+			formatType string
+			validator  func(t *testing.T, result string)
+		}{
+			{
+				name:       "Markdown Documentation Format",
+				toolName:   "docs-reader",
+				params: map[string]interface{}{
+					"keywords":        []interface{}{"security"},
+					"include_content": true,
+					"max_results":     3,
+				},
+				formatType: "markdown",
+				validator: func(t *testing.T, result string) {
+					// Should contain markdown-style headers and formatting
+					assert.Contains(t, result, "#")
+					assert.Contains(t, result, "security-policy.md")
+				},
+			},
+			{
+				name:       "Technical Configuration Format",
+				toolName:   "terraform_analyzer",
+				params: map[string]interface{}{
+					"analysis_type":     "security_controls",
+					"security_controls": []interface{}{"encryption"},
+				},
+				formatType: "technical",
+				validator: func(t *testing.T, result string) {
+					// Should contain technical resource information
+					assert.Contains(t, result, "resource")
+					assert.Contains(t, result, "aws_")
+				},
+			},
+		}
+
+		for _, test := range formatTests {
+			t.Run(test.name, func(t *testing.T) {
+				result, source, err := suite.ToolRegistry.Execute(ctx, test.toolName, test.params)
+				require.NoError(t, err)
+				assert.NotEmpty(t, result)
+				assert.NotNil(t, source)
+
+				// Validate format-specific content
+				test.validator(t, result)
+
+				// Verify source metadata
+				assert.NotNil(t, source.Metadata)
+				assert.Equal(t, test.toolName, source.Type)
+
+				t.Logf("Format test passed: %s", test.name)
+			})
+		}
+	})
+}
+
+func TestClaudeParameterValidation(t *testing.T) {
+	suite := NewClaudeIntegrationTestSuite(t)
+	suite.RegisterTools(t)
+
+	t.Run("Parameter Validation for Claude Inputs", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Test parameter validation scenarios that Claude might encounter
+		validationTests := []struct {
+			name        string
+			toolName    string
+			params      map[string]interface{}
+			expectValid bool
+			errorCheck  func(t *testing.T, err error)
+		}{
+			{
+				name:     "Valid Terraform Parameters",
+				toolName: "terraform_analyzer",
+				params: map[string]interface{}{
+					"analysis_type":     "security_controls",
+					"security_controls": []interface{}{"encryption", "access_control"},
+				},
+				expectValid: true,
+			},
+			{
+				name:     "Valid Docs Reader Parameters",
+				toolName: "docs-reader",
+				params: map[string]interface{}{
+					"keywords":        []interface{}{"security", "policy"},
+					"include_content": true,
+					"max_results":     10,
+				},
+				expectValid: true,
+			},
+			{
+				name:     "Invalid Analysis Type",
+				toolName: "terraform_analyzer",
+				params: map[string]interface{}{
+					"analysis_type": "nonexistent_analysis",
+				},
+				expectValid: false,
+				errorCheck: func(t *testing.T, err error) {
+					assert.Contains(t, err.Error(), "invalid analysis_type")
+				},
+			},
+			{
+				name:     "Invalid Keywords Type",
+				toolName: "docs-reader",
+				params: map[string]interface{}{
+					"keywords": "should-be-array",
+				},
+				expectValid: false,
+				errorCheck: func(t *testing.T, err error) {
+					assert.Error(t, err)
+				},
+			},
+			{
+				name:     "Missing Required Parameters",
+				toolName: "terraform_analyzer",
+				params:   map[string]interface{}{},
+				expectValid: false,
+				errorCheck: func(t *testing.T, err error) {
+					assert.Contains(t, err.Error(), "required")
+				},
+			},
+		}
+
+		for _, test := range validationTests {
+			t.Run(test.name, func(t *testing.T) {
+				result, source, err := suite.ToolRegistry.Execute(ctx, test.toolName, test.params)
+
+				if test.expectValid {
+					require.NoError(t, err)
+					assert.NotEmpty(t, result)
+					assert.NotNil(t, source)
+					t.Logf("Valid parameters accepted")
+				} else {
+					assert.Error(t, err)
+					if test.errorCheck != nil {
+						test.errorCheck(t, err)
+					}
+					t.Logf("Invalid parameters correctly rejected: %v", err)
+				}
+			})
+		}
+	})
+}

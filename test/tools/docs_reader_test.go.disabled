@@ -1,0 +1,544 @@
+package tools
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/7thsense/isms/grctool/internal/config"
+	"github.com/7thsense/isms/grctool/internal/logger"
+	"github.com/7thsense/isms/grctool/internal/tools"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestDocsReaderTool_Basic(t *testing.T) {
+	tempDir := t.TempDir()
+
+	cfg := &config.Config{
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				DocsReader: config.DocsReaderConfig{
+					Enabled:   true,
+					ScanPaths: []string{tempDir},
+				},
+			},
+		},
+		Storage: config.StorageConfig{
+			DataDir: tempDir,
+		},
+	}
+
+	log, err := logger.New(&logger.Config{
+		Level:  logger.ErrorLevel,
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err)
+
+	tool := tools.NewDocsReaderTool(cfg, log)
+
+	t.Run("Tool Properties", func(t *testing.T) {
+		assert.Equal(t, "docs-reader", tool.Name())
+		assert.Contains(t, tool.Description(), "documentation files")
+
+		definition := tool.GetClaudeToolDefinition()
+		assert.Equal(t, "docs-reader", definition.Name)
+		assert.NotNil(t, definition.InputSchema)
+
+		// Check schema properties
+		schema := definition.InputSchema.(map[string]interface{})
+		properties := schema["properties"].(map[string]interface{})
+		assert.Contains(t, properties, "keywords")
+		assert.Contains(t, properties, "file_patterns")
+		assert.Contains(t, properties, "max_results")
+		assert.Contains(t, properties, "include_content")
+	})
+}
+
+func TestDocsReaderTool_SearchDocuments(t *testing.T) {
+	// Create test directory structure with documents
+	tempDir := t.TempDir()
+	docsDir := filepath.Join(tempDir, "docs")
+	err := os.MkdirAll(docsDir, 0755)
+	require.NoError(t, err)
+
+	// Create test documents
+	testDocs := map[string]string{
+		"security-policy.md": `# Security Policy
+
+## Data Encryption
+We implement encryption at rest using AES-256 encryption for all sensitive data.
+All data in transit is encrypted using TLS 1.3.
+
+## Access Control
+Multi-factor authentication is required for all administrative access.
+Role-based access control (RBAC) is implemented across all systems.
+
+## Compliance
+We maintain SOC 2 Type II compliance and undergo annual security audits.
+`,
+		"privacy-policy.md": `# Privacy Policy
+
+## Data Collection
+We collect minimal necessary data and follow privacy by design principles.
+
+## Data Retention
+Personal data is retained only as long as necessary for business purposes.
+Data is automatically purged after retention periods expire.
+
+## User Rights
+Users have the right to access, modify, and delete their personal data.
+`,
+		"infrastructure.md": `# Infrastructure Documentation
+
+## Cloud Architecture
+Our infrastructure is hosted on AWS with multi-region deployment.
+We use Kubernetes for container orchestration.
+
+## Security Hardening
+All systems follow CIS benchmarks for security hardening.
+Regular vulnerability scans are performed on all infrastructure.
+
+## Monitoring
+Comprehensive monitoring is implemented with CloudWatch and Prometheus.
+Security events are monitored with SIEM integration.
+`,
+		"README.md": `# Project Documentation
+
+This repository contains our security and compliance documentation.
+
+## Contents
+- Security Policy
+- Privacy Policy  
+- Infrastructure Documentation
+`,
+	}
+
+	for filename, content := range testDocs {
+		err := os.WriteFile(filepath.Join(docsDir, filename), []byte(content), 0644)
+		require.NoError(t, err)
+	}
+
+	cfg := &config.Config{
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				DocsReader: config.DocsReaderConfig{
+					Enabled:   true,
+					ScanPaths: []string{docsDir},
+				},
+			},
+		},
+		Storage: config.StorageConfig{
+			DataDir: tempDir,
+		},
+	}
+
+	log, err := logger.New(&logger.Config{
+		Level:  logger.ErrorLevel,
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err)
+
+	tool := tools.NewDocsReaderTool(cfg, log)
+
+	t.Run("Search by Single Keyword", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"encryption"},
+			"include_content": true,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+		assert.Equal(t, "docs-reader", source.Type)
+
+		// Should find the security policy document
+		assert.Contains(t, result, "security-policy.md")
+		assert.Contains(t, result, "AES-256 encryption")
+		assert.Contains(t, result, "TLS 1.3")
+	})
+
+	t.Run("Search by Multiple Keywords", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"access", "control", "authentication"},
+			"include_content": true,
+			"max_results":     10,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find documents with access control content
+		assert.Contains(t, result, "security-policy.md")
+		assert.Contains(t, result, "Multi-factor authentication")
+		assert.Contains(t, result, "Role-based access control")
+	})
+
+	t.Run("Search with File Pattern Filter", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":      []interface{}{"policy"},
+			"file_patterns": []interface{}{"*policy*.md"},
+			"max_results":   5,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find both policy files
+		assert.Contains(t, result, "security-policy.md")
+		assert.Contains(t, result, "privacy-policy.md")
+		// Should not find infrastructure.md or README.md
+		assert.NotContains(t, result, "infrastructure.md")
+		assert.NotContains(t, result, "README.md")
+	})
+
+	t.Run("Search without Content", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"security"},
+			"include_content": false,
+			"max_results":     3,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find files but not include full content
+		assert.Contains(t, result, "security-policy.md")
+		assert.Contains(t, result, "infrastructure.md")
+		// Should not contain full document content
+		assert.NotContains(t, result, "AES-256 encryption")
+	})
+
+	t.Run("Search with Relevance Scoring", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"compliance", "SOC", "audit"},
+			"include_content": true,
+			"max_results":     10,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find the security policy which mentions SOC 2 and audits
+		assert.Contains(t, result, "security-policy.md")
+		assert.Contains(t, result, "SOC 2 Type II")
+		assert.Contains(t, result, "security audits")
+	})
+
+	t.Run("Search with No Results", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":    []interface{}{"nonexistent-keyword-xyz123"},
+			"max_results": 5,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotNil(t, source)
+
+		// Should return message indicating no results
+		assert.Contains(t, result, "No documents found")
+	})
+
+	t.Run("Search with Path Restriction", func(t *testing.T) {
+		// Create subdirectory with additional docs
+		subDir := filepath.Join(docsDir, "policies")
+		err := os.MkdirAll(subDir, 0755)
+		require.NoError(t, err)
+
+		err = os.WriteFile(filepath.Join(subDir, "hr-policy.md"), []byte("# HR Policy\nEmployee onboarding and security training requirements."), 0644)
+		require.NoError(t, err)
+
+		// Update config to include subdirectory
+		cfg.Evidence.Tools.DocsReader.ScanPaths = []string{subDir}
+		tool := tools.NewDocsReaderTool(cfg, log)
+
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":    []interface{}{"policy"},
+			"max_results": 5,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find only the HR policy in the subdirectory
+		assert.Contains(t, result, "hr-policy.md")
+		// Should not find the policies in the parent directory
+		assert.NotContains(t, result, "security-policy.md")
+		assert.NotContains(t, result, "privacy-policy.md")
+	})
+}
+
+func TestDocsReaderTool_ErrorHandling(t *testing.T) {
+	tempDir := t.TempDir()
+
+	cfg := &config.Config{
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				DocsReader: config.DocsReaderConfig{
+					Enabled:   true,
+					ScanPaths: []string{"/nonexistent/path", tempDir},
+				},
+			},
+		},
+		Storage: config.StorageConfig{
+			DataDir: tempDir,
+		},
+	}
+
+	log, err := logger.New(&logger.Config{
+		Level:  logger.ErrorLevel,
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err)
+
+	tool := tools.NewDocsReaderTool(cfg, log)
+
+	t.Run("Invalid Parameters", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords": "not-an-array", // Should be array
+		}
+
+		_, _, err := tool.Execute(ctx, params)
+		assert.Error(t, err)
+	})
+
+	t.Run("Empty Keywords", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords": []interface{}{},
+		}
+
+		_, _, err := tool.Execute(ctx, params)
+		assert.Error(t, err)
+	})
+
+	t.Run("Invalid File Patterns", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":      []interface{}{"test"},
+			"file_patterns": "not-an-array", // Should be array
+		}
+
+		_, _, err := tool.Execute(ctx, params)
+		assert.Error(t, err)
+	})
+
+	t.Run("Invalid Max Results", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":    []interface{}{"test"},
+			"max_results": "not-a-number", // Should be number
+		}
+
+		_, _, err := tool.Execute(ctx, params)
+		assert.Error(t, err)
+	})
+
+	t.Run("Nonexistent Scan Paths", func(t *testing.T) {
+		// Tool should handle nonexistent paths gracefully
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords": []interface{}{"test"},
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		// Should not error, but may return no results
+		require.NoError(t, err)
+		assert.NotNil(t, source)
+		// May contain "No documents found" message
+		assert.NotEmpty(t, result)
+	})
+}
+
+func TestDocsReaderTool_FileTypes(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create files of different types
+	testFiles := map[string]string{
+		"doc.md":   "# Markdown Document\nThis is a markdown file with security content.",
+		"doc.txt":  "Plain text document about encryption and access control.",
+		"doc.rst":  "RestructuredText Document\n========================\n\nContent about compliance and audits.",
+		"doc.adoc": "= AsciiDoc Document\n\nInformation about infrastructure security.",
+		"other.go": "// Go source file\npackage main\n// This should not be found by docs reader",
+	}
+
+	for filename, content := range testFiles {
+		err := os.WriteFile(filepath.Join(tempDir, filename), []byte(content), 0644)
+		require.NoError(t, err)
+	}
+
+	cfg := &config.Config{
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				DocsReader: config.DocsReaderConfig{
+					Enabled:   true,
+					ScanPaths: []string{tempDir},
+				},
+			},
+		},
+		Storage: config.StorageConfig{
+			DataDir: tempDir,
+		},
+	}
+
+	log, err := logger.New(&logger.Config{
+		Level:  logger.ErrorLevel,
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err)
+
+	tool := tools.NewDocsReaderTool(cfg, log)
+
+	t.Run("Search Documentation Files Only", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"Document"},
+			"include_content": true,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find documentation files but not source code
+		assert.Contains(t, result, "doc.md")
+		assert.Contains(t, result, "doc.txt")
+		assert.Contains(t, result, "doc.rst")
+		assert.Contains(t, result, "doc.adoc")
+		assert.NotContains(t, result, "other.go")
+	})
+
+	t.Run("Search Specific File Types", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":      []interface{}{"security"},
+			"file_patterns": []interface{}{"*.md", "*.txt"},
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should find only markdown and text files
+		assert.Contains(t, result, "doc.md")
+		assert.Contains(t, result, "doc.txt")
+		assert.NotContains(t, result, "doc.rst")
+		assert.NotContains(t, result, "doc.adoc")
+	})
+}
+
+func TestDocsReaderTool_SectionExtraction(t *testing.T) {
+	tempDir := t.TempDir()
+
+	// Create a document with clear sections
+	sectionedDoc := `# Main Document
+
+## Section 1: Introduction
+This section introduces the security framework.
+
+## Section 2: Data Protection
+This section covers data encryption and access controls.
+We use AES-256 encryption for sensitive data.
+Multi-factor authentication is required.
+
+## Section 3: Compliance
+Our compliance framework includes:
+- SOC 2 Type II certification
+- Annual security audits
+- Vulnerability assessments
+
+## Section 4: Infrastructure
+Cloud infrastructure security measures.
+`
+
+	err := os.WriteFile(filepath.Join(tempDir, "sectioned-doc.md"), []byte(sectionedDoc), 0644)
+	require.NoError(t, err)
+
+	cfg := &config.Config{
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				DocsReader: config.DocsReaderConfig{
+					Enabled:   true,
+					ScanPaths: []string{tempDir},
+				},
+			},
+		},
+		Storage: config.StorageConfig{
+			DataDir: tempDir,
+		},
+	}
+
+	log, err := logger.New(&logger.Config{
+		Level:  logger.ErrorLevel,
+		Format: "text",
+		Output: "stdout",
+	})
+	require.NoError(t, err)
+
+	tool := tools.NewDocsReaderTool(cfg, log)
+
+	t.Run("Extract Relevant Sections", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"encryption", "authentication"},
+			"include_content": true,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should extract the Data Protection section
+		assert.Contains(t, result, "Section 2: Data Protection")
+		assert.Contains(t, result, "AES-256 encryption")
+		assert.Contains(t, result, "Multi-factor authentication")
+
+		// May or may not include other sections depending on relevance scoring
+	})
+
+	t.Run("Search for Compliance Content", func(t *testing.T) {
+		ctx := context.Background()
+		params := map[string]interface{}{
+			"keywords":        []interface{}{"compliance", "SOC", "audit"},
+			"include_content": true,
+		}
+
+		result, source, err := tool.Execute(ctx, params)
+		require.NoError(t, err)
+		assert.NotEmpty(t, result)
+		assert.NotNil(t, source)
+
+		// Should extract the Compliance section
+		assert.Contains(t, result, "Section 3: Compliance")
+		assert.Contains(t, result, "SOC 2 Type II")
+		assert.Contains(t, result, "security audits")
+		assert.Contains(t, result, "Vulnerability assessments")
+	})
+}

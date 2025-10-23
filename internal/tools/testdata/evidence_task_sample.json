@@ -1,0 +1,47 @@
+{
+  "id": 327992,
+  "reference_id": "ET1",
+  "name": "Access Control Registration and De-registration Process Document",
+  "description": "Provide user registration and de-registration process document/Access Control policy or procedure reviewed by management.",
+  "guidance": "The documented access control policies and procedures should demonstrate that:\ni) Accounts are created, enabled, modified, disabled, and removed in accordance with the organization's access control policy, procedures, prerequisites and criteria (as defined in the access control procedures).\nii) The organization has implemented a process for changing shared or group account authenticators when individuals are removed from the group.\niii) Account management processes are aligned with personnel termination and transfer processes.",
+  "collection_interval": "year",
+  "priority": "",
+  "framework": "",
+  "status": "",
+  "completed": true,
+  "category": "Personnel",
+  "complexity_level": "Moderate",
+  "collection_type": "Hybrid",
+  "due_days_before": 0,
+  "ad_hoc": false,
+  "sensitive": false,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "controls": ["778771", "778779"],
+  "related_controls": [
+    {
+      "id": 778771,
+      "reference_id": "AC1",
+      "name": "Access Provisioning and Approval",
+      "description": "Access to in-scope system components requires documented access request and approval from management prior to access provisioning.",
+      "category": "Access Control",
+      "status": "implemented"
+    },
+    {
+      "id": 778779,
+      "reference_id": "AC2", 
+      "name": "Access Revocation",
+      "description": "Management utilizes an employee termination checklist to ensure that the termination process is consistently executed, and access is revoked for terminated employees in a timely manner.",
+      "category": "Access Control",
+      "status": "implemented"
+    }
+  ],
+  "assignees": [
+    {
+      "id": "57888",
+      "name": "",
+      "email": "",
+      "assigned_at": "0001-01-01T00:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+data_dir: .
+log_level: info
+
+evidence:
+  tools:
+    github:
+      enabled: true
+      repository: test/repo
+    terraform:
+      enabled: true
+      scan_paths:
+        - terraform/

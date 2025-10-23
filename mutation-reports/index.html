@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRCTool Gremlins Mutation Testing Reports</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f4f4f4; padding: 20px; border-radius: 5px; }
+        .package-list { margin-top: 20px; }
+        .package-item { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .score { font-weight: bold; margin: 5px 0; }
+        .efficacy { color: #2196F3; }
+        .coverage { color: #4CAF50; }
+        .pass { color: green; }
+        .fail { color: red; }
+        .timestamp { color: #666; font-size: 0.9em; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 GRCTool Gremlins Mutation Testing Reports</h1>
+        <p class="timestamp">Generated: $(date)</p>
+        <p>Mutation testing results using the Gremlins tool</p>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Package</th>
+                <th>Test Efficacy</th>
+                <th>Mutant Coverage</th>
+                <th>Status</th>
+                <th>Report</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>auth</strong></td>
+                <td class="efficacy">0%</td>
+                <td class="coverage">0%</td>
+                <td class="fail">FAIL</td>
+                <td><a href="auth-gremlins.txt">View Report</a></td>
+            </tr>
+            <tr>
+                <td><strong>tugboat</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>services</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>config</strong></td>
+                <td class="efficacy">55.00%</td>
+                <td class="coverage">76.92%</td>
+                <td class="fail">FAIL</td>
+                <td><a href="config-gremlins.txt">View Report</a></td>
+            </tr>
+            <tr>
+                <td><strong>domain</strong></td>
+                <td class="efficacy">83.87%</td>
+                <td class="coverage">53.45%</td>
+                <td class="fail">FAIL</td>
+                <td><a href="domain-gremlins.txt">View Report</a></td>
+            </tr>
+            <tr>
+                <td><strong>models</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>adapters</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>logger</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>utils</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>formatters</strong></td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>SKIP</td>
+                <td>No report available</td>
+            </tr>
+            <tr>
+                <td><strong>appcontext</strong></td>
+                <td class="efficacy">100.00%</td>
+                <td class="coverage">11.11%</td>
+                <td class="fail">FAIL</td>
+                <td><a href="appcontext-gremlins.txt">View Report</a></td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div style="margin-top: 30px;">
+        <h3>📊 Understanding the Metrics</h3>
+        <p><strong>Test Efficacy:</strong> Percentage of mutants killed by your tests (killed / (killed + lived))</p>
+        <p><strong>Mutant Coverage:</strong> Percentage of mutants that are runnable (have test coverage)</p>
+        <p><strong>Thresholds:</strong> Critical packages: 80%/85%, Standard packages: 70%/80%, Utility packages: 60%/70%</p>
+    </div>
+    
+    <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border-radius: 5px;">
+        <h4>💡 Improving Scores</h4>
+        <ul>
+            <li>Add tests for edge cases and error conditions</li>
+            <li>Test all code paths and conditional branches</li>
+            <li>Verify boundary conditions and arithmetic operations</li>
+            <li>Use <code>gremlins unleash --dry-run &lt;package&gt;</code> to see mutation opportunities</li>
+        </ul>
+    </div>
+</body>
+</html>

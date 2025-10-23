@@ -1,0 +1,36 @@
+{
+  "name": "get_api_org_evidence_fd55c5b3048d.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/?embeds=org_control",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 422,
+        "status": "422 Unprocessable Entity",
+        "headers": {
+          "Allow": "GET, POST, HEAD, OPTIONS",
+          "Content-Length": "85",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Sat, 05 Jul 2025 23:03:21 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Embed not supported for org_evidence: org_control\",\"code\":\"invalid_embed\"}"
+      },
+      "timestamp": "2025-07-05T19:03:21.005276-04:00"
+    }
+  ],
+  "recorded_at": "2025-07-05T19:03:21.005471-04:00"
+}

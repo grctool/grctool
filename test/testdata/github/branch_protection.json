@@ -1,0 +1,136 @@
+{
+  "url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection",
+  "enabled": true,
+  "required_status_checks": {
+    "enforcement_level": "everyone",
+    "contexts": [
+      "continuous-integration/security-scan",
+      "continuous-integration/terraform-plan",
+      "continuous-integration/compliance-check"
+    ],
+    "checks": [
+      {
+        "context": "security-scan",
+        "app_id": 12345
+      },
+      {
+        "context": "terraform-plan",
+        "app_id": 12345
+      },
+      {
+        "context": "compliance-check",
+        "app_id": 12345
+      }
+    ]
+  },
+  "enforce_admins": {
+    "url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/enforce_admins",
+    "enabled": true
+  },
+  "required_pull_request_reviews": {
+    "url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/required_pull_request_reviews",
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": true,
+    "required_approving_review_count": 2,
+    "require_last_push_approval": true,
+    "dismissal_restrictions": {
+      "url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/required_pull_request_reviews/dismissal_restrictions",
+      "users_url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/required_pull_request_reviews/dismissal_restrictions/users",
+      "teams_url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/required_pull_request_reviews/dismissal_restrictions/teams",
+      "users": [
+        {
+          "login": "security-admin",
+          "id": 11111111,
+          "node_id": "MDQ6VXNlcjExMTExMTEx",
+          "avatar_url": "https://avatars.githubusercontent.com/u/11111111?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/security-admin",
+          "html_url": "https://github.com/security-admin",
+          "type": "User",
+          "site_admin": false
+        }
+      ],
+      "teams": [
+        {
+          "id": 5555555,
+          "node_id": "MDQ6VGVhbTU1NTU1NTU=",
+          "url": "https://api.github.com/teams/5555555",
+          "html_url": "https://github.com/orgs/7thsense/teams/security-team",
+          "name": "Security Team",
+          "slug": "security-team",
+          "description": "Core security and compliance team",
+          "privacy": "closed",
+          "notification_setting": "notifications_enabled",
+          "permission": "admin"
+        }
+      ]
+    }
+  },
+  "restrictions": {
+    "url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/restrictions",
+    "users_url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/restrictions/users",
+    "teams_url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/restrictions/teams",
+    "apps_url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches/main/protection/restrictions/apps",
+    "users": [
+      {
+        "login": "security-admin",
+        "id": 11111111,
+        "node_id": "MDQ6VXNlcjExMTExMTEx",
+        "avatar_url": "https://avatars.githubusercontent.com/u/11111111?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/security-admin",
+        "html_url": "https://github.com/security-admin",
+        "type": "User",
+        "site_admin": false
+      }
+    ],
+    "teams": [
+      {
+        "id": 5555555,
+        "node_id": "MDQ6VGVhbTU1NTU1NTU=",
+        "url": "https://api.github.com/teams/5555555",
+        "html_url": "https://github.com/orgs/7thsense/teams/security-team",
+        "name": "Security Team",
+        "slug": "security-team",
+        "description": "Core security and compliance team",
+        "privacy": "closed",
+        "notification_setting": "notifications_enabled",
+        "permission": "admin"
+      },
+      {
+        "id": 6666666,
+        "node_id": "MDQ6VGVhbTY2NjY2NjY=",
+        "url": "https://api.github.com/teams/6666666",
+        "html_url": "https://github.com/orgs/7thsense/teams/devops-team",
+        "name": "DevOps Team",
+        "slug": "devops-team",
+        "description": "Infrastructure and deployment team",
+        "privacy": "closed",
+        "notification_setting": "notifications_enabled",
+        "permission": "maintain"
+      }
+    ],
+    "apps": []
+  },
+  "required_linear_history": {
+    "enabled": true
+  },
+  "allow_force_pushes": {
+    "enabled": false
+  },
+  "allow_deletions": {
+    "enabled": false
+  },
+  "block_creations": {
+    "enabled": false
+  },
+  "required_conversation_resolution": {
+    "enabled": true
+  },
+  "lock_branch": {
+    "enabled": false
+  },
+  "allow_fork_syncing": {
+    "enabled": false
+  }
+}

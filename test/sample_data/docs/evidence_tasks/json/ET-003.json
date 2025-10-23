@@ -1,0 +1,80 @@
+{
+  "id": 327994,
+  "reference_id": "ET-003",
+  "name": "CI/CD Pipeline Security Evidence",
+  "description": "Provide evidence that CI/CD pipelines implement appropriate security controls including automated security scanning, secrets management, deployment approval workflows, and audit logging to ensure secure and controlled software delivery.",
+  "guidance": "The CI/CD pipeline security evidence should demonstrate that:\ni) Automated security scanning is integrated into the pipeline including static code analysis, dependency vulnerability scanning, and container image scanning.\nii) Secrets and credentials are properly managed using secure secret management solutions and never hardcoded in code or configuration.\niii) Deployment approvals are required for production releases with documented approval from authorized personnel.\niv) Pipeline execution is logged and monitored with alerts for security events or unauthorized activities.\nv) Security testing gates prevent insecure code from progressing through the pipeline.",
+  "collection_interval": "quarter",
+  "priority": "high",
+  "framework": "SOC2 Type II",
+  "status": "active",
+  "completed": false,
+  "category": "Infrastructure",
+  "complexity_level": "Complex",
+  "collection_type": "Automated",
+  "due_days_before": 14,
+  "ad_hoc": false,
+  "sensitive": false,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-10-01T00:00:00Z",
+  "controls": ["778780", "778785"],
+  "policies": ["94644"],
+  "related_controls": [
+    {
+      "id": 778780,
+      "reference_id": "CC6.1",
+      "name": "Logical and Physical Access Controls",
+      "description": "Implements logical access controls to protect information assets.",
+      "category": "Logical and Physical Access Controls",
+      "status": "implemented"
+    },
+    {
+      "id": 778785,
+      "reference_id": "CC8.1",
+      "name": "Change Management Controls",
+      "description": "Changes are authorized, tested, approved, and implemented in controlled manner.",
+      "category": "Change Management",
+      "status": "implemented"
+    }
+  ],
+  "related_policies": [
+    {
+      "id": "94644",
+      "reference_id": "POL-004",
+      "name": "Change Management Policy",
+      "description": "System Change Management and Deployment Control Policy."
+    }
+  ],
+  "requirements": [
+    "CI/CD workflow configurations showing security scanning steps",
+    "Evidence of static code analysis (SAST) in pipeline",
+    "Dependency vulnerability scanning results and thresholds",
+    "Container/Docker image scanning evidence",
+    "Secrets management implementation (GitHub Secrets, Vault, etc.)",
+    "Production deployment approval workflow configurations",
+    "Pipeline execution logs with security scan results",
+    "Security scanning tool configurations and policies"
+  ],
+  "acceptance_criteria": [
+    "All pull requests trigger automated security scans",
+    "SAST scanning fails builds on critical/high vulnerabilities",
+    "Dependency scanning blocks vulnerable dependencies",
+    "Container images scanned before deployment",
+    "Secrets stored in secret management system, not in code",
+    "Production deployments require manual approval gate",
+    "Security scan failures prevent progression to next stage",
+    "Pipeline logs retained for minimum 90 days"
+  ],
+  "data_sources": [
+    "GitHub Actions workflow files",
+    "GitLab CI/CD pipeline configurations",
+    "Security scanning tool outputs (Snyk, Trivy, etc.)",
+    "Secret management system configurations",
+    "Deployment approval logs",
+    "Pipeline execution history",
+    "Security alert notifications"
+  ],
+  "automation_potential": "high",
+  "effort_estimate": "5 hours",
+  "tags": ["cicd", "security_scanning", "github_actions", "secrets_management", "soc2"]
+}

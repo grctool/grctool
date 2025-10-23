@@ -1,0 +1,166 @@
+{
+  "task_ref": "ET-103",
+  "title": "Access Control and Authentication",
+  "description": "Demonstrate that proper access controls and authentication mechanisms are implemented across all systems",
+  "compliance_frameworks": [
+    "SOC2",
+    "ISO27001",
+    "GDPR"
+  ],
+  "control_objectives": [
+    "CC2.1",
+    "CC2.2", 
+    "CC2.3",
+    "A.9.1.1",
+    "A.9.2.1"
+  ],
+  "evidence_type": "configuration",
+  "collection_method": "automated",
+  "frequency": "monthly",
+  "owner": "Security Team",
+  "status": "in_progress", 
+  "due_date": "2024-09-15",
+  "created_at": "2024-07-15T09:00:00Z",
+  "updated_at": "2024-08-20T11:45:00Z",
+  "requirements": {
+    "authentication_methods": [
+      "multi_factor_authentication",
+      "single_sign_on",
+      "certificate_based"
+    ],
+    "access_control_models": [
+      "role_based_access_control",
+      "attribute_based_access_control",
+      "least_privilege"
+    ],
+    "session_management": {
+      "timeout_enabled": true,
+      "concurrent_session_limits": true,
+      "secure_session_tokens": true
+    },
+    "password_policies": {
+      "minimum_length": 12,
+      "complexity_required": true,
+      "rotation_period_days": 90,
+      "history_prevention": 12
+    }
+  },
+  "evidence_sources": [
+    {
+      "type": "github_repository_access",
+      "description": "Repository access controls, branch protection, and review requirements",
+      "automated": true,
+      "tools": ["github-analyzer"]
+    },
+    {
+      "type": "iam_configuration",
+      "description": "AWS IAM roles, policies, and access patterns",
+      "automated": true,
+      "tools": ["aws-iam-analyzer"]
+    },
+    {
+      "type": "application_access_logs",
+      "description": "Authentication logs and access patterns",
+      "automated": true,
+      "tools": ["log-analyzer"]
+    },
+    {
+      "type": "identity_provider_config",
+      "description": "SAML/OAuth configuration and user provisioning",
+      "automated": false,
+      "tools": ["manual-review"]
+    }
+  ],
+  "validation_criteria": [
+    {
+      "criterion": "All GitHub repositories have branch protection enabled",
+      "validation_method": "automated_scan",
+      "expected_result": "100% compliance"
+    },
+    {
+      "criterion": "All AWS IAM users have MFA enabled",
+      "validation_method": "automated_scan",
+      "expected_result": "100% compliance"
+    },
+    {
+      "criterion": "No overprivileged IAM roles exist", 
+      "validation_method": "automated_scan",
+      "expected_result": "0 violations"
+    },
+    {
+      "criterion": "All admin access requires approval workflow",
+      "validation_method": "process_review",
+      "expected_result": "Policy compliance"
+    }
+  ],
+  "github_requirements": {
+    "branch_protection": {
+      "required_reviews": 2,
+      "dismiss_stale_reviews": true,
+      "require_code_owner_reviews": true,
+      "enforce_admins": true
+    },
+    "repository_settings": {
+      "private_repositories_only": true,
+      "vulnerability_alerts_enabled": true,
+      "dependency_updates_enabled": true
+    },
+    "team_permissions": {
+      "admin_team_required": true,
+      "read_only_audit_access": true,
+      "external_collaborator_restrictions": true
+    }
+  },
+  "aws_requirements": {
+    "iam_policies": {
+      "least_privilege_enforcement": true,
+      "regular_access_reviews": true,
+      "unused_permission_cleanup": true
+    },
+    "cross_account_access": {
+      "external_id_required": true,
+      "time_limited_access": true,
+      "audit_logging_enabled": true
+    }
+  },
+  "artifacts": [
+    {
+      "name": "github_access_report.json",
+      "type": "access_report",
+      "path": "evidence/access/github_access_2024-08-20.json", 
+      "hash": "sha256:ghi789jkl012...",
+      "size": 3072,
+      "created": "2024-08-20T10:15:00Z"
+    },
+    {
+      "name": "aws_iam_policy_analysis.json",
+      "type": "policy_analysis",
+      "path": "evidence/iam/policy_analysis_2024-08-20.json",
+      "hash": "sha256:jkl012mno345...",
+      "size": 5120,
+      "created": "2024-08-20T12:30:00Z"
+    },
+    {
+      "name": "branch_protection_config.json",
+      "type": "configuration_export",
+      "path": "evidence/github/branch_protection_2024-08-20.json",
+      "hash": "sha256:mno345pqr678...",
+      "size": 1536,
+      "created": "2024-08-20T09:45:00Z"
+    }
+  ],
+  "related_tasks": [
+    "ET-96",
+    "ET-104", 
+    "ET-105",
+    "ET-120"
+  ],
+  "tags": [
+    "access_control",
+    "authentication",
+    "github",
+    "iam",
+    "soc2_cc2",
+    "automated_evidence"
+  ]
+}

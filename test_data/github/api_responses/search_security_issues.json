@@ -1,0 +1,360 @@
+{
+  "total_count": 15,
+  "incomplete_results": false,
+  "items": [
+    {
+      "url": "https://api.github.com/repos/7thsense/isms/issues/101",
+      "repository_url": "https://api.github.com/repos/7thsense/isms",
+      "labels_url": "https://api.github.com/repos/7thsense/isms/issues/101/labels{/name}",
+      "comments_url": "https://api.github.com/repos/7thsense/isms/issues/101/comments",
+      "events_url": "https://api.github.com/repos/7thsense/isms/issues/101/events",
+      "html_url": "https://github.com/7thsense/isms/issues/101",
+      "id": 2001,
+      "node_id": "I_kwDOBManGM54f3zA",
+      "number": 101,
+      "title": "Implement encryption at rest for customer data",
+      "user": {
+        "login": "security-team",
+        "id": 1001,
+        "node_id": "U_kwDOBManGM4AAAA",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1001?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/security-team",
+        "html_url": "https://github.com/security-team",
+        "type": "User",
+        "site_admin": false
+      },
+      "labels": [
+        {
+          "id": 3001,
+          "node_id": "LA_kwDOBManGM7AAAArp",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/security",
+          "name": "security",
+          "color": "d73a4a",
+          "default": false,
+          "description": "Security-related issues"
+        },
+        {
+          "id": 3002,
+          "node_id": "LA_kwDOBManGM7AAAArq",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/encryption",
+          "name": "encryption",
+          "color": "0075ca",
+          "default": false,
+          "description": "Encryption and cryptography"
+        },
+        {
+          "id": 3003,
+          "node_id": "LA_kwDOBManGM7AAAArr",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/soc2",
+          "name": "soc2",
+          "color": "d4c5f9",
+          "default": false,
+          "description": "SOC2 compliance requirements"
+        }
+      ],
+      "state": "open",
+      "locked": false,
+      "assignee": {
+        "login": "lead-engineer",
+        "id": 1002,
+        "node_id": "U_kwDOBManGM4AAAB",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1002?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/lead-engineer",
+        "html_url": "https://github.com/lead-engineer",
+        "type": "User",
+        "site_admin": false
+      },
+      "assignees": [
+        {
+          "login": "lead-engineer",
+          "id": 1002,
+          "node_id": "U_kwDOBManGM4AAAB",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1002?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/lead-engineer",
+          "html_url": "https://github.com/lead-engineer",
+          "type": "User",
+          "site_admin": false
+        }
+      ],
+      "milestone": {
+        "url": "https://api.github.com/repos/7thsense/isms/milestones/5",
+        "html_url": "https://github.com/7thsense/isms/milestone/5",
+        "labels_url": "https://api.github.com/repos/7thsense/isms/milestones/5/labels",
+        "id": 5001,
+        "node_id": "MI_kwDOBManGM4ATmAB",
+        "number": 5,
+        "title": "SOC2 Compliance Q4",
+        "description": "SOC2 Type II compliance requirements for Q4 audit",
+        "creator": {
+          "login": "compliance-manager",
+          "id": 1003,
+          "node_id": "U_kwDOBManGM4AAAC",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1003?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/compliance-manager",
+          "html_url": "https://github.com/compliance-manager",
+          "type": "User",
+          "site_admin": false
+        },
+        "open_issues": 8,
+        "closed_issues": 12,
+        "state": "open",
+        "created_at": "2024-01-15T10:00:00Z",
+        "updated_at": "2024-08-20T15:30:00Z",
+        "due_on": "2024-12-31T23:59:59Z",
+        "closed_at": null
+      },
+      "comments": 15,
+      "created_at": "2024-07-10T09:15:00Z",
+      "updated_at": "2024-08-20T16:45:00Z",
+      "closed_at": null,
+      "author_association": "MEMBER",
+      "active_lock_reason": null,
+      "body": "## Security Requirement\n\nAs part of our SOC2 Type II compliance efforts, we need to implement encryption at rest for all customer data stored in our systems.\n\n## Acceptance Criteria\n\n- [ ] Enable S3 bucket encryption with customer-managed KMS keys\n- [ ] Implement RDS encryption for all databases containing customer data\n- [ ] Enable EBS volume encryption for application servers\n- [ ] Document encryption key rotation procedures\n- [ ] Update security policies to reflect encryption requirements\n\n## Related Controls\n\n- **CC6.8**: The entity implements logical access security measures to protect against threats from sources outside its system boundaries.\n- **CC6.1**: The entity implements logical access security software, infrastructure, and architectures over protected information assets.\n\n## Timeline\n\nThis must be completed before the Q4 SOC2 audit scheduled for December 2024.\n\n## Additional Context\n\nThis addresses findings from our internal security assessment and aligns with industry best practices for data protection.",
+      "reactions": {
+        "+1": 5,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 2,
+        "confused": 0,
+        "heart": 1,
+        "rocket": 3,
+        "eyes": 8
+      },
+      "timeline_url": "https://api.github.com/repos/7thsense/isms/issues/101/timeline",
+      "performed_via_github_app": null,
+      "state_reason": null,
+      "score": 1.0
+    },
+    {
+      "url": "https://api.github.com/repos/7thsense/isms/issues/98",
+      "repository_url": "https://api.github.com/repos/7thsense/isms",
+      "labels_url": "https://api.github.com/repos/7thsense/isms/issues/98/labels{/name}",
+      "comments_url": "https://api.github.com/repos/7thsense/isms/issues/98/comments",
+      "events_url": "https://api.github.com/repos/7thsense/isms/issues/98/events",
+      "html_url": "https://github.com/7thsense/isms/issues/98",
+      "id": 2002,
+      "node_id": "I_kwDOBManGM54f3zB",
+      "number": 98,
+      "title": "Security vulnerability in user authentication flow",
+      "user": {
+        "login": "security-researcher",
+        "id": 1004,
+        "node_id": "U_kwDOBManGM4AAAD",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1004?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/security-researcher",
+        "html_url": "https://github.com/security-researcher",
+        "type": "User",
+        "site_admin": false
+      },
+      "labels": [
+        {
+          "id": 3001,
+          "node_id": "LA_kwDOBManGM7AAAArp",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/security",
+          "name": "security",
+          "color": "d73a4a",
+          "default": false,
+          "description": "Security-related issues"
+        },
+        {
+          "id": 3004,
+          "node_id": "LA_kwDOBManGM7AAAArs",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/vulnerability",
+          "name": "vulnerability",
+          "color": "ff0000",
+          "default": false,
+          "description": "Security vulnerability"
+        },
+        {
+          "id": 3005,
+          "node_id": "LA_kwDOBManGM7AAAArt",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/critical",
+          "name": "critical",
+          "color": "b60205",
+          "default": false,
+          "description": "Critical priority"
+        }
+      ],
+      "state": "closed",
+      "locked": false,
+      "assignee": {
+        "login": "security-team",
+        "id": 1001,
+        "node_id": "U_kwDOBManGM4AAAA",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1001?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/security-team",
+        "html_url": "https://github.com/security-team",
+        "type": "User",
+        "site_admin": false
+      },
+      "assignees": [
+        {
+          "login": "security-team",
+          "id": 1001,
+          "node_id": "U_kwDOBManGM4AAAA",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1001?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/security-team",
+          "html_url": "https://github.com/security-team",
+          "type": "User",
+          "site_admin": false
+        }
+      ],
+      "milestone": null,
+      "comments": 8,
+      "created_at": "2024-06-25T14:20:00Z",
+      "updated_at": "2024-07-15T11:30:00Z",
+      "closed_at": "2024-07-15T11:30:00Z",
+      "author_association": "NONE",
+      "active_lock_reason": null,
+      "body": "## Vulnerability Report\n\n**CVE**: Pending assignment\n**CVSS Score**: 8.1 (High)\n**Category**: Authentication Bypass\n\n## Description\n\nI've discovered a critical vulnerability in the user authentication flow that allows attackers to bypass multi-factor authentication under certain conditions.\n\n## Proof of Concept\n\n1. Initiate login with valid username/password\n2. When prompted for MFA, intercept the request\n3. Modify the `mfa_required` parameter from `true` to `false`\n4. Submit the modified request\n5. Authentication succeeds without MFA verification\n\n## Impact\n\n- Complete account takeover for any user account\n- Access to sensitive customer data\n- Potential compliance violations (SOC2, GDPR)\n\n## Affected Versions\n\n- v2.1.0 through v2.3.5\n- Estimated 10,000+ user accounts affected\n\n## Remediation\n\n- Implement server-side MFA validation\n- Add request integrity checks\n- Audit all authentication-related code\n\n## Disclosure Timeline\n\n- **2024-06-25**: Initial report\n- **2024-06-26**: Vulnerability confirmed\n- **2024-07-01**: Patch developed\n- **2024-07-15**: Patch deployed and verified\n\n## References\n\n- OWASP Authentication Cheat Sheet\n- NIST SP 800-63B Authentication Guidelines",
+      "reactions": {
+        "+1": 12,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 1,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 25
+      },
+      "timeline_url": "https://api.github.com/repos/7thsense/isms/issues/98/timeline",
+      "performed_via_github_app": null,
+      "state_reason": "completed",
+      "score": 0.95
+    },
+    {
+      "url": "https://api.github.com/repos/7thsense/isms/issues/95",
+      "repository_url": "https://api.github.com/repos/7thsense/isms",
+      "labels_url": "https://api.github.com/repos/7thsense/isms/issues/95/labels{/name}",
+      "comments_url": "https://api.github.com/repos/7thsense/isms/issues/95/comments",
+      "events_url": "https://api.github.com/repos/7thsense/isms/issues/95/events",
+      "html_url": "https://github.com/7thsense/isms/issues/95",
+      "id": 2003,
+      "node_id": "I_kwDOBManGM54f3zC",
+      "number": 95,
+      "title": "Audit logging for privileged access events",
+      "user": {
+        "login": "compliance-manager",
+        "id": 1003,
+        "node_id": "U_kwDOBManGM4AAAC",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1003?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/compliance-manager",
+        "html_url": "https://github.com/compliance-manager",
+        "type": "User",
+        "site_admin": false
+      },
+      "labels": [
+        {
+          "id": 3006,
+          "node_id": "LA_kwDOBManGM7AAAAru",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/audit",
+          "name": "audit",
+          "color": "7057ff",
+          "default": false,
+          "description": "Audit and logging requirements"
+        },
+        {
+          "id": 3003,
+          "node_id": "LA_kwDOBManGM7AAAArr",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/soc2",
+          "name": "soc2",
+          "color": "d4c5f9",
+          "default": false,
+          "description": "SOC2 compliance requirements"
+        },
+        {
+          "id": 3007,
+          "node_id": "LA_kwDOBManGM7AAAArv",
+          "url": "https://api.github.com/repos/7thsense/isms/labels/access-control",
+          "name": "access-control",
+          "color": "0e8a16",
+          "default": false,
+          "description": "Access control and permissions"
+        }
+      ],
+      "state": "open",
+      "locked": false,
+      "assignee": {
+        "login": "devops-engineer",
+        "id": 1005,
+        "node_id": "U_kwDOBManGM4AAAE",
+        "avatar_url": "https://avatars.githubusercontent.com/u/1005?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/devops-engineer",
+        "html_url": "https://github.com/devops-engineer",
+        "type": "User",
+        "site_admin": false
+      },
+      "assignees": [
+        {
+          "login": "devops-engineer",
+          "id": 1005,
+          "node_id": "U_kwDOBManGM4AAAE",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1005?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/devops-engineer",
+          "html_url": "https://github.com/devops-engineer",
+          "type": "User",
+          "site_admin": false
+        }
+      ],
+      "milestone": {
+        "url": "https://api.github.com/repos/7thsense/isms/milestones/5",
+        "html_url": "https://github.com/7thsense/isms/milestone/5",
+        "labels_url": "https://api.github.com/repos/7thsense/isms/milestones/5/labels",
+        "id": 5001,
+        "node_id": "MI_kwDOBManGM4ATmAB",
+        "number": 5,
+        "title": "SOC2 Compliance Q4",
+        "description": "SOC2 Type II compliance requirements for Q4 audit",
+        "creator": {
+          "login": "compliance-manager",
+          "id": 1003,
+          "node_id": "U_kwDOBManGM4AAAC",
+          "avatar_url": "https://avatars.githubusercontent.com/u/1003?v=4",
+          "gravatar_id": "",
+          "url": "https://api.github.com/users/compliance-manager",
+          "html_url": "https://github.com/compliance-manager",
+          "type": "User",
+          "site_admin": false
+        },
+        "open_issues": 8,
+        "closed_issues": 12,
+        "state": "open",
+        "created_at": "2024-01-15T10:00:00Z",
+        "updated_at": "2024-08-20T15:30:00Z",
+        "due_on": "2024-12-31T23:59:59Z",
+        "closed_at": null
+      },
+      "comments": 6,
+      "created_at": "2024-08-01T13:45:00Z",
+      "updated_at": "2024-08-20T14:15:00Z",
+      "closed_at": null,
+      "author_association": "MEMBER",
+      "active_lock_reason": null,
+      "body": "## Compliance Requirement\n\nPer SOC2 CC8.1 requirements, we need comprehensive audit logging for all privileged access events within our systems.\n\n## Current State\n\n- Basic application logging exists\n- AWS CloudTrail is configured for API calls\n- No centralized audit log aggregation\n- Limited monitoring of privileged operations\n\n## Requirements\n\n### CC8.1 - Change Tracking\n- [ ] Log all administrative access attempts (successful and failed)\n- [ ] Track configuration changes to security-sensitive systems\n- [ ] Monitor privileged user activities\n- [ ] Implement log integrity protection\n- [ ] Establish log retention policies (7 years minimum)\n\n### Technical Implementation\n- [ ] Configure AWS CloudTrail for comprehensive API logging\n- [ ] Set up VPC Flow Logs for network activity\n- [ ] Implement application-level audit logging\n- [ ] Configure AWS Config for configuration change tracking\n- [ ] Set up CloudWatch for real-time monitoring and alerting\n\n### Monitoring and Alerting\n- [ ] Root account usage alerts\n- [ ] Failed authentication attempt monitoring\n- [ ] Privilege escalation detection\n- [ ] Unusual access pattern alerts\n- [ ] Log tampering detection\n\n## Evidence Collection\n\nThe following evidence must be available for auditors:\n- Audit log configurations\n- Sample audit logs showing tracked events\n- Incident response procedures\n- Log retention and protection policies\n- Monitoring and alerting configurations\n\n## Timeline\n\n- **Phase 1** (Aug 2024): CloudTrail and Config setup\n- **Phase 2** (Sep 2024): Application audit logging\n- **Phase 3** (Oct 2024): Monitoring and alerting\n- **Phase 4** (Nov 2024): Documentation and testing\n\n## Acceptance Criteria\n\n- All privileged operations are logged with sufficient detail\n- Logs are tamper-evident and securely stored\n- Real-time alerting for critical security events\n- Compliance team can generate audit reports\n- External auditors can verify log completeness and integrity",
+      "reactions": {
+        "+1": 3,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 1,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 2,
+        "eyes": 5
+      },
+      "timeline_url": "https://api.github.com/repos/7thsense/isms/issues/95/timeline",
+      "performed_via_github_app": null,
+      "state_reason": null,
+      "score": 0.92
+    }
+  ]
+}

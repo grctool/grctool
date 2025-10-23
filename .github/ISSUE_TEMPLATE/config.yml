@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/grctool/grctool/discussions
+    about: Ask questions, share ideas, and discuss GRCTool with the community
+  - name: Documentation
+    url: https://github.com/grctool/grctool/blob/main/docs/index.md
+    about: Read the full documentation for help with configuration and usage
+  - name: Security Policy
+    url: https://github.com/grctool/grctool/blob/main/SECURITY.md
+    about: Report security vulnerabilities privately (DO NOT open public issues)

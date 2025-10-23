@@ -1,0 +1,17 @@
+Starting...
+Gathering coverage... done in 296.030389ms
+ NOT COVERED CONDITIONALS_NEGATION at output.go:161:27
+ NOT COVERED CONDITIONALS_NEGATION at middleware.go:45:20
+ NOT COVERED CONDITIONALS_NEGATION at output.go:103:33
+ NOT COVERED CONDITIONALS_NEGATION at middleware.go:59:9
+ NOT COVERED CONDITIONALS_NEGATION at output.go:156:33
+ NOT COVERED CONDITIONALS_NEGATION at output.go:98:28
+ NOT COVERED CONDITIONALS_NEGATION at utils.go:29:9
+ NOT COVERED CONDITIONALS_NEGATION at utils.go:15:9
+      KILLED CONDITIONALS_NEGATION at context.go:146:9
+
+Mutation testing completed in 404 milliseconds 701 microseconds
+Killed: 1, Lived: 0, Not covered: 8
+Timed out: 0, Not viable: 0, Skipped: 0
+Test efficacy: 100.00%
+Mutator coverage: 11.11%

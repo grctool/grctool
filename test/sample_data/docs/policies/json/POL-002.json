@@ -1,0 +1,142 @@
+{
+  "id": "94642",
+  "reference_id": "POL-002", 
+  "name": "Information Security Communication Policy",
+  "title": "Security Awareness and Communication Policy",
+  "description": "This policy establishes requirements for communicating information security policies, procedures, and awareness information to all personnel and relevant third parties.",
+  "version": "1.3",
+  "status": "active",
+  "framework": "Information Security",
+  "category": "Security Management",
+  "subcategory": "Awareness and Training",
+  "owner": "Information Security Manager",
+  "approver": "Chief Information Security Officer",
+  "created_date": "2023-02-01T00:00:00Z",
+  "effective_date": "2023-02-15T00:00:00Z", 
+  "last_reviewed": "2024-07-15T00:00:00Z",
+  "next_review": "2025-01-15T00:00:00Z",
+  "approval_date": "2024-07-01T00:00:00Z",
+  "scope": "This policy applies to all employees, contractors, consultants, vendors, and third parties with access to organizational information systems and data.",
+  "purpose": "To ensure that information security policies, procedures, and awareness information are effectively communicated to all relevant parties and that security awareness is maintained throughout the organization.",
+  "objectives": [
+    "Establish effective communication channels for security information",
+    "Ensure all personnel understand their security responsibilities", 
+    "Maintain ongoing security awareness throughout the organization",
+    "Provide timely communication of security updates and incidents",
+    "Support compliance with information security requirements"
+  ],
+  "key_principles": [
+    "Clear and timely communication",
+    "Appropriate audience targeting",
+    "Multiple communication channels",
+    "Regular reinforcement",
+    "Measurable effectiveness",
+    "Continuous improvement"
+  ],
+  "policy_statements": [
+    "Information security policies and procedures shall be communicated to all relevant personnel",
+    "Security awareness training shall be provided to all employees upon hiring and annually thereafter",
+    "Security updates and alerts shall be communicated in a timely manner",
+    "Communication methods shall be appropriate for the audience and content",
+    "Effectiveness of security communications shall be regularly measured and evaluated",
+    "Third parties shall receive relevant security information based on their access level",
+    "Security incident communications shall follow established procedures"
+  ],
+  "communication_methods": [
+    "Employee orientation and onboarding",
+    "Annual security awareness training",
+    "Email communications and newsletters",
+    "Intranet security portal and resources",
+    "Security bulletins and alerts",
+    "Team meetings and briefings",
+    "Posters and visual reminders",
+    "Lunch and learn sessions"
+  ],
+  "communication_requirements": {
+    "New Employees": "Security awareness training within 30 days of hire",
+    "All Employees": "Annual refresher training and quarterly updates",
+    "Contractors": "Security briefing before system access is granted", 
+    "Managers": "Additional training on security management responsibilities",
+    "IT Staff": "Technical security training specific to their roles",
+    "Third Parties": "Security requirements communication based on contract terms"
+  },
+  "roles_responsibilities": {
+    "Chief Information Security Officer": "Overall accountability for security communication program",
+    "Information Security Manager": "Develop and maintain communication strategies and content",
+    "Human Resources": "Integrate security communication into onboarding process",
+    "Department Managers": "Ensure team members receive and understand security communications",
+    "Employees": "Participate in security training and follow communicated security procedures",
+    "IT Administrators": "Maintain security communication platforms and systems"
+  },
+  "compliance_requirements": [
+    "SOC 2 Type II CC1.2 - Communication and Information",
+    "ISO 27001:2013 A.7.2.2 - Information security awareness, education and training",
+    "NIST Cybersecurity Framework - Awareness and Training (PR.AT)",
+    "PCI DSS Requirement 12.6 - Security awareness program"
+  ],
+  "related_policies": ["POL-001", "POL-003", "POL-004"],
+  "related_controls": ["CC1.2", "CC1.4", "CC2.1"],
+  "related_procedures": [
+    "PROC-004 - Security Awareness Training Procedure",
+    "PROC-005 - Security Communication Procedure",
+    "PROC-006 - Incident Communication Procedure"
+  ],
+  "communication_channels": [
+    {
+      "channel": "Email",
+      "purpose": "General security updates and alerts",
+      "frequency": "As needed",
+      "audience": "All personnel"
+    },
+    {
+      "channel": "Intranet Portal", 
+      "purpose": "Security policies and resource repository",
+      "frequency": "Continuous availability",
+      "audience": "All personnel"
+    },
+    {
+      "channel": "Training Sessions",
+      "purpose": "Interactive security awareness education",
+      "frequency": "Annual and ad-hoc",
+      "audience": "All personnel"
+    },
+    {
+      "channel": "Security Bulletins",
+      "purpose": "Urgent security notifications",
+      "frequency": "As needed",
+      "audience": "Relevant stakeholders"
+    }
+  ],
+  "effectiveness_metrics": [
+    "Training completion rates",
+    "Security awareness assessment scores", 
+    "Phishing simulation results",
+    "Security incident reporting rates",
+    "Policy acknowledgment rates",
+    "Communication feedback scores"
+  ],
+  "monitoring_controls": [
+    "Monthly training completion rate reporting",
+    "Quarterly security awareness assessments",
+    "Annual communication effectiveness survey",
+    "Continuous monitoring of communication channel usage"
+  ],
+  "exceptions": "Temporary exceptions may be granted by the CISO for specific business circumstances, with documented justification and compensating controls.",
+  "sanctions": "Failure to participate in required security communications may result in loss of system access and disciplinary action.",
+  "document_control": {
+    "version_history": [
+      {"version": "1.0", "date": "2023-02-01", "changes": "Initial policy creation"},
+      {"version": "1.1", "date": "2023-08-01", "changes": "Added contractor requirements"},
+      {"version": "1.2", "date": "2024-02-01", "changes": "Enhanced communication channels"},
+      {"version": "1.3", "date": "2024-07-15", "changes": "Updated metrics and monitoring"}
+    ],
+    "distribution_list": [
+      "All Employees",
+      "Executive Leadership",
+      "Information Security Team", 
+      "Human Resources",
+      "Department Managers"
+    ]
+  },
+  "tags": ["security", "communication", "awareness", "training", "soc2", "iso27001"]
+}

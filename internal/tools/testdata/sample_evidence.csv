@@ -1,0 +1,7 @@
+user_id,username,full_name,role,provisioned_date,provisioned_by,status,last_review_date
+1001,john.doe,John Doe,Developer,2024-01-15,jane.manager,active,2024-10-15
+1002,jane.smith,Jane Smith,Senior Developer,2024-02-01,bob.lead,active,2024-11-01
+1003,bob.wilson,Bob Wilson,Team Lead,2024-01-10,alice.director,active,2024-10-10
+1004,alice.brown,Alice Brown,Director,2024-01-05,system.admin,active,2024-10-05
+1005,charlie.davis,Charlie Davis,Contractor,2024-06-01,jane.manager,terminated,2024-12-15
+1006,diana.taylor,Diana Taylor,QA Engineer,2024-03-15,bob.lead,active,2024-12-15

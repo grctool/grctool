@@ -1,0 +1,132 @@
+# GRCTool Coverage Configuration
+# This file defines coverage thresholds and exclusions for the project
+
+[coverage]
+# Overall project coverage thresholds
+minimum_coverage = 50.0
+target_coverage = 80.0
+excellent_coverage = 90.0
+
+# Critical packages must meet higher thresholds
+[critical_packages]
+minimum = 70.0
+packages = [
+    "github.com/7thsense/isms/grctool/internal/tugboat",
+    "github.com/7thsense/isms/grctool/internal/storage", 
+    "github.com/7thsense/isms/grctool/internal/services/evidence",
+    "github.com/7thsense/isms/grctool/internal/auth",
+    "github.com/7thsense/isms/grctool/internal/services"
+]
+
+# Standard packages thresholds
+[standard_packages]
+minimum = 50.0
+
+# File and path exclusions
+[exclusions]
+# Exclude test files from coverage
+test_files = [
+    "*_test.go",
+    "test/",
+    "internal/*/testdata/",
+    "testdata/"
+]
+
+# Exclude generated files
+generated_files = [
+    "*.pb.go",
+    "*_generated.go",
+    "mock_*.go"
+]
+
+# Exclude build/deployment files
+build_files = [
+    "main.go",
+    "cmd/version.go"
+]
+
+# Exclude example and template files
+examples = [
+    "internal/tools/stubs/",
+    "internal/templates/prompts/",
+    "example_*"
+]
+
+# Package-specific exclusions
+[package_exclusions]
+# Integration test packages that should not be counted in unit test coverage
+"github.com/7thsense/isms/grctool/test/integration" = true
+"github.com/7thsense/isms/grctool/test/helpers" = true
+"github.com/7thsense/isms/grctool/test-integration" = true
+
+# Tool stub packages (mock implementations)
+"github.com/7thsense/isms/grctool/internal/tools/stubs" = true
+
+# VCR test data
+"github.com/7thsense/isms/grctool/internal/tugboat/testdata" = true
+
+# Reporting configuration
+[reporting]
+# Colors for coverage levels
+excellent_color = "brightgreen"
+good_color = "green" 
+fair_color = "yellow"
+poor_color = "orange"
+critical_color = "red"
+
+# Badge generation settings
+[badge]
+output_path = "docs/coverage/badge.svg"
+label = "coverage"
+format = "svg"
+
+# HTML report settings
+[html_report]
+output_path = "coverage.html"
+show_missing = true
+skip_covered = false
+
+# Integration with CI/CD
+[ci]
+# Fail builds if coverage drops below these thresholds
+fail_under = 50.0
+fail_critical_under = 70.0
+
+# Coverage comparison settings
+[comparison]
+# Compare against previous runs
+track_changes = true
+max_decrease = 5.0  # Fail if coverage decreases by more than 5%
+
+# Package priority levels for coverage improvements
+[priorities]
+critical = [
+    "internal/tugboat",
+    "internal/storage",
+    "internal/services/evidence",
+    "internal/services/config",
+    "internal/services/validation"
+]
+
+high = [
+    "internal/auth", 
+    "internal/transport",
+    "internal/models",
+    "internal/orchestrator",
+    "internal/registry"
+]
+
+medium = [
+    "internal/tools/github",
+    "internal/tools/terraform", 
+    "internal/tugboat/models",
+    "internal/adapters",
+    "cmd"
+]
+
+low = [
+    "internal/tools/stubs",
+    "internal/tools/types",
+    "internal/formatters",
+    "internal/logger"
+]

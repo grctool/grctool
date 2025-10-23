@@ -1,0 +1,30 @@
+# grctool
+
+A Go CLI tool for SOC2/ISO27001 compliance automation integrating with Tugboat Logic.
+
+## Project Structure
+grctool/
+├── cmd/                    # Thin CLI layer (Cobra commands)
+├── internal/
+│   ├── services/          # Business logic layer
+│   │   ├── evidence/      # Evidence management
+│   │   ├── validation/    # Data validation
+│   │   └── config/        # Configuration management
+│   ├── tools/             # Evidence collection tools
+│   │   ├── terraform/     # Infrastructure analysis
+│   │   ├── github/        # Source control analysis
+│   │   └── types/         # Shared type definitions
+│   ├── tugboat/           # Tugboat Logic API client
+│   └── storage/           # File storage abstraction
+
+## Key Concepts
+- Evidence Tasks: Compliance requirements (ET-1 through ET-105)
+- Controls: Security control implementations
+- Policies: Organizational security policies
+- Tools: Pluggable evidence collectors implementing Tool interface
+
+## Development Guidelines
+- Browser-based authentication (no API keys)
+- YAML configuration with environment substitution
+- Structured logging via internal/logger
+- VCR for HTTP testing

@@ -1,0 +1,238 @@
+# GRCTool golangci-lint configuration
+# Comprehensive linting rules for code quality and best practices
+
+run:
+  timeout: 5m
+  tests: true
+  build-tags:
+    - integration
+    - e2e
+    - functional
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  sort-results: true
+
+linters:
+  enable-all: false
+  enable:
+    - govet
+    - ineffassign
+    - misspell
+    - unconvert
+    - staticcheck
+  disable:
+    - unused
+    - errcheck
+    # Too strict or not useful for this project
+    - wsl              # Whitespace linter - too opinionated
+    - wrapcheck        # Requires wrapping all errors from external packages
+    - varnamelen       # Variable name length - covered by other linters
+    - tagliatelle      # Struct tag naming - conflicts with JSON conventions
+    - nlreturn         # Newline before return - too strict
+    - ireturn          # Accept interfaces, return concrete types is fine
+    - exhaustruct      # Requires all struct fields to be set
+    - depguard         # We manage dependencies via go.mod
+    - paralleltest     # Not all tests need t.Parallel()
+    - testpackage      # Tests in same package are fine for internals
+    - mnd              # Magic numbers - too many false positives (renamed from gomnd)
+    - funlen           # Function length - use cyclop instead
+    - gocognit         # Cognitive complexity - use cyclop instead
+    
+linters-settings:
+  # Error handling
+  errcheck:
+    check-type-assertions: true
+    check-blank: false  # Allow _ = err
+    exclude-functions:
+      - (fmt.Fprintln)
+      - (fmt.Fprintf)
+      - (fmt.Fprint)
+      - (fmt.Scanln)
+      - (*github.com/spf13/pflag.FlagSet).Set
+      - (*github.com/spf13/cobra.Command).MarkFlagRequired
+      - (*os.File).Close
+      - (io.Closer).Close
+      - (io.Writer).Write
+      - (os.RemoveAll)
+  
+  # Code style
+  gofmt:
+    simplify: true
+  
+  goimports:
+    local-prefixes: github.com/grctool/grctool
+  
+  # Cyclomatic complexity
+  cyclop:
+    max-complexity: 15
+    package-average: 10
+    skip-tests: false
+  
+  # Code quality
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment  # Struct field alignment optimization not critical
+  
+  # Security
+  gosec:
+    severity: high
+    confidence: high
+    excludes:
+      - G104  # Handled by errcheck
+      - G304  # File path provided by user is acceptable for CLI tool
+    config:
+      global:
+        audit: true
+  
+  # Test quality
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint  # We use nolint sparingly and purposefully
+      - commentedOutCode  # Sometimes useful during development
+  
+  # Maintainability
+  maintidx:
+    under: 20  # Maintainability index threshold
+  
+  # Line length
+  lll:
+    line-length: 120
+    tab-width: 4
+  
+  # Naming conventions
+  revive:
+    severity: warning
+    enable-all-rules: true
+    rules:
+      - name: var-naming
+        disabled: false
+      - name: package-comments
+        disabled: false
+      - name: exported
+        disabled: false
+        arguments:
+          - checkPrivateReceivers
+          - sayRepetitiveInsteadOfStutters
+  
+  # Unused code
+  unused:
+    check-exported: false
+    exported-fields-are-used: false
+  
+  # Documentation
+  godot:
+    scope: declarations
+    capital: true
+    period: true
+  
+  # Duplication
+  dupl:
+    threshold: 150
+  
+  # Error messages
+  stylecheck:
+    checks: ["all", "-ST1003"]  # Allow underscores in names for API fields
+  
+  # Test conventions
+  testifylint:
+    enable-all: true
+  
+  # Nil checks
+  nilnil:
+    checked-types:
+      - ptr
+      - func
+      - iface
+      - map
+      - chan
+  
+  # Context usage
+  contextcheck:
+    enable: true
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+  # Show only new issues for PRs
+  new: false
+
+  # Fix found issues (if it's supported by the linter)
+  fix: false
+
+  # Exclude directories from all linters
+  exclude-dirs:
+    - vendor
+    - testdata
+    - .git
+    - docs
+    - test/e2e
+    - test/functional
+
+  # Exclude files from all linters
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*\\.gen\\.go$"
+    - "mock_.*\\.go$"
+
+  exclude-rules:
+    # Exclude test files from some linters
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+        - maintidx
+        - errcheck
+        - unused
+    
+    # Exclude benchmark files
+    - path: _bench_test\.go
+      linters:
+        - dupl
+        - gosec
+        - goconst
+    
+    # Allow fmt.Print* in main package
+    - path: ^cmd/
+      linters:
+        - forbidigo
+    
+    # Allow larger functions in main
+    - path: ^main\.go
+      linters:
+        - funlen
+        - cyclop
+    
+    # Generated files
+    - path: \.gen\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+    
+    # VCR cassettes can have long lines
+    - path: internal/vcr
+      linters:
+        - lll
+    
+  # Exclude known issues
+  exclude:
+    - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*print(f|ln)?|os\\.(Un)?Setenv). is not checked"
+    - "should have comment or be unexported"
+    - "ST1000: at least one file in a package should have a package comment"
+
+# Severity settings removed for v2 compatibility - using defaults

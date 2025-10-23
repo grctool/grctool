@@ -1,0 +1,54 @@
+# Functional test configuration for grctool
+
+# Data directory configuration
+data_dir: "../"
+
+# Logging configuration  
+log_level: "info"
+log_format: "text"
+
+# Tool configuration
+tools:
+  terraform:
+    enabled: true
+    scan_paths:
+      - "test_data/terraform"
+      - "test_data/terraform/soc2"
+    analysis_timeout: "30s"
+    
+  github:
+    enabled: false  # Disabled for functional tests to avoid auth requirements
+    api_timeout: "10s"
+    
+  storage:
+    enabled: true
+    base_path: ".cache/functional_test"
+    
+  evidence:
+    enabled: true
+    output_formats: ["json", "markdown", "summary"]
+    
+# Cache configuration
+cache:
+  enabled: true
+  base_dir: ".cache"
+  ttl: "1h"
+  
+# Output configuration
+output:
+  default_format: "json"
+  pretty_print: true
+  timestamps: true
+  
+# Performance settings
+performance:
+  max_concurrent_tools: 5
+  operation_timeout: "60s"
+  memory_limit: "512MB"
+  
+# Test-specific settings
+functional_test:
+  enabled: true
+  test_data_dir: "test_data"
+  cleanup_after_test: false
+  generate_sample_data: true

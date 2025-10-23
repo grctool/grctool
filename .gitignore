@@ -1,0 +1,54 @@
+build/
+bin/
+dist/
+
+# Coverage reports
+coverage.out
+coverage.html
+coverage-*.html
+coverage-*.out
+*.coverprofile
+
+# Test binaries
+*.test
+
+# Logs
+**/*.log
+
+# Config files with secrets
+.grctool.yaml
+
+# AI tools
+.claude/
+.claude*
+
+# AI Context Cache (generated files)
+.ai-context/*.json
+.ai-context/*.txt
+
+# Test fixture generated data
+test/fixtures/e2e/local_data/
+test/fixtures/e2e/.cache/
+test/fixtures/isms/evidence/
+test/fixtures/vcr_cassettes/
+regen-vcr.sh
+test/integration/docs/
+
+# Integration test generated artifacts
+test/integration/data_protection_evidence.json
+test/integration/security_assessment.json
+test/integration/terraform/index.json.gz
+
+# VCR Cassettes with API responses (contain test data)
+internal/tugboat/testdata/vcr_cassettes/
+
+# Backup files
+*.bak
+*.bak.*
+
+# Temporary test files
+test-logging-config.yaml
+tools.test
+config.out
+temp_coverage.out
+.crush.json

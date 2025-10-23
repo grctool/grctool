@@ -1,0 +1,56 @@
+{
+  "id": "ET-FUNC-001",
+  "ref": "ET-FUNC-001",
+  "title": "Functional Test Evidence Task",
+  "description": "Sample evidence task for functional testing purposes",
+  "framework": "SOC2",
+  "control": "CC6.1",
+  "status": "pending",
+  "priority": "medium",
+  "assignee": "test@example.com",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z",
+  "due_date": "2024-12-31T23:59:59Z",
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "description": "Document access control policies",
+      "type": "documentation",
+      "status": "pending"
+    },
+    {
+      "id": "REQ-002",
+      "description": "Provide evidence of access reviews",
+      "type": "evidence",
+      "status": "pending"
+    },
+    {
+      "id": "REQ-003",
+      "description": "Demonstrate technical controls",
+      "type": "technical",
+      "status": "pending"
+    }
+  ],
+  "tools_recommended": [
+    "terraform-security-analyzer",
+    "github-permissions",
+    "docs-reader"
+  ],
+  "evidence_types": [
+    "policy_document",
+    "configuration_screenshot",
+    "access_log",
+    "control_testing"
+  ],
+  "tags": [
+    "access-control",
+    "functional-test",
+    "soc2"
+  ],
+  "metadata": {
+    "complexity": "low",
+    "estimated_hours": 2,
+    "automation_possible": true,
+    "last_evidence_date": "2023-12-01T00:00:00Z"
+  }
+}

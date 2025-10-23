@@ -1,0 +1,66 @@
+{
+  "id": 778771,
+  "reference_id": "CC1.1",
+  "name": "Control Environment",
+  "description": "The entity demonstrates a commitment to integrity and ethical values through policies, procedures, and organizational structure.",
+  "objective": "Establish and maintain a control environment that supports the achievement of the entity's objectives related to reliable financial reporting, effective and efficient operations, and compliance with applicable laws and regulations.",
+  "framework": "SOC2 Type II",
+  "category": "Control Environment",
+  "subcategory": "Integrity and Ethical Values",
+  "status": "implemented",
+  "risk_rating": "high",
+  "control_type": "preventive",
+  "frequency": "continuous",
+  "owner": "Executive Leadership",
+  "responsible_party": "Chief Executive Officer",
+  "implementation_date": "2023-01-01T00:00:00Z",
+  "last_review_date": "2024-08-01T00:00:00Z",
+  "next_review_date": "2025-02-01T00:00:00Z",
+  "testing_frequency": "annual",
+  "control_activities": [
+    "Board of Directors provides oversight of the entity's system of internal control",
+    "Management establishes the tone at the top through communications and actions",
+    "Code of conduct is established and communicated to all personnel",
+    "Human resource policies and procedures support the achievement of objectives",
+    "Performance measures, incentives, and rewards are aligned with objectives"
+  ],
+  "key_attributes": [
+    "Demonstrates commitment to integrity and ethical values",
+    "Exercises oversight responsibility for the system of internal control",
+    "Establishes structure, authority, and responsibility",
+    "Demonstrates commitment to competence",
+    "Enforces accountability for the system of internal control"
+  ],
+  "evidence_requirements": [
+    "Board charter and meeting minutes",
+    "Code of conduct documentation",
+    "Employee handbook and policies",
+    "Training records and certifications",
+    "Performance evaluation criteria",
+    "Disciplinary action records (when applicable)"
+  ],
+  "related_controls": ["CC1.2", "CC1.3", "CC1.4", "CC1.5"],
+  "related_policies": ["POL-001", "POL-003", "POL-004"],
+  "compliance_mappings": [
+    {
+      "framework": "SOC2",
+      "control_id": "CC1.1",
+      "requirement": "Control Environment"
+    },
+    {
+      "framework": "COSO",
+      "control_id": "Control Environment",
+      "requirement": "Demonstrates Commitment to Integrity and Ethical Values"
+    }
+  ],
+  "testing_procedures": [
+    "Review board charter and meeting minutes for evidence of oversight",
+    "Examine code of conduct and evidence of communication to personnel",
+    "Test employee acknowledgment of code of conduct",
+    "Review HR policies for alignment with control objectives",
+    "Evaluate performance measurement and incentive systems"
+  ],
+  "automation_level": "low",
+  "maturity_level": "optimized",
+  "tags": ["control_environment", "integrity", "ethics", "governance", "soc2"]
+}

@@ -1,0 +1,122 @@
+{
+  "task_ref": "ET-96",
+  "title": "Data Encryption at Rest",
+  "description": "Demonstrate that all sensitive data is encrypted at rest using appropriate encryption standards",
+  "compliance_frameworks": [
+    "SOC2",
+    "ISO27001"
+  ],
+  "control_objectives": [
+    "CC1.1",
+    "CC1.2",
+    "A.10.1.1"
+  ],
+  "evidence_type": "configuration",
+  "collection_method": "automated",
+  "frequency": "quarterly",
+  "owner": "Security Team",
+  "status": "pending",
+  "due_date": "2024-09-30",
+  "created_at": "2024-08-01T10:00:00Z",
+  "updated_at": "2024-08-20T15:30:00Z",
+  "requirements": {
+    "encryption_standards": [
+      "AES-256",
+      "RSA-2048"
+    ],
+    "key_management": {
+      "rotation_enabled": true,
+      "hsm_required": false,
+      "key_escrow": true
+    },
+    "data_types": [
+      "customer_pii",
+      "financial_data",
+      "authentication_credentials",
+      "audit_logs"
+    ],
+    "storage_locations": [
+      "primary_database",
+      "backup_storage",
+      "log_storage",
+      "file_storage"
+    ]
+  },
+  "evidence_sources": [
+    {
+      "type": "terraform_configuration",
+      "description": "Infrastructure as Code showing encryption settings",
+      "automated": true,
+      "tools": ["terraform-scanner"]
+    },
+    {
+      "type": "database_configuration",
+      "description": "Database encryption settings and key rotation policies",
+      "automated": true,
+      "tools": ["database-inspector"]
+    },
+    {
+      "type": "storage_configuration", 
+      "description": "S3 bucket encryption and KMS key management",
+      "automated": true,
+      "tools": ["aws-config"]
+    },
+    {
+      "type": "policy_documentation",
+      "description": "Data encryption policy and procedures",
+      "automated": false,
+      "tools": ["document-review"]
+    }
+  ],
+  "validation_criteria": [
+    {
+      "criterion": "All RDS instances use encryption at rest",
+      "validation_method": "automated_scan",
+      "expected_result": "100% compliance"
+    },
+    {
+      "criterion": "All S3 buckets use KMS encryption",
+      "validation_method": "automated_scan", 
+      "expected_result": "100% compliance"
+    },
+    {
+      "criterion": "Key rotation is enabled for all KMS keys",
+      "validation_method": "automated_scan",
+      "expected_result": "100% compliance"
+    },
+    {
+      "criterion": "EBS volumes use encryption",
+      "validation_method": "automated_scan",
+      "expected_result": "100% compliance"
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "terraform_encryption_config.tf",
+      "type": "configuration_file",
+      "path": "infrastructure/security/encryption.tf",
+      "hash": "sha256:abc123def456...",
+      "size": 2048,
+      "created": "2024-08-15T10:30:00Z"
+    },
+    {
+      "name": "rds_encryption_report.json",
+      "type": "scan_result",
+      "path": "evidence/scans/rds_encryption_2024-08-20.json",
+      "hash": "sha256:def456ghi789...",
+      "size": 1024,
+      "created": "2024-08-20T14:00:00Z"
+    }
+  ],
+  "related_tasks": [
+    "ET-97",
+    "ET-103",
+    "ET-115"
+  ],
+  "tags": [
+    "encryption",
+    "data_protection",
+    "soc2_cc1",
+    "automated_evidence"
+  ]
+}

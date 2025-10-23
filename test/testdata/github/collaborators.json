@@ -1,0 +1,78 @@
+[
+  {
+    "login": "security-admin",
+    "id": 11111111,
+    "node_id": "MDQ6VXNlcjExMTExMTEx",
+    "avatar_url": "https://avatars.githubusercontent.com/u/11111111?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/security-admin",
+    "html_url": "https://github.com/security-admin",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "admin"
+  },
+  {
+    "login": "compliance-team",
+    "id": 22222222,
+    "node_id": "MDQ6VXNlcjIyMjIyMjIy",
+    "avatar_url": "https://avatars.githubusercontent.com/u/22222222?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/compliance-team",
+    "html_url": "https://github.com/compliance-team",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": false,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "maintain"
+  },
+  {
+    "login": "devops-engineer",
+    "id": 33333333,
+    "node_id": "MDQ6VXNlcjMzMzMzMzMz",
+    "avatar_url": "https://avatars.githubusercontent.com/u/33333333?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/devops-engineer",
+    "html_url": "https://github.com/devops-engineer",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "write"
+  },
+  {
+    "login": "audit-readonly",
+    "id": 44444444,
+    "node_id": "MDQ6VXNlcjQ0NDQ0NDQ0",
+    "avatar_url": "https://avatars.githubusercontent.com/u/44444444?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/audit-readonly",
+    "html_url": "https://github.com/audit-readonly",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": false,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "read"
+  }
+]

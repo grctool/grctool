@@ -1,0 +1,82 @@
+{
+  "id": 778785,
+  "reference_id": "CC8.1",
+  "name": "Change Management Controls",
+  "description": "The entity implements change management controls to ensure that system changes, including infrastructure, applications, and configurations, are authorized, tested, approved, and properly implemented while minimizing disruption to operations and security posture.",
+  "objective": "Ensure that changes to the system are properly identified, documented, tested, approved, and implemented in a controlled manner that maintains system integrity, security, and availability.",
+  "framework": "SOC2 Type II",
+  "category": "Change Management",
+  "subcategory": "System Changes",
+  "status": "implemented",
+  "risk_rating": "high",
+  "control_type": "detective",
+  "frequency": "continuous",
+  "owner": "Engineering",
+  "responsible_party": "VP of Engineering",
+  "implementation_date": "2023-01-01T00:00:00Z",
+  "last_review_date": "2024-09-01T00:00:00Z",
+  "next_review_date": "2025-03-01T00:00:00Z",
+  "testing_frequency": "quarterly",
+  "control_activities": [
+    "All code changes go through pull request review process",
+    "Required approvals from designated reviewers before merge",
+    "Automated testing runs on all pull requests (CI/CD pipeline)",
+    "Protected branches prevent direct commits to production code",
+    "Deployment approvals required for production releases",
+    "Change documentation includes description, testing, and rollback plan",
+    "Post-deployment monitoring verifies successful changes"
+  ],
+  "key_attributes": [
+    "Mandatory peer review of all code changes",
+    "Multi-level approval workflow for critical changes",
+    "Automated testing and quality gates",
+    "Branch protection and access controls",
+    "Deployment automation with approval gates",
+    "Comprehensive change documentation"
+  ],
+  "evidence_requirements": [
+    "Pull request records with approvals",
+    "Code review comments and discussions",
+    "CI/CD pipeline execution logs",
+    "Branch protection rule configurations",
+    "Deployment approval workflows and logs",
+    "Change tickets with documentation",
+    "Test execution results",
+    "Rollback procedures documentation"
+  ],
+  "related_controls": ["CC6.1", "CC7.2", "CC8.2"],
+  "related_policies": ["POL-004"],
+  "compliance_mappings": [
+    {
+      "framework": "SOC2",
+      "control_id": "CC8.1",
+      "requirement": "Change Management"
+    },
+    {
+      "framework": "ISO27001",
+      "control_id": "A.12.1.2",
+      "requirement": "Change management"
+    },
+    {
+      "framework": "ISO27001",
+      "control_id": "A.14.2.2",
+      "requirement": "System change control procedures"
+    },
+    {
+      "framework": "NIST",
+      "control_id": "CM-3",
+      "requirement": "Configuration Change Control"
+    }
+  ],
+  "testing_procedures": [
+    "Review sample of pull requests for proper approvals",
+    "Verify branch protection rules are configured",
+    "Examine CI/CD pipeline for required quality gates",
+    "Test deployment approval workflows",
+    "Review change documentation for completeness",
+    "Verify segregation of duties in change approval"
+  ],
+  "automation_level": "high",
+  "maturity_level": "optimized",
+  "tags": ["change_management", "cicd", "code_review", "deployment", "soc2", "iso27001"]
+}

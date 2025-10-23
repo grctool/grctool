@@ -1,0 +1,174 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for GRCTool
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your proposal.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: |
+        Describe the problem or limitation you're experiencing that this feature would solve.
+        What use case does this address?
+      placeholder: "When I try to..., I'm unable to... because..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: |
+        Describe your ideal solution to this problem.
+        How would you like this feature to work?
+      placeholder: |
+        I would like to be able to...
+        The feature would work by...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: |
+        What alternative solutions or workarounds have you considered?
+        Are there existing tools or approaches that partially solve this?
+      placeholder: |
+        I've considered...
+        Current workaround is...
+
+  - type: dropdown
+    id: feature-category
+    attributes:
+      label: Feature Category
+      description: Which area does this feature relate to?
+      options:
+        - Authentication
+        - Evidence Collection
+        - Evidence Generation (AI)
+        - Data Synchronization
+        - CLI/User Interface
+        - Configuration
+        - Integration (Terraform)
+        - Integration (GitHub)
+        - Integration (Google Workspace)
+        - Integration (Other)
+        - Documentation
+        - Testing
+        - Performance
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Critical - Blocking my workflow
+        - High - Would significantly improve my workflow
+        - Medium - Nice to have
+        - Low - Minor improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Detailed Use Case
+      description: |
+        Provide a detailed description of how you would use this feature.
+        Include specific examples if possible.
+      placeholder: |
+        As a [role], I need to [task]...
+        For example, when...
+        This would help me...
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: |
+        Who would benefit from this feature?
+        What value would it provide to the community?
+      placeholder: |
+        This would benefit...
+        Value provided:
+        - ...
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        What would you consider a successful implementation of this feature?
+        How would you test it?
+      placeholder: |
+        The feature would be complete when:
+        - [ ] ...
+        - [ ] ...
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples from Other Tools
+      description: |
+        Are there examples of similar features in other tools?
+        Include links or screenshots if available.
+      placeholder: |
+        Similar to how [tool] does...
+        Reference: https://...
+
+  - type: textarea
+    id: technical-notes
+    attributes:
+      label: Technical Considerations
+      description: |
+        If you have technical insights, please share them.
+        Are there specific APIs, libraries, or approaches you'd recommend?
+      placeholder: |
+        Could potentially use...
+        Considerations:
+        - ...
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you willing to contribute to this feature?
+      options:
+        - label: I would be willing to implement this feature
+          required: false
+        - label: I would be willing to help test this feature
+          required: false
+        - label: I would be willing to write documentation for this feature
+          required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify the following before submitting
+      options:
+        - label: I have searched existing issues and discussions for similar requests
+          required: true
+        - label: This feature aligns with GRCTool's purpose (compliance automation)
+          required: true
+        - label: I have provided a clear use case and expected benefit
+          required: true
+        - label: This is not a security vulnerability (see SECURITY.md)
+          required: true

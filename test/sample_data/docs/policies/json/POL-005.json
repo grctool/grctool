@@ -1,0 +1,193 @@
+{
+  "id": "94645",
+  "reference_id": "POL-005",
+  "name": "Infrastructure Security Policy",
+  "title": "Cloud Infrastructure and Network Security Policy",
+  "description": "This policy establishes security requirements for cloud infrastructure, network architecture, data encryption, and system configurations to ensure organizational systems are protected from unauthorized access, maintain confidentiality and integrity of data, and support business continuity.",
+  "version": "2.2",
+  "status": "active",
+  "framework": "Information Security",
+  "category": "Infrastructure Security",
+  "subcategory": "Cloud and Network Security",
+  "owner": "Cloud Infrastructure Manager",
+  "approver": "Chief Information Security Officer",
+  "created_date": "2023-01-20T00:00:00Z",
+  "effective_date": "2023-02-15T00:00:00Z",
+  "last_reviewed": "2024-09-15T00:00:00Z",
+  "next_review": "2025-03-15T00:00:00Z",
+  "approval_date": "2024-09-01T00:00:00Z",
+  "scope": "This policy applies to all cloud infrastructure, network resources, data storage systems, and compute resources used to support organizational operations and services, including production, staging, and development environments.",
+  "purpose": "To establish and maintain secure cloud infrastructure that protects organizational data and systems through defense-in-depth security controls, encryption, network segmentation, access controls, and resilient architecture design.",
+  "objectives": [
+    "Implement defense-in-depth security architecture",
+    "Ensure data is encrypted at rest and in transit",
+    "Establish network segmentation and access controls",
+    "Deploy infrastructure with high availability and resilience",
+    "Monitor and log all infrastructure access and changes",
+    "Maintain secure configuration baselines for all systems"
+  ],
+  "key_principles": [
+    "Defense in depth with multiple layers of security controls",
+    "Least privilege access to infrastructure resources",
+    "Encryption by default for all sensitive data",
+    "Network segmentation isolates sensitive workloads",
+    "Infrastructure as Code for consistent, auditable deployments",
+    "Continuous monitoring and security event logging"
+  ],
+  "policy_statements": [
+    "All infrastructure deployments must use Infrastructure as Code (IaC)",
+    "Production and non-production environments must be logically separated",
+    "Network security groups and firewalls restrict traffic to necessary ports",
+    "Data at rest must be encrypted using industry-standard algorithms (AES-256)",
+    "Data in transit must use TLS 1.2 or higher encryption",
+    "Infrastructure must be deployed across multiple availability zones",
+    "Multi-factor authentication required for infrastructure administrative access",
+    "All infrastructure changes must be logged and monitored",
+    "Security scanning of infrastructure configurations must be automated"
+  ],
+  "network_security_requirements": {
+    "segmentation": [
+      "Production networks isolated from development/staging",
+      "Database tier separated from application and web tiers",
+      "Management networks separated from user-facing networks",
+      "DMZ implemented for internet-facing services"
+    ],
+    "access_controls": [
+      "Default deny all traffic, explicit allow rules required",
+      "Security groups limit traffic to specific ports and sources",
+      "Network ACLs provide additional layer of defense",
+      "Bastion hosts or VPN required for administrative access"
+    ],
+    "monitoring": [
+      "VPC flow logs enabled for all networks",
+      "Intrusion detection/prevention systems deployed",
+      "Network traffic analysis for anomaly detection",
+      "Security events sent to centralized SIEM"
+    ]
+  },
+  "encryption_requirements": {
+    "data_at_rest": {
+      "encryption_standard": "AES-256 or equivalent",
+      "key_management": "Keys managed by cloud provider KMS or hardware security module",
+      "scope": "All databases, file storage, backups, and sensitive data repositories",
+      "rotation": "Encryption keys rotated annually"
+    },
+    "data_in_transit": {
+      "protocol": "TLS 1.2 or higher",
+      "certificates": "Valid certificates from trusted certificate authority",
+      "scope": "All API communications, database connections, and user traffic",
+      "verification": "Certificate validation enforced, no self-signed certificates in production"
+    }
+  },
+  "infrastructure_resilience": {
+    "availability_zones": "Production infrastructure deployed across minimum 2 availability zones",
+    "auto_scaling": "Auto-scaling configured for critical services",
+    "load_balancing": "Load balancers distribute traffic across availability zones",
+    "backup_recovery": [
+      "Automated backups of all critical data daily",
+      "Backups stored in geographically separate region",
+      "Recovery point objective (RPO): 24 hours",
+      "Recovery time objective (RTO): 4 hours"
+    ],
+    "disaster_recovery": "Documented disaster recovery plan tested annually"
+  },
+  "infrastructure_as_code": {
+    "tools": "Terraform, CloudFormation, or equivalent IaC tools",
+    "requirements": [
+      "All infrastructure defined as code in version control",
+      "Changes to infrastructure go through code review",
+      "Automated testing of infrastructure code",
+      "State files encrypted and access controlled"
+    ],
+    "security_scanning": [
+      "Static analysis of IaC for security misconfigurations",
+      "Compliance validation against security baselines",
+      "Automated remediation of known security issues"
+    ]
+  },
+  "access_control_requirements": {
+    "authentication": [
+      "Multi-factor authentication required for console access",
+      "Service accounts use API keys or IAM roles (no passwords)",
+      "Individual accounts for all administrators (no shared accounts)",
+      "Privileged access management for administrative functions"
+    ],
+    "authorization": [
+      "Role-based access control (RBAC) for all infrastructure",
+      "Least privilege principle for all access grants",
+      "Regular access reviews quarterly",
+      "Administrative access logged and monitored"
+    ]
+  },
+  "security_monitoring": {
+    "logging": [
+      "CloudTrail or equivalent enabled for all API activity",
+      "System and application logs centralized",
+      "Log retention minimum 1 year",
+      "Logs encrypted and access controlled"
+    ],
+    "alerting": [
+      "Real-time alerts for security events",
+      "Automated response to critical security findings",
+      "24/7 security operations monitoring"
+    ],
+    "scanning": [
+      "Vulnerability scanning weekly",
+      "Compliance scanning daily",
+      "Container image scanning for all deployments",
+      "Dependency vulnerability scanning"
+    ]
+  },
+  "roles_responsibilities": {
+    "Chief Information Security Officer": "Overall accountability for infrastructure security",
+    "Cloud Infrastructure Manager": "Implement and maintain infrastructure security controls",
+    "DevOps Team": "Deploy and configure secure infrastructure",
+    "Security Team": "Monitor security events and validate configurations",
+    "Cloud Architects": "Design secure and resilient infrastructure",
+    "Developers": "Follow secure coding and deployment practices"
+  },
+  "compliance_requirements": [
+    "SOC 2 Type II CC6.1 - Logical and Physical Access Controls",
+    "SOC 2 Type II CC6.6 - Encryption",
+    "SOC 2 Type II CC6.7 - Transmission of Data",
+    "SOC 2 Type II CC7.2 - System Monitoring",
+    "ISO 27001:2013 A.9.1.2 - Access to networks and network services",
+    "ISO 27001:2013 A.10.1.1 - Cryptographic controls",
+    "ISO 27001:2013 A.13.1.1 - Network controls",
+    "NIST Cybersecurity Framework - Protective Technology (PR.PT)",
+    "PCI DSS Requirement 1 - Install and maintain firewall configuration",
+    "PCI DSS Requirement 4 - Encrypt transmission of cardholder data"
+  ],
+  "related_policies": ["POL-003", "POL-004"],
+  "related_controls": ["CC6.1", "CC6.6", "CC6.7", "CC7.2"],
+  "related_procedures": [
+    "PROC-014 - Infrastructure Deployment Procedure",
+    "PROC-015 - Network Security Configuration Procedure",
+    "PROC-016 - Encryption Key Management Procedure",
+    "PROC-017 - Infrastructure Monitoring Procedure"
+  ],
+  "monitoring_controls": [
+    "Daily automated compliance scanning of infrastructure",
+    "Weekly vulnerability assessment reports",
+    "Monthly infrastructure security metrics dashboard",
+    "Quarterly infrastructure security assessment",
+    "Annual penetration testing of infrastructure"
+  ],
+  "exceptions": "Exceptions to encryption or network security requirements must be approved by CISO with documented risk acceptance and compensating controls. No exceptions permitted for production data encryption.",
+  "sanctions": "Violations of this policy may result in disciplinary action up to and including termination of employment. Deliberate security misconfigurations may result in criminal prosecution.",
+  "document_control": {
+    "version_history": [
+      {"version": "1.0", "date": "2023-01-20", "changes": "Initial policy creation"},
+      {"version": "2.0", "date": "2024-02-01", "changes": "Added IaC and multi-AZ requirements"},
+      {"version": "2.2", "date": "2024-09-15", "changes": "Enhanced encryption and monitoring requirements"}
+    ],
+    "distribution_list": [
+      "Engineering Team",
+      "Executive Leadership",
+      "DevOps Team",
+      "Security Team",
+      "Cloud Architects"
+    ]
+  },
+  "tags": ["infrastructure", "cloud_security", "network_security", "encryption", "resilience", "soc2", "iso27001"]
+}

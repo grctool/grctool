@@ -1,0 +1,88 @@
+{
+  "id": 123456789,
+  "node_id": "MDEwOlJlcG9zaXRvcnkxMjM0NTY3ODk=",
+  "name": "security-compliance-repo",
+  "full_name": "7thsense/security-compliance-repo",
+  "private": true,
+  "owner": {
+    "login": "7thsense",
+    "id": 12345678,
+    "node_id": "MDEyOk9yZ2FuaXphdGlvbjEyMzQ1Njc4",
+    "avatar_url": "https://avatars.githubusercontent.com/u/12345678?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/7thsense",
+    "html_url": "https://github.com/7thsense",
+    "type": "Organization",
+    "site_admin": false
+  },
+  "html_url": "https://github.com/7thsense/security-compliance-repo",
+  "description": "Security and compliance infrastructure repository",
+  "fork": false,
+  "url": "https://api.github.com/repos/7thsense/security-compliance-repo",
+  "archive_url": "https://api.github.com/repos/7thsense/security-compliance-repo/{archive_format}{/ref}",
+  "assignees_url": "https://api.github.com/repos/7thsense/security-compliance-repo/assignees{/user}",
+  "blobs_url": "https://api.github.com/repos/7thsense/security-compliance-repo/git/blobs{/sha}",
+  "branches_url": "https://api.github.com/repos/7thsense/security-compliance-repo/branches{/branch}",
+  "collaborators_url": "https://api.github.com/repos/7thsense/security-compliance-repo/collaborators{/user}",
+  "comments_url": "https://api.github.com/repos/7thsense/security-compliance-repo/comments{/number}",
+  "commits_url": "https://api.github.com/repos/7thsense/security-compliance-repo/commits{/sha}",
+  "compare_url": "https://api.github.com/repos/7thsense/security-compliance-repo/compare/{base}...{head}",
+  "contents_url": "https://api.github.com/repos/7thsense/security-compliance-repo/contents/{+path}",
+  "created_at": "2023-01-15T10:30:00Z",
+  "updated_at": "2024-08-20T14:22:33Z",
+  "pushed_at": "2024-08-20T14:22:30Z",
+  "git_url": "git://github.com/7thsense/security-compliance-repo.git",
+  "ssh_url": "git@github.com:7thsense/security-compliance-repo.git",
+  "clone_url": "https://github.com/7thsense/security-compliance-repo.git",
+  "svn_url": "https://github.com/7thsense/security-compliance-repo",
+  "homepage": "",
+  "size": 15432,
+  "stargazers_count": 2,
+  "watchers_count": 2,
+  "language": "HCL",
+  "has_issues": true,
+  "has_projects": true,
+  "has_wiki": false,
+  "has_pages": false,
+  "has_downloads": true,
+  "archived": false,
+  "disabled": false,
+  "open_issues_count": 3,
+  "license": null,
+  "allow_forking": false,
+  "is_template": false,
+  "web_commit_signoff_required": true,
+  "topics": [
+    "security",
+    "compliance",
+    "infrastructure",
+    "terraform",
+    "soc2"
+  ],
+  "visibility": "private",
+  "forks": 0,
+  "open_issues": 3,
+  "watchers": 2,
+  "default_branch": "main",
+  "permissions": {
+    "admin": true,
+    "maintain": true,
+    "push": true,
+    "triage": true,
+    "pull": true
+  },
+  "security_and_analysis": {
+    "secret_scanning": {
+      "status": "enabled"
+    },
+    "secret_scanning_push_protection": {
+      "status": "enabled"
+    },
+    "dependabot_security_updates": {
+      "status": "enabled"
+    },
+    "secret_scanning_validity_checks": {
+      "status": "enabled"
+    }
+  }
+}

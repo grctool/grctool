@@ -1,0 +1,238 @@
+name: Advanced Testing
+
+on:
+  # Temporarily disabled - needs auth credentials and coverage improvements
+  # push:
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
+  # Also run weekly for comprehensive analysis
+  schedule:
+    - cron: '0 2 * * 1'  # Monday at 2 AM UTC
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  coverage:
+    name: Deep Coverage Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: Install lefthook
+        run: go install github.com/evilmartians/lefthook@latest
+
+      - name: Install coverage tools
+        run: |
+          go install github.com/axw/gocov/gocov@latest
+          go install github.com/AlekSi/gocov-xml@latest
+          go install github.com/matm/gocov-html@latest
+
+      - name: Run comprehensive coverage analysis
+        run: |
+          make coverage-check
+          make coverage-report
+          make coverage-badge
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.out
+          fail_ci_if_error: false  # Don't fail on coverage uploads
+          verbose: true
+
+      - name: Check critical package coverage
+        run: make coverage-critical
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: advanced-coverage-reports
+          path: |
+            coverage.html
+            coverage-detailed.html
+            docs/coverage/badge.svg
+
+  benchmarks:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Download baseline benchmarks
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-baseline
+          path: benchmarks/
+        continue-on-error: true
+      
+      - name: Run benchmarks
+        run: make bench
+      
+      - name: Compare with baseline
+        run: make bench-compare
+        continue-on-error: true
+      
+      - name: Store benchmark results
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'go'
+          output-file-path: benchmarks/current.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: false
+          alert-threshold: '110%'
+          comment-on-alert: true
+          fail-on-alert: true
+          alert-comment-cc-users: '@maintainers'
+      
+      - name: Upload benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmarks/
+
+  mutation:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Install mutation testing tools
+        run: |
+          go install github.com/go-gremlins/gremlins/cmd/gremlins@latest
+      
+      - name: Run mutation testing
+        run: make mutation-quick
+        continue-on-error: true
+      
+      - name: Generate mutation report
+        run: make mutation-report
+      
+      - name: Upload mutation report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: |
+            mutation-reports/
+            mutation-reports/index.html
+
+  quality-gates:
+    name: Quality Gates
+    runs-on: ubuntu-latest
+    needs: [coverage, benchmarks, mutation]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Quality gate check
+        run: |
+          echo "Checking quality gates..."
+          
+          # Check coverage threshold
+          coverage=$(go test -cover ./... 2>/dev/null | grep -oE '[0-9]+\.[0-9]+%' | head -1 | sed 's/%//')
+          if (( $(echo "$coverage < 80" | bc -l) )); then
+            echo "❌ Coverage below 80%: $coverage%"
+            exit 1
+          else
+            echo "✅ Coverage meets threshold: $coverage%"
+          fi
+          
+          echo "✅ All quality gates passed"
+      
+      - name: Generate quality report
+        run: |
+          ./scripts/quality-report.sh > quality-report.md
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('quality-report.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.22', '1.23']
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      
+      - name: Run unit tests
+        run: make test-unit
+      
+      - name: Run race detection
+        run: make test-race
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Run integration tests
+        run: make test-integration
+      
+      - name: Upload VCR cassettes
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vcr-cassettes
+          path: test/fixtures/vcr/
+
+  functional-tests:
+    name: Functional Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Build binary
+        run: make build-test
+      
+      - name: Run functional tests
+        run: make test-functional

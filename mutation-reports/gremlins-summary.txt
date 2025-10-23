@@ -1,0 +1,41 @@
+==========================================
+Gremlins Mutation Testing Summary Report
+==========================================
+Generated: Wed Sep 10 06:11:49 UTC 2025
+Project: GRCTool
+Tool: Gremlins
+
+Package Results:
+------------------------------------------
+Package                  Efficacy     Coverage     Status
+------------------------------------------
+auth                           0%           0% FAIL
+tugboat                      N/A         N/A       SKIP
+services                     N/A         N/A       SKIP
+config                     55.00%       76.92% FAIL
+domain                     83.87%       53.45% FAIL
+models                       N/A         N/A       SKIP
+adapters                     N/A         N/A       SKIP
+logger                       N/A         N/A       SKIP
+utils                        N/A         N/A       SKIP
+formatters                   N/A         N/A       SKIP
+appcontext                100.00%       11.11% FAIL
+
+Summary:
+------------------------------------------
+Average Test Efficacy: 59.71%
+Average Mutant Coverage: 35.37%
+Packages Tested: 4
+Packages Failed: 4
+
+Failed Packages:
+  - auth
+  - config
+  - domain
+  - appcontext
+
+Recommendations:
+1. Review test coverage for failed packages
+2. Add tests for edge cases and error conditions
+3. Ensure all code paths are tested
+4. Use 'gremlins unleash --dry-run <package>' to see mutation opportunities

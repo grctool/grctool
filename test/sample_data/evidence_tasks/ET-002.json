@@ -1,0 +1,79 @@
+{
+  "id": 328002,
+  "reference_id": "ET-002",
+  "name": "Repository Access Control Evidence",
+  "description": "Provide evidence that source code repositories implement appropriate access controls including user permissions matrices, branch protection rules, and deployment environment access restrictions to ensure only authorized personnel can access and modify code.",
+  "guidance": "The repository access control evidence should demonstrate that:\ni) Repository access follows the principle of least privilege with documented permission levels (read, write, admin) assigned based on job role and business need.\nii) Branch protection rules prevent unauthorized direct commits to production branches and enforce code review requirements.\niii) Deployment environment access is restricted with appropriate approval workflows for production deployments.\niv) Administrative access to repositories is limited to designated personnel.\nv) Repository permissions are reviewed periodically and access is revoked promptly when no longer needed.",
+  "collection_interval": "quarter",
+  "priority": "high",
+  "framework": "SOC2 Type II",
+  "status": "active",
+  "completed": false,
+  "category": "Personnel",
+  "complexity_level": "Moderate",
+  "collection_type": "Automated",
+  "due_days_before": 14,
+  "ad_hoc": false,
+  "sensitive": false,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-10-01T00:00:00Z",
+  "controls": ["778773", "778774"],
+  "policies": ["94643"],
+  "related_controls": [
+    {
+      "id": 778773,
+      "reference_id": "AC-01",
+      "name": "Access Control - User Registration and Provisioning",
+      "description": "Access requires documented request and approval prior to provisioning.",
+      "category": "Logical and Physical Access Controls",
+      "status": "implemented"
+    },
+    {
+      "id": 778774,
+      "reference_id": "AC-02",
+      "name": "Access Control - Access Termination and Modification",
+      "description": "Access is revoked timely when employment terminates.",
+      "category": "Logical and Physical Access Controls",
+      "status": "implemented"
+    }
+  ],
+  "related_policies": [
+    {
+      "id": "94643",
+      "reference_id": "POL-003",
+      "name": "Access Control Policy",
+      "description": "System Access Control and User Management Policy."
+    }
+  ],
+  "requirements": [
+    "Repository permissions matrix showing user access levels",
+    "Branch protection rule configurations for production branches",
+    "Deployment environment access controls and approval requirements",
+    "List of repository administrators and their justification",
+    "Evidence of periodic access reviews",
+    "Repository access logs showing access grants and revocations",
+    "Organization member list with role assignments"
+  ],
+  "acceptance_criteria": [
+    "Repository access follows least privilege with documented roles",
+    "Protected branches require pull request reviews before merge",
+    "Direct commits to main/production branches are prohibited",
+    "Deployment to production requires explicit approval",
+    "Repository admin access limited to < 5 personnel",
+    "Access reviews conducted quarterly with documented results",
+    "Terminated employees removed from organization within 24 hours",
+    "External collaborators have time-limited access"
+  ],
+  "data_sources": [
+    "GitHub/GitLab organization settings",
+    "Repository collaborator lists",
+    "Branch protection configurations",
+    "Deployment environment protection rules",
+    "Organization audit logs",
+    "Access review documentation",
+    "HR termination notifications"
+  ],
+  "automation_potential": "high",
+  "effort_estimate": "3 hours",
+  "tags": ["access_control", "github", "repositories", "permissions", "soc2"]
+}

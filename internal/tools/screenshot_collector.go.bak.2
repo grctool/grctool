@@ -1,0 +1,572 @@
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"path/filepath"
+	"time"
+
+	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
+	"github.com/go-rod/rod/lib/proto"
+	"github.com/go-rod/stealth"
+	"github.com/sirupsen/logrus"
+
+	"grctool/internal/config"
+	"grctool/internal/storage"
+)
+
+// ScreenshotCollector captures screenshots of web interfaces for compliance evidence
+type ScreenshotCollector struct {
+	storage storage.Manager
+	logger  *logrus.Logger
+}
+
+// ScreenshotRequest defines parameters for screenshot collection
+type ScreenshotRequest struct {
+	URL                string            `json:"url" validate:"required,url"`
+	AuthConfig         *AuthConfig       `json:"auth_config,omitempty"`
+	EvidenceTaskRef    string            `json:"evidence_task_ref" validate:"required"`
+	Description        string            `json:"description"`
+	WaitForSelector    string            `json:"wait_for_selector,omitempty"`
+	ViewportWidth      int               `json:"viewport_width,omitempty"`
+	ViewportHeight     int               `json:"viewport_height,omitempty"`
+	DelaySeconds       int               `json:"delay_seconds,omitempty"`
+	FullPage           bool              `json:"full_page"`
+	MaskSensitiveData  bool              `json:"mask_sensitive_data"`
+	SensitiveSelectors []string          `json:"sensitive_selectors,omitempty"`
+	CustomActions      []BrowserAction   `json:"custom_actions,omitempty"`
+	Metadata           map[string]string `json:"metadata,omitempty"`
+}
+
+// AuthConfig defines authentication methods for protected interfaces
+type AuthConfig struct {
+	Type              string            `json:"type"` // "basic", "form", "oauth", "session_cookie", "api_key"
+	Username          string            `json:"username,omitempty"`
+	Password          string            `json:"password,omitempty"`
+	LoginURL          string            `json:"login_url,omitempty"`
+	UsernameSelector  string            `json:"username_selector,omitempty"`
+	PasswordSelector  string            `json:"password_selector,omitempty"`
+	SubmitSelector    string            `json:"submit_selector,omitempty"`
+	SessionCookies    map[string]string `json:"session_cookies,omitempty"`
+	Headers           map[string]string `json:"headers,omitempty"`
+	OAuthConfig       *OAuthConfig      `json:"oauth_config,omitempty"`
+}
+
+// OAuthConfig for OAuth2 authentication flows
+type OAuthConfig struct {
+	ClientID     string   `json:"client_id"`
+	ClientSecret string   `json:"client_secret"`
+	RedirectURL  string   `json:"redirect_url"`
+	Scopes       []string `json:"scopes"`
+	AuthURL      string   `json:"auth_url"`
+	TokenURL     string   `json:"token_url"`
+}
+
+// BrowserAction defines custom actions to perform before screenshot
+type BrowserAction struct {
+	Type     string `json:"type"` // "click", "input", "select", "wait", "scroll"
+	Selector string `json:"selector,omitempty"`
+	Value    string `json:"value,omitempty"`
+	WaitMs   int    `json:"wait_ms,omitempty"`
+}
+
+// ScreenshotResult contains the captured screenshot and metadata
+type ScreenshotResult struct {
+	ScreenshotPath    string            `json:"screenshot_path"`
+	Timestamp         time.Time         `json:"timestamp"`
+	URL               string            `json:"url"`
+	EvidenceTaskRef   string            `json:"evidence_task_ref"`
+	Description       string            `json:"description"`
+	ViewportSize      string            `json:"viewport_size"`
+	AuthMethod        string            `json:"auth_method,omitempty"`
+	MaskedElements    []string          `json:"masked_elements,omitempty"`
+	PageTitle         string            `json:"page_title"`
+	ResponseStatus    int               `json:"response_status"`
+	LoadTimeMs        int64             `json:"load_time_ms"`
+	Metadata          map[string]string `json:"metadata,omitempty"`
+	ValidationChecks  []ValidationCheck `json:"validation_checks,omitempty"`
+}
+
+// ValidationCheck represents automated validation of screenshot content
+type ValidationCheck struct {
+	Type        string `json:"type"`        // "element_present", "text_contains", "url_matches"
+	Description string `json:"description"`
+	Passed      bool   `json:"passed"`
+	Details     string `json:"details,omitempty"`
+}
+
+func NewScreenshotCollector(storage storage.Manager, logger *logrus.Logger) *ScreenshotCollector {
+	return &ScreenshotCollector{
+		storage: storage,
+		logger:  logger,
+	}
+}
+
+func (sc *ScreenshotCollector) Name() string {
+	return "screenshot-collector"
+}
+
+func (sc *ScreenshotCollector) Description() string {
+	return "Automated screenshot collection from web interfaces for compliance evidence with authentication support"
+}
+
+func (sc *ScreenshotCollector) Version() string {
+	return "1.0.0"
+}
+
+func (sc *ScreenshotCollector) Category() string {
+	return "evidence-automation"
+}
+
+func (sc *ScreenshotCollector) Execute(ctx context.Context, params map[string]interface{}) (interface{}, error) {
+	// Parse request parameters
+	requestBytes, err := json.Marshal(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal parameters: %w", err)
+	}
+
+	var request ScreenshotRequest
+	if err := json.Unmarshal(requestBytes, &request); err != nil {
+		return nil, fmt.Errorf("failed to parse screenshot request: %w", err)
+	}
+
+	// Validate required parameters
+	if request.URL == "" {
+		return nil, fmt.Errorf("url is required")
+	}
+	if request.EvidenceTaskRef == "" {
+		return nil, fmt.Errorf("evidence_task_ref is required")
+	}
+
+	// Set defaults
+	if request.ViewportWidth == 0 {
+		request.ViewportWidth = 1920
+	}
+	if request.ViewportHeight == 0 {
+		request.ViewportHeight = 1080
+	}
+
+	sc.logger.WithFields(logrus.Fields{
+		"url":              request.URL,
+		"evidence_task":    request.EvidenceTaskRef,
+		"auth_type":        getAuthType(request.AuthConfig),
+		"viewport":         fmt.Sprintf("%dx%d", request.ViewportWidth, request.ViewportHeight),
+	}).Info("Starting screenshot collection")
+
+	// Launch browser with security settings
+	browser, err := sc.launchBrowser(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to launch browser: %w", err)
+	}
+	defer browser.MustClose()
+
+	page := browser.MustPage()
+
+	// Set viewport
+	err = page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
+		Width:  request.ViewportWidth,
+		Height: request.ViewportHeight,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to set viewport: %w", err)
+	}
+
+	startTime := time.Now()
+
+	// Handle authentication if provided
+	if request.AuthConfig != nil {
+		err = sc.handleAuthentication(ctx, page, request.AuthConfig)
+		if err != nil {
+			return nil, fmt.Errorf("authentication failed: %w", err)
+		}
+	}
+
+	// Navigate to target URL
+	err = page.Navigate(request.URL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to navigate to URL: %w", err)
+	}
+
+	// Wait for page load
+	page.MustWaitLoad()
+
+	// Wait for specific selector if provided
+	if request.WaitForSelector != "" {
+		_, err = page.Timeout(10 * time.Second).Element(request.WaitForSelector)
+		if err != nil {
+			sc.logger.WithField("selector", request.WaitForSelector).Warn("Wait selector not found, continuing")
+		}
+	}
+
+	// Execute custom actions
+	for _, action := range request.CustomActions {
+		err = sc.executeAction(page, action)
+		if err != nil {
+			sc.logger.WithError(err).WithField("action", action.Type).Warn("Custom action failed, continuing")
+		}
+	}
+
+	// Additional delay if specified
+	if request.DelaySeconds > 0 {
+		time.Sleep(time.Duration(request.DelaySeconds) * time.Second)
+	}
+
+	// Mask sensitive data if required
+	if request.MaskSensitiveData {
+		err = sc.maskSensitiveElements(page, request.SensitiveSelectors)
+		if err != nil {
+			sc.logger.WithError(err).Warn("Failed to mask sensitive data, continuing")
+		}
+	}
+
+	loadTime := time.Since(startTime)
+
+	// Capture screenshot
+	screenshotBytes, err := sc.captureScreenshot(page, request.FullPage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to capture screenshot: %w", err)
+	}
+
+	// Generate file path
+	timestamp := time.Now()
+	filename := fmt.Sprintf("%s_%s_%s.png",
+		request.EvidenceTaskRef,
+		timestamp.Format("20060102_150405"),
+		sanitizeFilename(request.Description))
+
+	screenshotPath := filepath.Join("screenshots", filename)
+
+	// Save screenshot
+	err = sc.storage.WriteFile(screenshotPath, screenshotBytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to save screenshot: %w", err)
+	}
+
+	// Get page metadata
+	pageTitle := page.MustInfo().Title
+	currentURL := page.MustInfo().URL
+
+	// Perform validation checks
+	validationChecks := sc.performValidationChecks(page, request)
+
+	result := ScreenshotResult{
+		ScreenshotPath:   screenshotPath,
+		Timestamp:        timestamp,
+		URL:              currentURL,
+		EvidenceTaskRef:  request.EvidenceTaskRef,
+		Description:      request.Description,
+		ViewportSize:     fmt.Sprintf("%dx%d", request.ViewportWidth, request.ViewportHeight),
+		AuthMethod:       getAuthType(request.AuthConfig),
+		PageTitle:        pageTitle,
+		LoadTimeMs:       loadTime.Milliseconds(),
+		Metadata:         request.Metadata,
+		ValidationChecks: validationChecks,
+	}
+
+	if request.MaskSensitiveData {
+		result.MaskedElements = request.SensitiveSelectors
+	}
+
+	sc.logger.WithFields(logrus.Fields{
+		"screenshot_path": screenshotPath,
+		"page_title":      pageTitle,
+		"load_time_ms":    loadTime.Milliseconds(),
+	}).Info("Screenshot collected successfully")
+
+	return result, nil
+}
+
+func (sc *ScreenshotCollector) launchBrowser(ctx context.Context) (*rod.Browser, error) {
+	// Launch browser with security and stealth settings
+	launcher := launcher.New().
+		Headless(true).
+		NoSandbox(true). // Required for some environments
+		Set("disable-web-security", "false").
+		Set("disable-features", "VizDisplayCompositor").
+		Set("disable-background-timer-throttling").
+		Set("disable-backgrounding-occluded-windows").
+		Set("disable-renderer-backgrounding").
+		Set("no-first-run").
+		Set("disable-default-apps")
+
+	url, err := launcher.Launch()
+	if err != nil {
+		return nil, fmt.Errorf("failed to launch browser: %w", err)
+	}
+
+	browser := rod.New().ControlURL(url)
+	err = browser.Connect()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to browser: %w", err)
+	}
+
+	// Apply stealth mode to avoid detection
+	browser = stealth.MustPage(browser)
+
+	return browser, nil
+}
+
+func (sc *ScreenshotCollector) handleAuthentication(ctx context.Context, page *rod.Page, auth *AuthConfig) error {
+	switch auth.Type {
+	case "basic":
+		// Handle HTTP Basic Auth
+		if auth.Username != "" && auth.Password != "" {
+			page.MustNavigate(fmt.Sprintf("https://%s:%s@%s", auth.Username, auth.Password, 
+				extractDomainFromURL(page.MustInfo().URL)))
+		}
+
+	case "form":
+		// Handle form-based login
+		if auth.LoginURL != "" {
+			err := page.Navigate(auth.LoginURL)
+			if err != nil {
+				return fmt.Errorf("failed to navigate to login URL: %w", err)
+			}
+			page.MustWaitLoad()
+
+			// Fill username
+			if auth.UsernameSelector != "" && auth.Username != "" {
+				page.MustElement(auth.UsernameSelector).MustInput(auth.Username)
+			}
+
+			// Fill password
+			if auth.PasswordSelector != "" && auth.Password != "" {
+				page.MustElement(auth.PasswordSelector).MustInput(auth.Password)
+			}
+
+			// Submit form
+			if auth.SubmitSelector != "" {
+				page.MustElement(auth.SubmitSelector).MustClick()
+				page.MustWaitLoad()
+			}
+		}
+
+	case "session_cookie":
+		// Set session cookies
+		for name, value := range auth.SessionCookies {
+			page.MustSetCookies(&proto.NetworkCookieParam{
+				Name:  name,
+				Value: value,
+			})
+		}
+
+	case "api_key":
+		// Set headers for API key auth
+		for key, value := range auth.Headers {
+			page.MustSetExtraHeaders(key, value)
+		}
+
+	default:
+		return fmt.Errorf("unsupported authentication type: %s", auth.Type)
+	}
+
+	return nil
+}
+
+func (sc *ScreenshotCollector) executeAction(page *rod.Page, action BrowserAction) error {
+	switch action.Type {
+	case "click":
+		if action.Selector != "" {
+			el, err := page.Element(action.Selector)
+			if err != nil {
+				return fmt.Errorf("element not found: %s", action.Selector)
+			}
+			err = el.Click()
+			if err != nil {
+				return fmt.Errorf("failed to click element: %w", err)
+			}
+		}
+
+	case "input":
+		if action.Selector != "" && action.Value != "" {
+			el, err := page.Element(action.Selector)
+			if err != nil {
+				return fmt.Errorf("element not found: %s", action.Selector)
+			}
+			err = el.Input(action.Value)
+			if err != nil {
+				return fmt.Errorf("failed to input text: %w", err)
+			}
+		}
+
+	case "select":
+		if action.Selector != "" && action.Value != "" {
+			el, err := page.Element(action.Selector)
+			if err != nil {
+				return fmt.Errorf("element not found: %s", action.Selector)
+			}
+			err = el.Select([]string{action.Value}, true, rod.SelectorTypeText)
+			if err != nil {
+				return fmt.Errorf("failed to select option: %w", err)
+			}
+		}
+
+	case "wait":
+		if action.WaitMs > 0 {
+			time.Sleep(time.Duration(action.WaitMs) * time.Millisecond)
+		}
+
+	case "scroll":
+		if action.Selector != "" {
+			el, err := page.Element(action.Selector)
+			if err != nil {
+				return fmt.Errorf("element not found: %s", action.Selector)
+			}
+			err = el.ScrollIntoView()
+			if err != nil {
+				return fmt.Errorf("failed to scroll to element: %w", err)
+			}
+		}
+
+	default:
+		return fmt.Errorf("unsupported action type: %s", action.Type)
+	}
+
+	return nil
+}
+
+func (sc *ScreenshotCollector) maskSensitiveElements(page *rod.Page, selectors []string) error {
+	// Default sensitive selectors if none provided
+	if len(selectors) == 0 {
+		selectors = []string{
+			"input[type=password]",
+			"[data-testid*=password]",
+			"[class*=password]",
+			"[class*=secret]",
+			"[class*=token]",
+			".sensitive",
+			".secret",
+			".password",
+		}
+	}
+
+	// CSS to hide sensitive elements
+	maskCSS := `
+		.grctool-masked {
+			background: #000 !important;
+			color: transparent !important;
+			text-shadow: none !important;
+			border: 2px solid #ff0000 !important;
+		}
+		.grctool-masked::after {
+			content: "*** REDACTED ***" !important;
+			color: #ff0000 !important;
+			font-weight: bold !important;
+			position: absolute !important;
+			z-index: 9999 !important;
+		}
+	`
+
+	// Inject masking CSS
+	page.MustEval(`
+		(() => {
+			const style = document.createElement('style');
+			style.textContent = ` + "`" + maskCSS + "`" + `;
+			document.head.appendChild(style);
+		})()
+	`)
+
+	// Apply masking to matching elements
+	for _, selector := range selectors {
+		script := fmt.Sprintf(`
+			(() => {
+				const elements = document.querySelectorAll('%s');
+				elements.forEach(el => {
+					el.classList.add('grctool-masked');
+				});
+			})()
+		`, selector)
+
+		page.MustEval(script)
+	}
+
+	return nil
+}
+
+func (sc *ScreenshotCollector) captureScreenshot(page *rod.Page, fullPage bool) ([]byte, error) {
+	if fullPage {
+		return page.Screenshot(true, nil)
+	}
+	return page.Screenshot(false, nil)
+}
+
+func (sc *ScreenshotCollector) performValidationChecks(page *rod.Page, request ScreenshotRequest) []ValidationCheck {
+	var checks []ValidationCheck
+
+	// Check if authentication was successful (no login forms visible)
+	if request.AuthConfig != nil {
+		loginFormPresent := true
+		_, err := page.Timeout(2 * time.Second).Element("input[type=password], .login-form, #login")
+		if err != nil {
+			loginFormPresent = false
+		}
+
+		checks = append(checks, ValidationCheck{
+			Type:        "authentication_success",
+			Description: "Verify no login forms are visible after authentication",
+			Passed:      !loginFormPresent,
+			Details:     fmt.Sprintf("Login form present: %v", loginFormPresent),
+		})
+	}
+
+	// Check for error messages
+	errorPresent := true
+	_, err := page.Timeout(2 * time.Second).Element(".error, .alert-danger, [class*=error]")
+	if err != nil {
+		errorPresent = false
+	}
+
+	checks = append(checks, ValidationCheck{
+		Type:        "no_error_messages",
+		Description: "Verify no error messages are displayed",
+		Passed:      !errorPresent,
+		Details:     fmt.Sprintf("Error messages present: %v", errorPresent),
+	})
+
+	// Check if page loaded successfully (title is not empty)
+	pageTitle := page.MustInfo().Title
+	checks = append(checks, ValidationCheck{
+		Type:        "page_loaded",
+		Description: "Verify page loaded successfully with valid title",
+		Passed:      pageTitle != "",
+		Details:     fmt.Sprintf("Page title: %s", pageTitle),
+	})
+
+	return checks
+}
+
+// Helper functions
+
+func getAuthType(auth *AuthConfig) string {
+	if auth == nil {
+		return "none"
+	}
+	return auth.Type
+}
+
+func extractDomainFromURL(url string) string {
+	// Simple domain extraction - would need proper URL parsing in production
+	return url
+}
+
+func sanitizeFilename(filename string) string {
+	// Remove/replace invalid filename characters
+	if filename == "" {
+		return "screenshot"
+	}
+	
+	// Simple sanitization - would need more robust implementation
+	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|", " "}
+	result := filename
+	for _, char := range invalidChars {
+		result = filepath.Base(result) // Remove path separators
+	}
+	
+	if len(result) > 50 {
+		result = result[:50]
+	}
+	
+	return result
+}
