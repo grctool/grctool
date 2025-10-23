@@ -1,0 +1,188 @@
+interactions:
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=CI+CD+workflow+actions+security+label%3Aci%2Csecurity%2Cautomation
+  response:
+    body:
+      string: |
+        {
+          "total_count": 4,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 6,
+              "number": 301,
+              "title": "Implement security scanning in CI/CD pipeline",
+              "state": "open",
+              "body": "Add comprehensive security scanning to our CI/CD workflows:\n\n## Required Security Checks\n- **SAST**: Static Application Security Testing\n- **Dependency scanning**: Check for vulnerable dependencies\n- **Container scanning**: Scan Docker images for vulnerabilities\n- **Secret detection**: Prevent secrets from being committed\n\n## Implementation Plan\n1. Add GitHub Actions workflow for security scanning\n2. Configure CodeQL for SAST\n3. Integrate Snyk for dependency scanning\n4. Set up Trivy for container scanning\n5. Configure secret scanning alerts\n\nAll security checks must pass before deployment.",
+              "user": {
+                "login": "security-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "ci",
+                  "color": "0052cc"
+                },
+                {
+                  "name": "security",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "automation",
+                  "color": "1d76db"
+                }
+              ],
+              "created_at": "2024-08-08T11:00:00Z",
+              "updated_at": "2024-08-20T16:45:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/301",
+              "pull_request": null
+            },
+            {
+              "id": 7,
+              "number": 302,
+              "title": "CI workflow security hardening completed",
+              "state": "closed",
+              "body": "Successfully hardened our CI/CD security posture:\n\n## Implemented Security Controls\n✅ **OIDC token authentication** - No long-lived secrets\n✅ **Least privilege permissions** - Minimal required permissions per job\n✅ **Dependency pinning** - All actions pinned to specific SHA\n✅ **Artifact signing** - All build artifacts cryptographically signed\n✅ **Build provenance** - SLSA Level 2 build provenance\n\n## Security Workflow Features\n- Runs on every pull request\n- Blocks merge if security checks fail\n- Automatic security updates for dependencies\n- Regular security audit reports\n\n**Security Score: A+**",
+              "user": {
+                "login": "devops-team", 
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "ci",
+                  "color": "0052cc"
+                },
+                {
+                  "name": "security",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "hardening",
+                  "color": "d4c5f9"
+                },
+                {
+                  "name": "completed",
+                  "color": "28a745"
+                }
+              ],
+              "created_at": "2024-07-15T14:30:00Z",
+              "updated_at": "2024-08-10T12:00:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/302",
+              "pull_request": null
+            },
+            {
+              "id": 8,
+              "number": 303,
+              "title": "Automate security compliance reporting",
+              "state": "open",
+              "body": "Create automated workflows for SOC2 compliance reporting:\n\n## Compliance Automation Requirements\n- **Daily security scans** with results archived\n- **Vulnerability report generation** in compliance format\n- **Access review automation** for GitHub permissions\n- **Change management logging** for all deployments\n- **Incident response tracking** integration\n\n## Deliverables\n1. GitHub Actions workflow for compliance reporting\n2. Automated evidence collection\n3. Report generation in PDF format\n4. Integration with compliance management system\n\nTarget: Generate monthly SOC2 evidence packages automatically.",
+              "user": {
+                "login": "compliance-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "automation",
+                  "color": "1d76db"
+                },
+                {
+                  "name": "compliance",
+                  "color": "f9d0c4"
+                },
+                {
+                  "name": "soc2",
+                  "color": "bfd4f2"
+                }
+              ],
+              "created_at": "2024-08-12T10:15:00Z",
+              "updated_at": "2024-08-19T14:20:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/303",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4997
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=security+scan+SAST+dependency+check+label%3Asecurity%2Cscanning%2Cvulnerability
+  response:
+    body:
+      string: |
+        {
+          "total_count": 2,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 9,
+              "number": 304,
+              "title": "SAST and dependency scanning implementation",
+              "state": "open",
+              "body": "Implement comprehensive Static Application Security Testing (SAST) and dependency vulnerability scanning:\n\n## SAST Implementation\n- **CodeQL analysis** for code vulnerabilities\n- **Custom security rules** for our technology stack\n- **Integration with IDE** for developer feedback\n- **Pull request annotations** for security findings\n\n## Dependency Scanning\n- **Snyk integration** for npm/yarn dependencies\n- **GitHub Dependabot** for automated updates\n- **License compliance checking**\n- **Supply chain security validation**\n\n## Success Metrics\n- Zero high-severity vulnerabilities in production\n- 100% dependency scanning coverage\n- <24h mean time to remediation for critical findings",
+              "user": {
+                "login": "security-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "security",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "scanning",
+                  "color": "ff6b6b"
+                },
+                {
+                  "name": "vulnerability",
+                  "color": "d93f0b"
+                }
+              ],
+              "created_at": "2024-08-14T09:30:00Z",
+              "updated_at": "2024-08-20T11:15:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/304",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4996
+    status:
+      code: 200
+      message: OK
+version: 1

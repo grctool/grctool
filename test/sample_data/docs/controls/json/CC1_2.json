@@ -1,0 +1,64 @@
+{
+  "id": 778772,
+  "reference_id": "CC1.2",
+  "name": "Communication and Information",
+  "description": "The entity obtains or generates and uses relevant, quality information to support the functioning of internal control and communicates information internally.",
+  "objective": "Ensure that relevant, quality information is identified, captured, and communicated in a form and timeframe that enables people to carry out their internal control responsibilities.",
+  "framework": "SOC2 Type II",
+  "category": "Control Environment", 
+  "subcategory": "Information and Communication",
+  "status": "implemented",
+  "risk_rating": "medium",
+  "control_type": "detective",
+  "frequency": "continuous",
+  "owner": "Information Technology",
+  "responsible_party": "Chief Information Officer",
+  "implementation_date": "2023-01-01T00:00:00Z",
+  "last_review_date": "2024-08-01T00:00:00Z",
+  "next_review_date": "2025-02-01T00:00:00Z",
+  "testing_frequency": "annual",
+  "control_activities": [
+    "Management obtains relevant and quality information from internal and external sources",
+    "Information systems produce reports with relevant, accurate, and timely information",
+    "Communication enables and supports understanding and execution of internal control objectives",
+    "Information is communicated to external parties when necessary",
+    "Separate communication lines exist and are maintained for reporting concerns"
+  ],
+  "key_attributes": [
+    "Uses relevant information to support internal control",
+    "Communicates internally regarding internal control responsibilities",
+    "Communicates with external parties regarding internal control matters"
+  ],
+  "evidence_requirements": [
+    "Information system documentation and reports",
+    "Communication policies and procedures", 
+    "Evidence of information quality controls",
+    "Training materials and communication records",
+    "Whistleblower hotline documentation",
+    "External communication examples (when applicable)"
+  ],
+  "related_controls": ["CC1.1", "CC1.3", "CC2.1", "CC2.2"],
+  "related_policies": ["POL-001", "POL-002", "POL-005"],
+  "compliance_mappings": [
+    {
+      "framework": "SOC2",
+      "control_id": "CC1.2", 
+      "requirement": "Communication and Information"
+    },
+    {
+      "framework": "COSO",
+      "control_id": "Information and Communication",
+      "requirement": "Uses Relevant Information"
+    }
+  ],
+  "testing_procedures": [
+    "Review information systems for accuracy and timeliness of reports",
+    "Test communication channels for effectiveness",
+    "Examine evidence of information quality controls",
+    "Evaluate training and communication of policies",
+    "Test whistleblower and reporting mechanisms"
+  ],
+  "automation_level": "medium",
+  "maturity_level": "managed", 
+  "tags": ["communication", "information", "reporting", "training", "soc2"]
+}

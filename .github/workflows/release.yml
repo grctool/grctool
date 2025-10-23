@@ -1,0 +1,110 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0, v0.1.0, etc.
+
+permissions:
+  contents: write  # Required to create releases
+  packages: write  # Required if publishing to GitHub Packages
+
+env:
+  GO_VERSION: '1.23'
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for changelog generation
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod tidy
+
+      - name: Run tests
+        run: |
+          # Run unit tests only for fast release validation
+          go test -timeout=30s -v ./internal/... ./cmd/... -count=1
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload release artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            dist/*.tar.gz
+            dist/checksums.txt
+          retention-days: 5
+
+  # Optional: Quality gate before release
+  pre-release-checks:
+    name: Pre-Release Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install lefthook
+        run: go install github.com/evilmartians/lefthook@latest
+
+      - name: Install additional tools
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.60.3
+
+      - name: Run quality checks
+        run: |
+          # Run lefthook CI checks
+          LEFTHOOK_CONFIG=lefthook-ci.yml lefthook run ci || true
+
+      - name: Validate tag format
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Invalid tag format: $TAG"
+            echo "Tag must follow semantic versioning: v1.2.3 or v1.2.3-beta.1"
+            exit 1
+          fi
+          echo "✅ Valid tag format: $TAG"
+
+      - name: Check changelog entry
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [ -f "CHANGELOG.md" ]; then
+            if ! grep -q "$TAG" CHANGELOG.md; then
+              echo "⚠️  Warning: No CHANGELOG.md entry found for $TAG"
+            else
+              echo "✅ CHANGELOG.md contains entry for $TAG"
+            fi
+          else
+            echo "⚠️  Warning: No CHANGELOG.md file found"
+          fi

@@ -1,0 +1,22 @@
+# Test configuration with HTTP logging enabled
+tugboat:
+  base_url: "https://app.tugboatlogic.com/api"
+  org_id: "YOUR_ORG_ID"
+  timeout: 30s
+  rate_limit: 10
+  auth_mode: "browser"
+  cookie_header: "dummy_cookie_for_testing"
+  bearer_token: ""
+  auth_expires: ""
+  log_api_requests: true
+  log_api_responses: true
+
+logging:
+  level: "trace"
+  format: "text"
+  output: "stdout"
+  sanitize_urls: false
+  show_caller: true
+
+storage:
+  base_path: "./docs"

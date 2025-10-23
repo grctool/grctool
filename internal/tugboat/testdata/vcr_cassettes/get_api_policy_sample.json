@@ -1,0 +1,29 @@
+{
+  "name": "get_api_policy_sample.json",
+  "recorded_at": "2024-01-15T10:35:00Z",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/?embeds=tags&embeds=assignees&embeds=current_version_status&embeds=read_time&embeds=reviewers&org=999999&page=1&page_size=25",
+        "headers": {
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        },
+        "body": ""
+      },
+      "response": {
+        "status_code": 200,
+        "status": "200 OK",
+        "headers": {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache"
+        },
+        "body": "{\"max_page_size\":100,\"page_size\":25,\"num_pages\":1,\"page_number\":1,\"count\":8,\"next\":null,\"previous\":null,\"results\":[{\"id\":94641,\"name\":\"Information Security Policy\",\"description\":\"Establishes the framework for information security management\",\"framework\":\"SOC2\",\"status\":\"active\",\"created_at\":\"2023-01-15T10:00:00Z\",\"updated_at\":\"2023-12-01T15:30:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"},{\"id\":94642,\"name\":\"Access Control Policy\",\"description\":\"Defines access control requirements and procedures\",\"framework\":\"SOC2\",\"status\":\"active\",\"created_at\":\"2023-01-20T11:00:00Z\",\"updated_at\":\"2023-11-15T14:20:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"},{\"id\":94643,\"name\":\"Data Classification Policy\",\"description\":\"Guidelines for data classification and handling\",\"framework\":\"ISO27001\",\"status\":\"active\",\"created_at\":\"2023-02-01T09:00:00Z\",\"updated_at\":\"2023-10-30T16:45:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"draft\"},{\"id\":94644,\"name\":\"Incident Response Policy\",\"description\":\"Procedures for responding to security incidents\",\"framework\":\"SOC2\",\"status\":\"active\",\"created_at\":\"2023-02-15T13:00:00Z\",\"updated_at\":\"2023-12-05T12:10:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"},{\"id\":94645,\"name\":\"Business Continuity Policy\",\"description\":\"Guidelines for business continuity and disaster recovery\",\"framework\":\"ISO27001\",\"status\":\"active\",\"created_at\":\"2023-03-01T10:30:00Z\",\"updated_at\":\"2023-11-20T17:00:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"},{\"id\":94646,\"name\":\"Risk Management Policy\",\"description\":\"Framework for identifying and managing risks\",\"framework\":\"SOC2\",\"status\":\"active\",\"created_at\":\"2023-03-15T14:00:00Z\",\"updated_at\":\"2023-11-25T09:30:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"},{\"id\":94647,\"name\":\"Vendor Management Policy\",\"description\":\"Guidelines for managing third-party vendors\",\"framework\":\"SOC2\",\"status\":\"active\",\"created_at\":\"2023-04-01T11:30:00Z\",\"updated_at\":\"2023-12-10T13:45:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"},{\"id\":94648,\"name\":\"Physical Security Policy\",\"description\":\"Physical security controls and procedures\",\"framework\":\"ISO27001\",\"status\":\"active\",\"created_at\":\"2023-04-15T16:00:00Z\",\"updated_at\":\"2023-12-15T10:15:00Z\",\"tags\":[],\"assignees\":[],\"current_version_status\":\"approved\"}]}"
+      },
+      "timestamp": "2024-01-15T10:35:00Z"
+    }
+  ]
+}

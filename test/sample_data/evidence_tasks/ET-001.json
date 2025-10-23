@@ -1,0 +1,72 @@
+{
+  "id": 328001,
+  "reference_id": "ET-001",
+  "name": "Infrastructure Security Configuration Evidence",
+  "description": "Provide evidence that cloud infrastructure is configured with appropriate security controls including network security groups, encryption for data at rest and in transit, IAM role configurations, and multi-availability zone deployment for resilience.",
+  "guidance": "The infrastructure security evidence should demonstrate that:\ni) Network security is implemented through properly configured security groups and firewalls that restrict traffic to necessary ports and protocols following least privilege principles.\nii) Data encryption is enabled for all data at rest using industry-standard algorithms (AES-256 or equivalent) and for data in transit using TLS 1.2 or higher.\niii) IAM roles and policies follow the principle of least privilege with appropriate segregation of duties.\niv) Production infrastructure is deployed across multiple availability zones to ensure high availability and resilience.\nv) Infrastructure is defined as code and version controlled to ensure consistent and auditable deployments.",
+  "collection_interval": "quarter",
+  "priority": "high",
+  "framework": "SOC2 Type II",
+  "status": "active",
+  "completed": false,
+  "category": "Infrastructure",
+  "complexity_level": "Complex",
+  "collection_type": "Automated",
+  "due_days_before": 14,
+  "ad_hoc": false,
+  "sensitive": false,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-10-01T00:00:00Z",
+  "controls": ["778780"],
+  "policies": ["94645"],
+  "related_controls": [
+    {
+      "id": 778780,
+      "reference_id": "CC6.1",
+      "name": "Logical and Physical Access Controls",
+      "description": "The entity implements logical and physical access controls to protect information assets from unauthorized access.",
+      "category": "Logical and Physical Access Controls",
+      "status": "implemented"
+    }
+  ],
+  "related_policies": [
+    {
+      "id": "94645",
+      "reference_id": "POL-005",
+      "name": "Infrastructure Security Policy",
+      "description": "Cloud Infrastructure and Network Security Policy establishing security requirements for infrastructure."
+    }
+  ],
+  "requirements": [
+    "Network security group configurations showing restricted ingress/egress rules",
+    "Evidence of encryption at rest for databases and storage",
+    "Evidence of TLS encryption for data in transit",
+    "IAM role and policy configurations demonstrating least privilege",
+    "Infrastructure deployment across multiple availability zones",
+    "Terraform or IaC configurations showing security controls",
+    "Security group rules limiting access to specific ports and IP ranges",
+    "KMS or encryption key management evidence"
+  ],
+  "acceptance_criteria": [
+    "Network security groups follow default-deny, explicit-allow principle",
+    "All production databases encrypted at rest with AES-256",
+    "All API and web traffic uses TLS 1.2 or higher",
+    "IAM roles have minimal necessary permissions documented",
+    "Production services deployed in at least 2 availability zones",
+    "Infrastructure defined in version-controlled Terraform code",
+    "No overly permissive security rules (0.0.0.0/0 on sensitive ports)",
+    "Encryption keys properly managed and rotated"
+  ],
+  "data_sources": [
+    "Terraform configuration files",
+    "AWS/Cloud provider security group configurations",
+    "KMS encryption settings",
+    "Load balancer and multi-AZ deployment evidence",
+    "IAM role and policy documents",
+    "Network architecture diagrams",
+    "Infrastructure deployment logs"
+  ],
+  "automation_potential": "high",
+  "effort_estimate": "4 hours",
+  "tags": ["infrastructure", "encryption", "network_security", "iac", "terraform", "soc2"]
+}

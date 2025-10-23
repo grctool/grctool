@@ -1,0 +1,105 @@
+# Mutation Testing Configuration for GRCTool
+# This configuration defines patterns, mutators, and thresholds for mutation testing
+
+# Exclude patterns - files/directories that should not be mutated
+blacklist:
+  # Test files
+  - "**/*_test.go"
+  - "**/test_*.go"
+  - "**/*Test.go"
+  
+  # Test directories and data
+  - "test/**/*"
+  - "test-*/**/*" 
+  - "**/testdata/**/*"
+  - "**/test_data/**/*"
+  
+  # Vendor and external dependencies
+  - "vendor/**/*"
+  - "**/vendor/**/*"
+  
+  # Generated files
+  - "**/*.pb.go"
+  - "**/*_gen.go"
+  - "**/*_generated.go"
+  
+  # Main files (usually just entry points)
+  - "main.go"
+  - "**/main.go"
+  - "cmd/**/main.go"
+  
+  # Configuration and example files
+  - "**/*.example.go"
+  - "**/example_*.go"
+
+# Target packages for mutation testing (critical business logic)
+packages:
+  - "./internal/tugboat/..."
+  - "./internal/tools/..."
+  - "./internal/services/..."
+  - "./internal/auth/..."
+  - "./internal/domain/..."
+  - "./internal/adapters/..."
+  - "./internal/models/..."
+  - "./internal/config/..."
+
+# Mutation operators to use
+mutators:
+  # Arithmetic operators
+  - "arithmetic"
+  - "arithmetic/base"
+  - "arithmetic/invert"
+  
+  # Boolean logic
+  - "branch"
+  - "conditional/boundary"
+  - "conditional/negation"
+  
+  # Loop mutations
+  - "loop/break"
+  - "loop/continue"
+  
+  # Return value mutations
+  - "return"
+  
+  # Statement mutations
+  - "statement"
+  - "statement/remove"
+
+# Minimum mutation score threshold (70%)
+# Mutation score = (killed mutants / total mutants) * 100
+threshold:
+  minimum: 70
+  
+# Output configuration
+output:
+  # Generate detailed reports
+  verbose: true
+  # Show surviving mutants for analysis
+  show-survivors: true
+  # Output formats
+  formats:
+    - "text"
+    - "json"
+    - "html"
+  
+# Performance settings
+performance:
+  # Number of parallel workers (0 = auto-detect)
+  workers: 0
+  # Timeout per mutation test in seconds
+  timeout: 30
+  
+# Reporting configuration
+report:
+  # Generate HTML report
+  html: true
+  html-file: "mutation-report.html"
+  
+  # Generate JSON report for CI/CD integration
+  json: true
+  json-file: "mutation-results.json"
+  
+  # Coverage integration
+  coverage: true
+  coverage-file: "coverage.out"

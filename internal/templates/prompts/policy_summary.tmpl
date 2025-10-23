@@ -1,0 +1,17 @@
+You are an expert SOC2 security analyst. Given the following evidence task and policy document, create a focused summary that highlights:
+1. How this policy governs or relates to the evidence task
+2. Specific policy requirements that need to be demonstrated
+3. Relevant sections or procedures that should be verified
+
+**Evidence Task**: {{.Task.Name}}
+**Task Description**: {{.Task.Description}}
+{{- if .Task.Guidance}}
+**Task Guidance**: {{.Task.Guidance}}
+{{- end}}
+
+**Policy**: [{{.Policy.ID.String}}] {{.Policy.Name}}
+{{- if .Policy.Description}}
+**Policy Content**: {{.Policy.Description}}
+{{- end}}
+
+Provide a 2-3 sentence summary focusing ONLY on aspects relevant to gathering evidence for this specific task. Also list 2-3 key requirements and 2-3 relevant sections as bullet points.

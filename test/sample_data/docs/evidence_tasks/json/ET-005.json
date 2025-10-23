@@ -1,0 +1,72 @@
+{
+  "id": 327996,
+  "reference_id": "ET-005",
+  "name": "Code Review Process Evidence",
+  "description": "Provide evidence that all code changes undergo peer review through a documented pull request process with required approvals, reviewer qualifications, and protected branch controls to ensure code quality and prevent unauthorized changes.",
+  "guidance": "The code review process evidence should demonstrate that:\ni) All code changes are submitted via pull requests and cannot be merged without peer review approval.\nii) Pull requests receive review and approval from qualified reviewers with appropriate technical expertise.\niii) Protected branch rules enforce review requirements and prevent direct commits to production code.\niv) Review comments and discussions are documented in the pull request for audit trail.\nv) Separation of duties is maintained where developers cannot approve their own code changes.",
+  "collection_interval": "quarter",
+  "priority": "high",
+  "framework": "SOC2 Type II",
+  "status": "active",
+  "completed": false,
+  "category": "Process",
+  "complexity_level": "Moderate",
+  "collection_type": "Automated",
+  "due_days_before": 14,
+  "ad_hoc": false,
+  "sensitive": false,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-10-01T00:00:00Z",
+  "controls": ["778785"],
+  "policies": ["94644"],
+  "related_controls": [
+    {
+      "id": 778785,
+      "reference_id": "CC8.1",
+      "name": "Change Management Controls",
+      "description": "Changes are authorized, tested, approved, and implemented in controlled manner.",
+      "category": "Change Management",
+      "status": "implemented"
+    }
+  ],
+  "related_policies": [
+    {
+      "id": "94644",
+      "reference_id": "POL-004",
+      "name": "Change Management Policy",
+      "description": "System Change Management and Deployment Control Policy."
+    }
+  ],
+  "requirements": [
+    "Pull request review statistics (count, approval rates, review time)",
+    "Sample pull requests showing review and approval workflow",
+    "Branch protection rule configurations requiring reviews",
+    "Evidence that developers cannot approve own pull requests",
+    "Reviewer qualification documentation or team assignments",
+    "Pull request templates or review checklists",
+    "Code review metrics and compliance reports",
+    "Examples of review comments and discussions"
+  ],
+  "acceptance_criteria": [
+    "100% of production code changes go through pull request process",
+    "Minimum 1 peer review approval required before merge",
+    "Protected branches prevent direct commits",
+    "Authors cannot approve their own pull requests",
+    "Pull requests include description and testing evidence",
+    "Review turnaround time < 48 hours for standard changes",
+    "Code review activity tracked and reported monthly",
+    "Critical changes require senior engineering approval"
+  ],
+  "data_sources": [
+    "GitHub pull request data and statistics",
+    "Repository branch protection settings",
+    "Pull request review logs and approvals",
+    "Code review activity reports",
+    "Pull request templates",
+    "Review comment threads",
+    "Organization or team CODEOWNERS file"
+  ],
+  "automation_potential": "high",
+  "effort_estimate": "3 hours",
+  "tags": ["code_review", "pull_requests", "change_management", "github", "soc2"]
+}

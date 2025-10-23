@@ -1,0 +1,120 @@
+{
+  "id": "94643",
+  "reference_id": "POL-003",
+  "name": "Access Control Policy",
+  "title": "System Access Control and User Management Policy",
+  "description": "This policy establishes requirements for managing user access to organizational systems and data, including access provisioning, modification, review, and revocation processes to ensure that only authorized individuals have appropriate access.",
+  "version": "2.0",
+  "status": "active",
+  "framework": "Information Security",
+  "category": "Access Control",
+  "subcategory": "User Access Management",
+  "owner": "IT Security Manager",
+  "approver": "Chief Information Security Officer",
+  "created_date": "2023-01-15T00:00:00Z",
+  "effective_date": "2023-02-01T00:00:00Z",
+  "last_reviewed": "2024-08-15T00:00:00Z",
+  "next_review": "2025-02-15T00:00:00Z",
+  "approval_date": "2024-08-01T00:00:00Z",
+  "scope": "This policy applies to all employees, contractors, consultants, vendors, and third parties who require access to organizational information systems, applications, and data repositories.",
+  "purpose": "To protect organizational information assets by ensuring that access to systems and data is granted, modified, and revoked in accordance with business needs and security requirements, following the principle of least privilege.",
+  "objectives": [
+    "Establish formal access request and approval processes",
+    "Implement principle of least privilege for all user access",
+    "Ensure timely provisioning and de-provisioning of access",
+    "Maintain accurate records of user access rights",
+    "Conduct periodic access reviews and certifications",
+    "Prevent unauthorized access to systems and data"
+  ],
+  "key_principles": [
+    "Least privilege - users receive minimum access necessary",
+    "Segregation of duties - critical functions require multiple people",
+    "Need-to-know basis - access limited to required information",
+    "Regular review and certification of access rights",
+    "Timely revocation upon termination or role change",
+    "Audit trail of all access changes"
+  ],
+  "policy_statements": [
+    "All access to organizational systems requires formal request and approval",
+    "Access requests must be approved by the user's manager and system owner",
+    "User access is granted based on job role and business need",
+    "Default access is deny; explicit approval required for access",
+    "Access reviews are conducted quarterly for all users",
+    "Access is revoked immediately upon termination",
+    "Shared accounts and generic IDs are prohibited except where technically necessary",
+    "All access changes are logged and retained per retention policy"
+  ],
+  "access_request_process": {
+    "steps": [
+      "User or manager submits formal access request",
+      "Manager reviews and approves business justification",
+      "System owner reviews and approves technical access level",
+      "IT provisions access according to approved request",
+      "User receives notification of access grant",
+      "Access is documented in user access registry"
+    ],
+    "approval_requirements": "Dual approval required - manager and system owner",
+    "sla": "Access provisioned within 2 business days of approval"
+  },
+  "access_review_process": {
+    "frequency": "Quarterly",
+    "scope": "All user accounts and access rights",
+    "owners": "System owners and department managers",
+    "documentation": "Access review reports with sign-off",
+    "remediation_sla": "Access discrepancies resolved within 5 business days"
+  },
+  "termination_process": {
+    "notification": "HR notifies IT same business day as termination",
+    "access_revocation": "All access disabled within 1 hour of notification",
+    "checklist": "Termination checklist completed with IT sign-off",
+    "verification": "Access revocation verified and documented"
+  },
+  "roles_responsibilities": {
+    "Chief Information Security Officer": "Overall accountability for access control program",
+    "IT Security Manager": "Implement and maintain access control procedures",
+    "System Owners": "Approve access requests for their systems",
+    "Department Managers": "Approve access requests for team members",
+    "Human Resources": "Notify IT of hires, terminations, and role changes",
+    "IT Operations": "Provision and de-provision user access",
+    "Users": "Request access only for legitimate business needs"
+  },
+  "compliance_requirements": [
+    "SOC 2 Type II CC6.1 - Logical and Physical Access Controls",
+    "SOC 2 Type II CC6.2 - Prior to Issuing System Credentials",
+    "ISO 27001:2013 A.9.2.1 - User registration and de-registration",
+    "ISO 27001:2013 A.9.2.5 - Review of user access rights",
+    "NIST Cybersecurity Framework - Identity Management (PR.AC)",
+    "PCI DSS Requirement 8 - Identify and authenticate access"
+  ],
+  "related_policies": ["POL-001", "POL-002", "POL-005"],
+  "related_controls": ["AC-01", "AC-02", "CC6.1", "CC6.2"],
+  "related_procedures": [
+    "PROC-007 - Access Request Procedure",
+    "PROC-008 - Access Review Procedure",
+    "PROC-009 - User Termination Procedure"
+  ],
+  "monitoring_controls": [
+    "Monthly metrics on access request volume and SLA compliance",
+    "Quarterly access review completion tracking",
+    "Audit of termination process adherence",
+    "Annual access control policy compliance assessment"
+  ],
+  "exceptions": "Exceptions to this policy must be approved by the CISO with documented business justification and compensating controls. Emergency access follows break-glass procedures with full audit trail.",
+  "sanctions": "Violations of this policy may result in disciplinary action up to and including termination of employment. Unauthorized access may result in criminal prosecution.",
+  "document_control": {
+    "version_history": [
+      {"version": "1.0", "date": "2023-01-15", "changes": "Initial policy creation"},
+      {"version": "1.5", "date": "2023-08-01", "changes": "Added quarterly review requirements"},
+      {"version": "2.0", "date": "2024-08-15", "changes": "Enhanced termination procedures and SLAs"}
+    ],
+    "distribution_list": [
+      "All Employees",
+      "Executive Leadership",
+      "IT Security Team",
+      "Human Resources",
+      "System Owners",
+      "Department Managers"
+    ]
+  },
+  "tags": ["access_control", "user_management", "provisioning", "deprovisioning", "soc2", "iso27001"]
+}

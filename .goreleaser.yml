@@ -1,0 +1,135 @@
+# GoReleaser configuration for grctool
+# Documentation: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    # Ensure dependencies are up to date
+    - go mod tidy
+    - go mod download
+
+builds:
+  - id: grctool
+    binary: grctool
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    # Inject version information matching Makefile pattern
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.BuildTime={{.Date}}
+      - -X main.GitCommit={{.ShortCommit}}
+    flags:
+      - -trimpath
+
+archives:
+  - id: grctool
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    # Include additional files
+    files:
+      - LICENSE*
+      - README*
+      - CHANGELOG*
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  # For builds from non-tagged commits
+  version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: 'New Features'
+      regexp: '^feat:'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^fix:'
+      order: 1
+    - title: 'Security Updates'
+      regexp: '^security:'
+      order: 2
+    - title: 'Performance Improvements'
+      regexp: '^perf:'
+      order: 3
+    - title: 'Other Changes'
+      order: 999
+
+release:
+  github:
+    owner: your-org
+    name: grctool
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## GRCTool {{ .Version }}
+
+    **Release Date:** {{ .Date }}
+
+    ### Installation
+
+    Download the appropriate binary for your platform below and extract it:
+
+    ```bash
+    # macOS (Intel)
+    curl -L https://github.com/grctool/grctool/releases/download/{{ .Tag }}/grctool_{{ .Version }}_darwin_amd64.tar.gz | tar xz
+
+    # macOS (Apple Silicon)
+    curl -L https://github.com/grctool/grctool/releases/download/{{ .Tag }}/grctool_{{ .Version }}_darwin_arm64.tar.gz | tar xz
+
+    # Linux (x86_64)
+    curl -L https://github.com/grctool/grctool/releases/download/{{ .Tag }}/grctool_{{ .Version }}_linux_amd64.tar.gz | tar xz
+
+    # Linux (ARM64)
+    curl -L https://github.com/grctool/grctool/releases/download/{{ .Tag }}/grctool_{{ .Version }}_linux_arm64.tar.gz | tar xz
+    ```
+
+    Verify the download:
+    ```bash
+    sha256sum -c checksums.txt
+    ```
+
+    Move to your PATH:
+    ```bash
+    sudo mv grctool /usr/local/bin/
+    chmod +x /usr/local/bin/grctool
+    ```
+  footer: |
+    ---
+
+    **Full Changelog**: https://github.com/grctool/grctool/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ### Verification
+
+    All binaries are built with GoReleaser and include checksums for verification.
+
+    ### Documentation
+
+    - [Installation Guide](https://github.com/grctool/grctool/blob/main/docs/01-User-Guide/installation.md)
+    - [User Guide](https://github.com/grctool/grctool/blob/main/docs/01-User-Guide/)
+    - [Development Guide](https://github.com/grctool/grctool/blob/main/docs/04-Development/)

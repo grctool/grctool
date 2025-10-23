@@ -1,0 +1,127 @@
+# Gremlins Mutation Testing Configuration for GRCTool
+# This configuration defines thresholds and mutators for mutation testing
+
+# Quality thresholds
+thresholds:
+  # Minimum test efficacy (killed mutants / total runnable mutants)
+  efficacy: 0.70      # 70% minimum
+  # Minimum mutant coverage (runnable mutants / total mutants)  
+  mutant-coverage: 0.80  # 80% minimum
+
+# Test execution settings
+execution:
+  # Number of parallel workers (0 = auto-detect CPU cores)
+  workers: 0
+  # CPU cores allowed for each test run
+  test-cpu: 1
+  # Timeout coefficient multiplier
+  timeout-coefficient: 2
+
+# Build configuration
+build:
+  # Build tags to include
+  tags: []
+  # Package patterns for coverage
+  coverpkg: ""
+
+# Mutator configuration - enable/disable specific mutation types
+mutators:
+  # Arithmetic mutations (a+b -> a-b, a*b, etc.)
+  arithmetic-base: true
+  
+  # Conditional boundary mutations (< -> <=, > -> >=)
+  conditionals-boundary: true
+  
+  # Conditional negation mutations (!condition -> condition)
+  conditionals-negation: true
+  
+  # Increment/decrement mutations (i++ -> i--, ++i -> --i)
+  increment-decrement: true
+  
+  # Invert negatives (a = -b -> a = b)
+  invert-negatives: true
+  
+  # Assignment inversions (a += b -> a -= b) - disabled by default as often noisy
+  invert-assignments: false
+  
+  # Bitwise inversions (&& -> ||, | -> &) - disabled by default  
+  invert-bitwise: false
+  
+  # Bitwise assignment inversions (|= -> &=) - disabled by default
+  invert-bwassign: false
+  
+  # Logical inversions (&& -> ||) - disabled by default as can be noisy
+  invert-logical: false
+  
+  # Loop control inversions (break -> continue) - disabled by default
+  invert-loopctrl: false
+  
+  # Remove self-assignments (a = a -> ) - disabled by default
+  remove-self-assignments: false
+
+# Output configuration
+output:
+  # Output format for results (json, text)
+  format: "text"
+  # File to write machine-readable results
+  file: ""
+  # Enable verbose output
+  verbose: false
+
+# Integration settings
+integration:
+  # Run complete test suite for each mutation (slower but more accurate)
+  # When false, runs only tests for the mutated package
+  complete-test-suite: false
+
+# Diff-based testing (only test mutations in changed code)
+diff:
+  # Branch or commit to compare against
+  branch: ""
+  # Enable diff-based mutation testing
+  enabled: false
+
+# Package-specific configuration
+packages:
+  # Critical packages that should have higher thresholds
+  critical:
+    - "internal/auth"
+    - "internal/tugboat" 
+    - "internal/services"
+    
+  # Standard packages with default thresholds
+  standard:
+    - "internal/config"
+    - "internal/domain"
+    - "internal/models"
+    - "internal/adapters"
+    
+  # Utility packages with relaxed thresholds
+  utility:
+    - "internal/logger"
+    - "internal/utils"
+    - "internal/formatters"
+
+# Exclusions
+exclude:
+  # File patterns to exclude from mutation testing
+  files:
+    - "*_test.go"
+    - "testdata/*"
+    - "vendor/*"
+    - "*.pb.go"
+    - "*_generated.go"
+    
+  # Directory patterns to exclude
+  directories:
+    - "test"
+    - "test-*"
+    - ".git"
+    - "vendor"
+    
+  # Function patterns to exclude (regex)
+  functions:
+    - "main"
+    - "init"
+    - "Test.*"
+    - "Benchmark.*"

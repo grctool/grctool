@@ -1,0 +1,66 @@
+Starting...
+Gathering coverage... done in 220.755091ms
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:281:11
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:303:18
+ NOT COVERED ARITHMETIC_BASE at evidence.go:331:44
+ NOT COVERED ARITHMETIC_BASE at evidence.go:331:38
+ NOT COVERED ARITHMETIC_BASE at evidence.go:345:44
+ NOT COVERED ARITHMETIC_BASE at evidence.go:345:38
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:359:18
+ NOT COVERED CONDITIONALS_NEGATION at common.go:38:46
+ NOT COVERED CONDITIONALS_BOUNDARY at evidence.go:242:22
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:153:17
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:231:24
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:283:18
+ NOT COVERED CONDITIONALS_NEGATION at common.go:28:44
+ NOT COVERED INCREMENT_DECREMENT at control_reference.go:78:16
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:244:29
+ NOT COVERED CONDITIONALS_BOUNDARY at evidence.go:283:18
+ NOT COVERED INCREMENT_DECREMENT at policy_reference.go:80:11
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:249:29
+ NOT COVERED CONDITIONALS_BOUNDARY at evidence.go:281:11
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:242:22
+       LIVED CONDITIONALS_NEGATION at control_reference.go:30:18
+       LIVED CONDITIONALS_NEGATION at policy_reference.go:110:59
+ NOT COVERED CONDITIONALS_BOUNDARY at evidence.go:244:29
+ NOT COVERED ARITHMETIC_BASE at evidence.go:161:44
+ NOT COVERED ARITHMETIC_BASE at evidence.go:161:38
+ NOT COVERED CONDITIONALS_BOUNDARY at evidence.go:251:36
+ NOT COVERED CONDITIONALS_BOUNDARY at evidence.go:249:29
+       LIVED CONDITIONALS_NEGATION at policy_reference.go:120:21
+       LIVED CONDITIONALS_BOUNDARY at control_reference.go:97:46
+      KILLED INCREMENT_DECREMENT at control_reference.go:84:15
+      KILLED CONDITIONALS_BOUNDARY at policy_reference.go:49:30
+      KILLED CONDITIONALS_BOUNDARY at policy_reference.go:52:39
+      KILLED CONDITIONALS_NEGATION at control_reference.go:67:56
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:52:39
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:294:23
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:49:30
+      KILLED CONDITIONALS_NEGATION at control_reference.go:98:46
+      KILLED INCREMENT_DECREMENT at policy_reference.go:62:15
+       LIVED CONDITIONALS_NEGATION at control_reference.go:64:30
+      KILLED CONDITIONALS_NEGATION at control_reference.go:97:46
+ NOT COVERED CONDITIONALS_NEGATION at evidence.go:251:36
+      KILLED CONDITIONALS_BOUNDARY at control_reference.go:67:56
+      KILLED CONDITIONALS_BOUNDARY at control_reference.go:98:60
+      KILLED CONDITIONALS_BOUNDARY at control_reference.go:64:30
+      KILLED CONDITIONALS_BOUNDARY at policy_reference.go:110:30
+      KILLED INCREMENT_DECREMENT at policy_reference.go:145:37
+      KILLED ARITHMETIC_BASE at control_reference.go:99:22
+      KILLED INCREMENT_DECREMENT at policy_reference.go:141:22
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:104:25
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:90:28
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:138:28
+      KILLED CONDITIONALS_BOUNDARY at policy_reference.go:120:21
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:90:56
+      KILLED CONDITIONALS_NEGATION at control_reference.go:98:60
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:30:28
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:110:30
+      KILLED CONDITIONALS_NEGATION at policy_reference.go:144:22
+      KILLED INCREMENT_DECREMENT at policy_reference.go:139:28
+
+Mutation testing completed in 743 milliseconds 693 microseconds
+Killed: 26, Lived: 5, Not covered: 27
+Timed out: 0, Not viable: 0, Skipped: 0
+Test efficacy: 83.87%
+Mutator coverage: 53.45%

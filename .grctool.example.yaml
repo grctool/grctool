@@ -1,0 +1,97 @@
+# Example GRC Tool Configuration
+# Copy this file to .grctool.yaml and customize as needed
+
+# Tugboat Logic API Configuration
+tugboat:
+  base_url: "https://app.tugboatlogic.com"
+  # Use browser authentication mode (recommended)
+  auth_mode: "browser"
+  timeout: 30s
+  rate_limit: 10
+
+# Local Data Storage
+storage:
+  data_dir: "./data"  # Where to store downloaded policies, controls, etc.
+  data_format: "json"
+
+# Variable Interpolation Configuration
+interpolation:
+  enabled: true
+  variables:
+    # Template variables (used in {{key}} format)
+    "organization.name": "Your Organization"
+    "support.email": "support@example.com"
+    "security.email": "security@example.com"
+    "security.team_email": "security@example.com"
+    "company.phone": "+1 (555) 123-4567"
+    "company.address": "123 Business St, Suite 100, City, State 12345"
+    "ceo.name": "CEO Name"
+    "cto.name": "CTO Name"
+    "ciso.name": "CISO Name"
+
+    # Display name variables (used in [Display Name] format)
+    "Organization Name": "Your Organization"
+    "Company Name": "Your Organization"
+    "Support Email": "support@example.com"
+    "Security Email": "security@example.com"
+    "Security Team": "security@example.com"
+    "Company Phone": "+1 (555) 123-4567"
+    "Company Address": "123 Business St, Suite 100, City, State 12345"
+
+# Evidence Generation Configuration (AI-powered)
+evidence:
+  claude:
+    # Set via environment variable: export CLAUDE_API_KEY=your_key_here
+    api_key: "${CLAUDE_API_KEY}"
+    model: "claude-3-5-sonnet-20241022"
+    max_tokens: 8192
+    temperature: 0.1
+  
+  generation:
+    output_dir: "evidence/generated"
+    prompt_dir: "evidence/prompts"
+    include_reasoning: true
+    max_tool_calls: 50
+    default_format: "csv"
+  
+  tools:
+    terraform:
+      enabled: true
+      scan_paths:
+        - "terraform/**/*.tf"  # Adjust to your Terraform directory structure
+      include_patterns:
+        - "*.tf"
+        - "*.tfvars"
+      exclude_patterns:
+        - "*.secret"
+        - ".terraform/**"
+    
+    github:
+      enabled: false  # Set to true and configure if using GitHub integration
+      # api_token: "${GITHUB_TOKEN}"
+      # repository: "your-org/your-repo"
+      include_workflows: true
+      include_issues: false
+      max_issues: 100
+    
+    google_docs:
+      enabled: false  # Set to true and configure if using Google Docs integration
+      # credentials_file: "path/to/google-credentials.json"
+      # shared_drive_id: "your-drive-id"
+
+# Logging Configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "text"  # text or json
+  output: "stdout"  # stdout, stderr, or file
+  sanitize_urls: true
+  redact_fields:
+    - "password"
+    - "token" 
+    - "key"
+    - "secret"
+    - "api_key"
+    - "cookie"
+  show_caller: false
+  buffer_size: 100
+  flush_interval: "5s"

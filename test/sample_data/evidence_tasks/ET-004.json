@@ -1,0 +1,80 @@
+{
+  "id": 328004,
+  "reference_id": "ET-004",
+  "name": "Security Awareness Training Program Evidence",
+  "description": "Provide evidence that security awareness training is provided to all employees and contractors, including training completion records, acknowledgments of security policies, and annual refresher training to ensure personnel understand their security responsibilities.",
+  "guidance": "The security awareness training evidence should demonstrate that:\ni) All new employees receive security awareness training within 30 days of hire as part of onboarding process.\nii) Annual refresher training is provided to all employees to reinforce security awareness and communicate policy updates.\niii) Training completion is tracked with documented completion rates exceeding 95%.\niv) Employees acknowledge receipt and understanding of security policies and procedures.\nv) Training materials cover relevant topics including data protection, access control, incident reporting, and acceptable use.",
+  "collection_interval": "quarter",
+  "priority": "medium",
+  "framework": "SOC2 Type II",
+  "status": "active",
+  "completed": false,
+  "category": "Personnel",
+  "complexity_level": "Moderate",
+  "collection_type": "Hybrid",
+  "due_days_before": 7,
+  "ad_hoc": false,
+  "sensitive": false,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-10-01T00:00:00Z",
+  "controls": ["778771", "778772"],
+  "policies": ["94642"],
+  "related_controls": [
+    {
+      "id": 778771,
+      "reference_id": "CC1.1",
+      "name": "Control Environment",
+      "description": "Demonstrates commitment to integrity and ethical values.",
+      "category": "Control Environment",
+      "status": "implemented"
+    },
+    {
+      "id": 778772,
+      "reference_id": "CC1.2",
+      "name": "Communication and Information",
+      "description": "Uses relevant information to support internal control.",
+      "category": "Control Environment",
+      "status": "implemented"
+    }
+  ],
+  "related_policies": [
+    {
+      "id": "94642",
+      "reference_id": "POL-002",
+      "name": "Information Security Communication Policy",
+      "description": "Security Awareness and Communication Policy."
+    }
+  ],
+  "requirements": [
+    "Security awareness training materials and curriculum",
+    "Training completion reports by employee and date",
+    "New hire training records showing completion within 30 days",
+    "Annual refresher training completion statistics",
+    "Policy acknowledgment forms or electronic signatures",
+    "Training attendance records or learning management system exports",
+    "Training effectiveness metrics (quiz scores, completion rates)",
+    "Documentation of training content updates"
+  ],
+  "acceptance_criteria": [
+    "100% of new hires complete security training within 30 days",
+    "Annual training completion rate exceeds 95%",
+    "Policy acknowledgments collected from all employees",
+    "Training materials updated annually",
+    "Training covers key security topics (phishing, passwords, data handling)",
+    "Completion tracked in learning management system",
+    "Contractors receive security briefing before system access",
+    "Training effectiveness measured through assessments"
+  ],
+  "data_sources": [
+    "Learning Management System (LMS) records",
+    "Google Drive training materials and documents",
+    "HR onboarding checklists",
+    "Email communications about training",
+    "Policy acknowledgment database",
+    "Training slides and materials",
+    "Completion certificates"
+  ],
+  "automation_potential": "medium",
+  "effort_estimate": "4 hours",
+  "tags": ["training", "awareness", "personnel", "communication", "soc2"]
+}

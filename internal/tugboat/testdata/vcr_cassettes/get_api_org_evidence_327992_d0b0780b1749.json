@@ -1,0 +1,36 @@
+{
+  "name": "get_api_org_evidence_327992_d0b0780b1749.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/327992/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec\u0026embeds=controls\u0026embeds=org_controls\u0026embeds=related_controls\u0026embeds=control_associations",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 422,
+        "status": "422 Unprocessable Entity",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "82",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Sat, 05 Jul 2025 23:01:13 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Embed not supported for org_evidence: controls\",\"code\":\"invalid_embed\"}"
+      },
+      "timestamp": "2025-07-05T19:01:13.828394-04:00"
+    }
+  ],
+  "recorded_at": "2025-07-05T19:01:13.82855-04:00"
+}

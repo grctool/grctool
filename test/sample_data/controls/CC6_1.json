@@ -1,0 +1,88 @@
+{
+  "id": 778780,
+  "reference_id": "CC6.1",
+  "name": "Logical and Physical Access Controls",
+  "description": "The entity implements logical and physical access controls to protect information assets from unauthorized access, including network security, encryption, authentication mechanisms, and infrastructure security configurations.",
+  "objective": "Ensure that logical and physical access controls are designed and operating effectively to restrict access to information assets to authorized users, processes, and devices at authorized times and locations.",
+  "framework": "SOC2 Type II",
+  "category": "Logical and Physical Access Controls",
+  "subcategory": "Security Infrastructure",
+  "status": "implemented",
+  "risk_rating": "critical",
+  "control_type": "preventive",
+  "frequency": "continuous",
+  "owner": "Information Technology",
+  "responsible_party": "Chief Information Security Officer",
+  "implementation_date": "2023-01-01T00:00:00Z",
+  "last_review_date": "2024-09-01T00:00:00Z",
+  "next_review_date": "2025-03-01T00:00:00Z",
+  "testing_frequency": "quarterly",
+  "control_activities": [
+    "Network segmentation separates production and non-production environments",
+    "Firewalls and security groups restrict network traffic to necessary ports and protocols",
+    "Data encryption is implemented for data at rest and in transit",
+    "Multi-factor authentication is required for administrative access",
+    "Infrastructure deployed in multiple availability zones for resilience",
+    "Security monitoring and logging captures access attempts and changes",
+    "Physical access to data centers is restricted and monitored"
+  ],
+  "key_attributes": [
+    "Defense in depth security architecture",
+    "Encryption of sensitive data",
+    "Network security controls (firewalls, security groups)",
+    "Strong authentication mechanisms",
+    "Infrastructure resilience and availability",
+    "Comprehensive security logging and monitoring"
+  ],
+  "evidence_requirements": [
+    "Network architecture diagrams",
+    "Firewall and security group configurations",
+    "Encryption configuration evidence (TLS, AES-256)",
+    "MFA implementation evidence",
+    "Infrastructure deployment configurations (multi-AZ)",
+    "Security monitoring and alerting configurations",
+    "Access logs and security event logs",
+    "Physical security controls documentation"
+  ],
+  "related_controls": ["AC-01", "AC-02", "CC6.2", "CC6.3", "CC6.6", "CC6.7", "CC7.2"],
+  "related_policies": ["POL-003", "POL-005"],
+  "compliance_mappings": [
+    {
+      "framework": "SOC2",
+      "control_id": "CC6.1",
+      "requirement": "Logical and Physical Access Controls"
+    },
+    {
+      "framework": "ISO27001",
+      "control_id": "A.9.1.1",
+      "requirement": "Access control policy"
+    },
+    {
+      "framework": "ISO27001",
+      "control_id": "A.10.1.1",
+      "requirement": "Cryptographic controls"
+    },
+    {
+      "framework": "NIST",
+      "control_id": "AC-3",
+      "requirement": "Access Enforcement"
+    },
+    {
+      "framework": "NIST",
+      "control_id": "SC-8",
+      "requirement": "Transmission Confidentiality"
+    }
+  ],
+  "testing_procedures": [
+    "Review network architecture for proper segmentation",
+    "Examine firewall rules for least privilege configuration",
+    "Verify encryption is enabled for data at rest and in transit",
+    "Test MFA enforcement for administrative access",
+    "Confirm infrastructure is deployed across multiple availability zones",
+    "Review security monitoring and alerting configurations",
+    "Examine security logs for completeness and retention"
+  ],
+  "automation_level": "high",
+  "maturity_level": "optimized",
+  "tags": ["access_control", "encryption", "network_security", "infrastructure", "soc2", "iso27001"]
+}

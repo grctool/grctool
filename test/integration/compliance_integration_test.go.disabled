@@ -1,0 +1,724 @@
+package integration
+
+import (
+	"context"
+	"encoding/json"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/7thsense/isms/grctool/internal/appcontext"
+	"github.com/7thsense/isms/grctool/internal/config"
+	"github.com/7thsense/isms/grctool/internal/logger"
+	"github.com/7thsense/isms/grctool/internal/tools"
+)
+
+// TestComplianceReportingIntegration tests the integration between all compliance reporting tools
+func TestComplianceReportingIntegration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	cfg := &config.Config{
+		Storage: config.StorageConfig{
+			DataDir: "../../test_data",
+		},
+	}
+
+	log, err := logger.NewTestLogger()
+	require.NoError(t, err)
+	ctx := appcontext.WithCorrelationID(context.Background())
+
+	t.Run("ComplianceReporter", func(t *testing.T) {
+		reporter, err := tools.NewComplianceReporter(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create compliance reporter: %v", err)
+		}
+
+		// Test different report types and formats
+		testCases := []struct {
+			name   string
+			params map[string]interface{}
+		}{
+			{
+				name: "Summary JSON Report",
+				params: map[string]interface{}{
+					"report_type":   "summary",
+					"framework":     "SOC2",
+					"output_format": "json",
+				},
+			},
+			{
+				name: "Detailed Markdown Report",
+				params: map[string]interface{}{
+					"report_type":              "detailed",
+					"framework":                "SOC2",
+					"output_format":            "markdown",
+					"include_recommendations":  true,
+				},
+			},
+			{
+				name: "Control Matrix CSV Report",
+				params: map[string]interface{}{
+					"report_type":   "control_matrix",
+					"framework":     "SOC2",
+					"output_format": "csv",
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result, evidenceSource, err := reporter.Execute(ctx, tc.params)
+				if err != nil {
+					t.Errorf("Failed to execute compliance reporter: %v", err)
+					return
+				}
+
+				if result == "" {
+					t.Error("Result should not be empty")
+				}
+
+				if evidenceSource == nil {
+					t.Error("Evidence source should not be nil")
+				}
+
+				// Validate result format
+				format := tc.params["output_format"].(string)
+				switch format {
+				case "json":
+					var data interface{}
+					if err := json.Unmarshal([]byte(result), &data); err != nil {
+						t.Errorf("Invalid JSON output: %v", err)
+					}
+				case "markdown":
+					if !strings.Contains(result, "#") {
+						t.Error("Markdown output should contain headers")
+					}
+				case "csv":
+					if !strings.Contains(result, ",") {
+						t.Error("CSV output should contain comma separators")
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("SOC2Mapper", func(t *testing.T) {
+		mapper, err := tools.NewSOC2Mapper(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create SOC2 mapper: %v", err)
+		}
+
+		// Test different mapping types
+		testCases := []struct {
+			name   string
+			params map[string]interface{}
+		}{
+			{
+				name: "Control Mapping All Categories",
+				params: map[string]interface{}{
+					"mapping_type": "control_mapping",
+					"category":     "ALL",
+				},
+			},
+			{
+				name: "Evidence Mapping for CC",
+				params: map[string]interface{}{
+					"mapping_type": "evidence_mapping",
+					"category":     "CC",
+				},
+			},
+			{
+				name: "Framework Overview",
+				params: map[string]interface{}{
+					"mapping_type": "framework_overview",
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result, evidenceSource, err := mapper.Execute(ctx, tc.params)
+				if err != nil {
+					t.Errorf("Failed to execute SOC2 mapper: %v", err)
+					return
+				}
+
+				if result == "" {
+					t.Error("Result should not be empty")
+				}
+
+				if evidenceSource == nil {
+					t.Error("Evidence source should not be nil")
+				}
+
+				// Validate JSON structure
+				var data interface{}
+				if err := json.Unmarshal([]byte(result), &data); err != nil {
+					t.Errorf("Invalid JSON output: %v", err)
+				}
+			})
+		}
+	})
+
+	t.Run("InfrastructureVisualizer", func(t *testing.T) {
+		visualizer, err := tools.NewInfrastructureVisualizer(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create infrastructure visualizer: %v", err)
+		}
+
+		// Test different visualization types and formats
+		testCases := []struct {
+			name   string
+			params map[string]interface{}
+		}{
+			{
+				name: "Network Topology Mermaid",
+				params: map[string]interface{}{
+					"visualization_type": "network_topology",
+					"output_format":      "mermaid",
+					"environment":        "production",
+				},
+			},
+			{
+				name: "Security Zones JSON",
+				params: map[string]interface{}{
+					"visualization_type": "security_zones",
+					"output_format":      "json",
+					"include_security":   true,
+				},
+			},
+			{
+				name: "Data Flows DOT",
+				params: map[string]interface{}{
+					"visualization_type": "data_flows",
+					"output_format":      "dot",
+					"include_compliance": true,
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result, evidenceSource, err := visualizer.Execute(ctx, tc.params)
+				if err != nil {
+					t.Errorf("Failed to execute infrastructure visualizer: %v", err)
+					return
+				}
+
+				if result == "" {
+					t.Error("Result should not be empty")
+				}
+
+				if evidenceSource == nil {
+					t.Error("Evidence source should not be nil")
+				}
+
+				// Validate result format
+				format := tc.params["output_format"].(string)
+				switch format {
+				case "json":
+					var data interface{}
+					if err := json.Unmarshal([]byte(result), &data); err != nil {
+						t.Errorf("Invalid JSON output: %v", err)
+					}
+				case "mermaid":
+					if !strings.Contains(result, "graph") {
+						t.Error("Mermaid output should contain graph declaration")
+					}
+				case "dot":
+					if !strings.Contains(result, "digraph") {
+						t.Error("DOT output should contain digraph declaration")
+					}
+				}
+			})
+		}
+	})
+
+	t.Run("EvidenceCorrelator", func(t *testing.T) {
+		correlator, err := tools.NewEvidenceCorrelator(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create evidence correlator: %v", err)
+		}
+
+		// Test different analysis types
+		testCases := []struct {
+			name   string
+			params map[string]interface{}
+		}{
+			{
+				name: "Full Correlation Analysis",
+				params: map[string]interface{}{
+					"analysis_type":           "full_correlation",
+					"framework":               "SOC2",
+					"include_quality_metrics": true,
+					"include_recommendations": true,
+				},
+			},
+			{
+				name: "Tool Coverage Analysis",
+				params: map[string]interface{}{
+					"analysis_type": "tool_coverage",
+					"framework":     "SOC2",
+					"tools":         []string{"terraform-enhanced", "github-enhanced"},
+				},
+			},
+			{
+				name: "Gap Analysis",
+				params: map[string]interface{}{
+					"analysis_type": "gap_analysis",
+					"framework":     "SOC2",
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result, evidenceSource, err := correlator.Execute(ctx, tc.params)
+				if err != nil {
+					t.Errorf("Failed to execute evidence correlator: %v", err)
+					return
+				}
+
+				if result == "" {
+					t.Error("Result should not be empty")
+				}
+
+				if evidenceSource == nil {
+					t.Error("Evidence source should not be nil")
+				}
+
+				// Validate JSON structure
+				var correlation tools.EvidenceCorrelation
+				if err := json.Unmarshal([]byte(result), &correlation); err != nil {
+					t.Errorf("Invalid correlation JSON output: %v", err)
+				}
+
+				// Check metadata
+				if correlation.Metadata.AnalysisID == "" {
+					t.Error("Analysis ID should not be empty")
+				}
+				if correlation.Metadata.Framework != "SOC2" {
+					t.Errorf("Expected framework SOC2, got %s", correlation.Metadata.Framework)
+				}
+			})
+		}
+	})
+
+	t.Run("ReportTemplateEngine", func(t *testing.T) {
+		templateEngine, err := tools.NewReportTemplateEngine(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create report template engine: %v", err)
+		}
+
+		// Test template operations
+		testCases := []struct {
+			name   string
+			params map[string]interface{}
+		}{
+			{
+				name: "List SOC2 Templates",
+				params: map[string]interface{}{
+					"action":        "list_templates",
+					"template_type": "soc2",
+				},
+			},
+			{
+				name: "List All Templates",
+				params: map[string]interface{}{
+					"action":        "list_templates",
+					"template_type": "all",
+				},
+			},
+			{
+				name: "Generate Report from SOC2 Template",
+				params: map[string]interface{}{
+					"action":      "generate_report",
+					"template_id": "soc2-compliance-report",
+					"framework":   "SOC2",
+					"output_format": "json",
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				result, evidenceSource, err := templateEngine.Execute(ctx, tc.params)
+				if err != nil {
+					t.Errorf("Failed to execute report template engine: %v", err)
+					return
+				}
+
+				if result == "" {
+					t.Error("Result should not be empty")
+				}
+
+				if evidenceSource == nil {
+					t.Error("Evidence source should not be nil")
+				}
+
+				// Validate JSON structure
+				var data interface{}
+				if err := json.Unmarshal([]byte(result), &data); err != nil {
+					t.Errorf("Invalid JSON output: %v", err)
+				}
+			})
+		}
+	})
+}
+
+// TestComplianceReportingWorkflow tests a complete compliance reporting workflow
+func TestComplianceReportingWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping workflow test in short mode")
+	}
+
+	cfg := &config.Config{
+		Storage: config.StorageConfig{
+			DataDir: "../../test_data",
+		},
+	}
+
+	log, err := logger.NewTestLogger()
+	require.NoError(t, err)
+	ctx := appcontext.WithCorrelationID(context.Background())
+
+	// Step 1: Generate SOC2 control mapping
+	t.Log("Step 1: Generating SOC2 control mapping...")
+	mapper, err := tools.NewSOC2Mapper(cfg, log)
+	if err != nil {
+		t.Fatalf("Failed to create SOC2 mapper: %v", err)
+	}
+
+	mappingResult, _, err := mapper.Execute(ctx, map[string]interface{}{
+		"mapping_type":           "control_mapping",
+		"category":               "ALL",
+		"include_implementation": true,
+		"include_testing":        true,
+		"include_automation":     true,
+	})
+	if err != nil {
+		t.Fatalf("Failed to generate SOC2 mapping: %v", err)
+	}
+
+	var controlMappings []tools.SOC2ControlMapping
+	if err := json.Unmarshal([]byte(mappingResult), &controlMappings); err != nil {
+		t.Fatalf("Failed to parse control mappings: %v", err)
+	}
+	t.Logf("Generated mappings for %d controls", len(controlMappings))
+
+	// Step 2: Perform evidence correlation analysis
+	t.Log("Step 2: Performing evidence correlation analysis...")
+	correlator, err := tools.NewEvidenceCorrelator(cfg, log)
+	if err != nil {
+		t.Fatalf("Failed to create evidence correlator: %v", err)
+	}
+
+	correlationResult, _, err := correlator.Execute(ctx, map[string]interface{}{
+		"analysis_type":           "full_correlation",
+		"framework":               "SOC2",
+		"include_quality_metrics": true,
+		"include_recommendations": true,
+	})
+	if err != nil {
+		t.Fatalf("Failed to perform correlation analysis: %v", err)
+	}
+
+	var correlation tools.EvidenceCorrelation
+	if err := json.Unmarshal([]byte(correlationResult), &correlation); err != nil {
+		t.Fatalf("Failed to parse correlation result: %v", err)
+	}
+	t.Logf("Correlation analysis completed with score: %.1f%%", correlation.Metadata.CorrelationScore)
+
+	// Step 3: Generate infrastructure visualization
+	t.Log("Step 3: Generating infrastructure visualization...")
+	visualizer, err := tools.NewInfrastructureVisualizer(cfg, log)
+	if err != nil {
+		t.Fatalf("Failed to create infrastructure visualizer: %v", err)
+	}
+
+	visualizationResult, _, err := visualizer.Execute(ctx, map[string]interface{}{
+		"visualization_type": "network_topology",
+		"output_format":      "json",
+		"environment":        "production",
+		"include_compliance": true,
+		"include_security":   true,
+	})
+	if err != nil {
+		t.Fatalf("Failed to generate visualization: %v", err)
+	}
+
+	var topology tools.InfrastructureTopology
+	if err := json.Unmarshal([]byte(visualizationResult), &topology); err != nil {
+		t.Fatalf("Failed to parse topology result: %v", err)
+	}
+	t.Logf("Infrastructure topology generated with %d resources", topology.Metadata.ResourceCount)
+
+	// Step 4: Generate comprehensive compliance report
+	t.Log("Step 4: Generating comprehensive compliance report...")
+	reporter, err := tools.NewComplianceReporter(cfg, log)
+	if err != nil {
+		t.Fatalf("Failed to create compliance reporter: %v", err)
+	}
+
+	reportResult, evidenceSource, err := reporter.Execute(ctx, map[string]interface{}{
+		"report_type":              "detailed",
+		"framework":                "SOC2",
+		"output_format":            "json",
+		"scope":                    "all",
+		"include_recommendations":  true,
+		"include_metadata":         true,
+	})
+	if err != nil {
+		t.Fatalf("Failed to generate compliance report: %v", err)
+	}
+
+	var report tools.ComplianceReport
+	if err := json.Unmarshal([]byte(reportResult), &report); err != nil {
+		t.Fatalf("Failed to parse compliance report: %v", err)
+	}
+
+	// Step 5: Validate end-to-end workflow results
+	t.Log("Step 5: Validating workflow results...")
+
+	// Check report metadata
+	if report.Metadata.ReportID == "" {
+		t.Error("Report should have a report ID")
+	}
+	if report.Metadata.Framework != "SOC2" {
+		t.Errorf("Expected framework SOC2, got %s", report.Metadata.Framework)
+	}
+
+	// Check report summary
+	if report.Summary.TotalControls < 0 {
+		t.Error("Total controls should be non-negative")
+	}
+	if report.Summary.ComplianceRate < 0 || report.Summary.ComplianceRate > 100 {
+		t.Errorf("Compliance rate should be 0-100, got %.1f", report.Summary.ComplianceRate)
+	}
+
+	// Check recommendations
+	if len(report.Recommendations) < 0 {
+		t.Error("Should have non-negative number of recommendations")
+	}
+
+	// Check evidence source
+	if evidenceSource == nil {
+		t.Error("Evidence source should not be nil")
+	} else {
+		if evidenceSource.Type != "compliance_report" {
+			t.Errorf("Expected evidence source type 'compliance_report', got '%s'", evidenceSource.Type)
+		}
+		if evidenceSource.Timestamp.IsZero() {
+			t.Error("Evidence source should have timestamp")
+		}
+	}
+
+	// Step 6: Test report template generation
+	t.Log("Step 6: Testing report template generation...")
+	templateEngine, err := tools.NewReportTemplateEngine(cfg, log)
+	if err != nil {
+		t.Fatalf("Failed to create report template engine: %v", err)
+	}
+
+	templateResult, _, err := templateEngine.Execute(ctx, map[string]interface{}{
+		"action":      "generate_report",
+		"template_id": "soc2-compliance-report",
+		"framework":   "SOC2",
+		"output_format": "markdown",
+		"period_start": time.Now().AddDate(0, -3, 0).Format("2006-01-02"),
+		"period_end":   time.Now().Format("2006-01-02"),
+	})
+	if err != nil {
+		t.Fatalf("Failed to generate template report: %v", err)
+	}
+
+	var templateReport tools.GeneratedReport
+	// For markdown format, we'd get markdown text, but let's check structure
+	if templateResult == "" {
+		t.Error("Template report result should not be empty")
+	}
+
+	t.Log("Compliance reporting workflow completed successfully!")
+}
+
+// TestComplianceReportingPerformance tests performance of compliance reporting tools
+func TestComplianceReportingPerformance(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping performance test in short mode")
+	}
+
+	cfg := &config.Config{
+		Storage: config.StorageConfig{
+			DataDir: "../../test_data",
+		},
+	}
+
+	log, err := logger.NewTestLogger()
+	require.NoError(t, err)
+	ctx := appcontext.WithCorrelationID(context.Background())
+
+	// Test performance of each tool
+	tools := []struct {
+		name   string
+		create func() (interface{}, error)
+		params map[string]interface{}
+	}{
+		{
+			name: "ComplianceReporter",
+			create: func() (interface{}, error) {
+				return tools.NewComplianceReporter(cfg, log)
+			},
+			params: map[string]interface{}{
+				"report_type":   "summary",
+				"framework":     "SOC2",
+				"output_format": "json",
+			},
+		},
+		{
+			name: "SOC2Mapper",
+			create: func() (interface{}, error) {
+				return tools.NewSOC2Mapper(cfg, log)
+			},
+			params: map[string]interface{}{
+				"mapping_type": "control_mapping",
+				"category":     "ALL",
+			},
+		},
+		{
+			name: "EvidenceCorrelator",
+			create: func() (interface{}, error) {
+				return tools.NewEvidenceCorrelator(cfg, log)
+			},
+			params: map[string]interface{}{
+				"analysis_type": "control_mapping",
+				"framework":     "SOC2",
+			},
+		},
+	}
+
+	for _, tool := range tools {
+		t.Run(tool.name, func(t *testing.T) {
+			toolInstance, err := tool.create()
+			if err != nil {
+				t.Fatalf("Failed to create %s: %v", tool.name, err)
+			}
+
+			// Time the execution
+			start := time.Now()
+			
+			switch v := toolInstance.(type) {
+			case *tools.ComplianceReporter:
+				_, _, err = v.Execute(ctx, tool.params)
+			case *tools.SOC2Mapper:
+				_, _, err = v.Execute(ctx, tool.params)
+			case *tools.EvidenceCorrelator:
+				_, _, err = v.Execute(ctx, tool.params)
+			default:
+				t.Fatalf("Unknown tool type: %T", v)
+			}
+
+			duration := time.Since(start)
+			
+			if err != nil {
+				t.Errorf("Tool execution failed: %v", err)
+				return
+			}
+
+			t.Logf("%s execution took: %v", tool.name, duration)
+
+			// Performance thresholds (adjust based on actual performance)
+			maxDuration := 30 * time.Second
+			if duration > maxDuration {
+				t.Errorf("%s took too long: %v (max: %v)", tool.name, duration, maxDuration)
+			}
+		})
+	}
+}
+
+// TestComplianceReportingErrors tests error handling in compliance reporting tools
+func TestComplianceReportingErrors(t *testing.T) {
+	cfg := &config.Config{
+		Storage: config.StorageConfig{
+			DataDir: "../../test_data",
+		},
+	}
+
+	log, err := logger.NewTestLogger()
+	require.NoError(t, err)
+	ctx := appcontext.WithCorrelationID(context.Background())
+
+	// Test error cases for each tool
+	t.Run("ComplianceReporter Errors", func(t *testing.T) {
+		reporter, err := tools.NewComplianceReporter(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create compliance reporter: %v", err)
+		}
+
+		// Missing required parameter
+		_, _, err = reporter.Execute(ctx, map[string]interface{}{
+			"framework": "SOC2",
+		})
+		if err == nil {
+			t.Error("Expected error for missing report_type parameter")
+		}
+
+		// Invalid output format
+		_, _, err = reporter.Execute(ctx, map[string]interface{}{
+			"report_type":   "summary",
+			"framework":     "SOC2",
+			"output_format": "invalid_format",
+		})
+		if err == nil {
+			t.Error("Expected error for invalid output format")
+		}
+	})
+
+	t.Run("SOC2Mapper Errors", func(t *testing.T) {
+		mapper, err := tools.NewSOC2Mapper(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create SOC2 mapper: %v", err)
+		}
+
+		// Missing required parameter
+		_, _, err = mapper.Execute(ctx, map[string]interface{}{
+			"category": "CC",
+		})
+		if err == nil {
+			t.Error("Expected error for missing mapping_type parameter")
+		}
+
+		// Invalid mapping type
+		_, _, err = mapper.Execute(ctx, map[string]interface{}{
+			"mapping_type": "invalid_type",
+		})
+		if err == nil {
+			t.Error("Expected error for invalid mapping type")
+		}
+	})
+
+	t.Run("EvidenceCorrelator Errors", func(t *testing.T) {
+		correlator, err := tools.NewEvidenceCorrelator(cfg, log)
+		if err != nil {
+			t.Fatalf("Failed to create evidence correlator: %v", err)
+		}
+
+		// Missing required parameter
+		_, _, err = correlator.Execute(ctx, map[string]interface{}{
+			"framework": "SOC2",
+		})
+		if err == nil {
+			t.Error("Expected error for missing analysis_type parameter")
+		}
+
+		// Invalid analysis type
+		_, _, err = correlator.Execute(ctx, map[string]interface{}{
+			"analysis_type": "invalid_type",
+			"framework":     "SOC2",
+		})
+		if err == nil {
+			t.Error("Expected error for invalid analysis type")
+		}
+	})
+}

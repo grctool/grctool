@@ -1,0 +1,186 @@
+{
+  "name": "get_api_policy_nonexistent_policy_id_94f7ca9611bc.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:49:29 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:49:29.050278-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:49:44 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:49:44.155547-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:52:45 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:52:45.740861-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:54:46 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:54:46.193001-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:58:20 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:58:20.702526-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 20:10:17 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T16:10:17.367573-04:00"
+    }
+  ],
+  "recorded_at": "2025-07-03T15:49:29.050333-04:00"
+}

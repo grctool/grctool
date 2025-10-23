@@ -1,0 +1,30 @@
+data_dir: .
+log_level: invalid_level  # Invalid log level
+
+evidence:
+  tools:
+    github:
+      enabled: not_a_boolean  # Should be boolean
+      repository: ""          # Empty repository
+      invalid_field: "should not exist"
+    terraform:
+      enabled: true
+      scan_paths:            # Empty array
+      include_patterns:
+        - invalid_pattern_without_extension
+
+invalid_top_level_field: "should cause validation error"
+
+# Missing required nested structure
+storage:
+  # Missing data_dir field
+
+# Invalid YAML syntax below (malformed)
+logging:
+  level: debug
+  format: json
+  output: stdout
+  include_caller: true
+  # Missing closing for this section - invalid indentation below
+invalid_indentation:
+test: "broken yaml"

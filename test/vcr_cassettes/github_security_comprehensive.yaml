@@ -1,0 +1,250 @@
+interactions:
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=access+control+permissions+authorization+label%3Aaccess-control%2Csecurity
+  response:
+    body:
+      string: |
+        {
+          "total_count": 2,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 40,
+              "number": 701,
+              "title": "Access control matrix documentation and implementation",
+              "state": "open",
+              "body": "## Access Control Matrix Implementation\n\n### Current Access Control Framework\n- **Role-Based Access Control (RBAC)**: Implemented across all systems\n- **Least Privilege Principle**: Applied to all user accounts\n- **Segregation of Duties**: Enforced for critical operations\n- **Regular Access Reviews**: Conducted quarterly\n\n### Access Control Matrix\n\n| Role | System Access | Data Access | Admin Rights |\n|------|--------------|-------------|-------------|\n| Developer | Read/Write Code | Dev/Test Data | No |\n| Senior Developer | Read/Write Code | Dev/Test/Staging | Limited |\n| Team Lead | Full Repository | All Non-Prod | Repository Admin |\n| Security Team | Security Tools | All Data | Security Admin |\n| SysAdmin | Infrastructure | System Logs | Full Admin |\n\n### Implementation Status\n✅ Access control policies documented\n✅ Technical controls implemented\n✅ Regular access reviews scheduled\n✅ Audit logging in place\n✅ Exception handling process defined",
+              "user": {
+                "login": "security-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "access-control",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "security",
+                  "color": "d73a4a"
+                }
+              ],
+              "created_at": "2024-08-01T10:00:00Z",
+              "updated_at": "2024-08-20T15:30:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/701",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4988
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=encryption+implementation+at+rest+in+transit+label%3Aencryption%2Csecurity%2Cdata-protection
+  response:
+    body:
+      string: |
+        {
+          "total_count": 3,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 41,
+              "number": 702,
+              "title": "Comprehensive encryption implementation for data protection",
+              "state": "open",
+              "body": "## Encryption Implementation Status\n\n### Data at Rest Encryption\n✅ **Database Encryption**\n- PostgreSQL: Transparent Data Encryption (TDE) enabled\n- MongoDB: Field-level encryption for PII\n- Redis: Encryption enabled for cache data\n\n✅ **File System Encryption**\n- Server storage: Full disk encryption (LUKS)\n- Cloud storage: S3 server-side encryption with KMS\n- Backup storage: Encrypted with separate keys\n\n### Data in Transit Encryption\n✅ **Network Communications**\n- TLS 1.3 for all external APIs\n- mTLS for internal service communication\n- VPN encryption for remote access\n- Email encryption with S/MIME\n\n✅ **Application Layer**\n- HTTPS enforced for all web traffic\n- API endpoints require TLS\n- WebSocket connections encrypted\n- File transfers use SFTP/FTPS\n\n### Key Management\n✅ **Key Lifecycle Management**\n- AWS KMS for cloud-based keys\n- Hardware Security Modules (HSM) for critical keys\n- Automated key rotation (90-day cycle)\n- Key escrow procedures documented\n\n### Compliance Evidence\n- Encryption standards documented in security policy\n- Regular encryption audits conducted\n- Key management procedures tested\n- Incident response plan includes key compromise scenarios",
+              "user": {
+                "login": "crypto-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "encryption",
+                  "color": "4ecdc4"
+                },
+                {
+                  "name": "security",
+                  "color": "d73a4a"
+                },
+                {
+                  "name": "data-protection",
+                  "color": "ff6b6b"
+                }
+              ],
+              "created_at": "2024-08-05T14:20:00Z",
+              "updated_at": "2024-08-19T11:45:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/702",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4987
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=audit+logging+monitoring+compliance+label%3Aaudit%2Clogging%2Ccompliance
+  response:
+    body:
+      string: |
+        {
+          "total_count": 4,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 42,
+              "number": 703,
+              "title": "Comprehensive audit logging and monitoring implementation",
+              "state": "open",
+              "body": "## Audit Logging Framework\n\n### System-Level Audit Logging\n✅ **Infrastructure Logging**\n- AWS CloudTrail: All API calls logged\n- VPC Flow Logs: Network traffic monitoring\n- CloudWatch Logs: System and application logs\n- Config Service: Configuration change tracking\n\n✅ **Operating System Logging**\n- auditd: System call auditing on Linux\n- Windows Event Logs: Security and system events\n- SSH access logging with session recording\n- Privileged command execution logging\n\n### Application-Level Audit Logging\n✅ **Authentication Events**\n- All login attempts (successful and failed)\n- Multi-factor authentication events\n- Password changes and resets\n- Session creation and termination\n\n✅ **Authorization Events**\n- Access control decisions\n- Permission changes\n- Role assignments and modifications\n- Privilege escalation attempts\n\n✅ **Data Access Events**\n- Database query logging\n- File access and modifications\n- API endpoint access\n- Data export and download activities\n\n### Log Management and Analysis\n✅ **Centralized Logging**\n- ELK Stack: Elasticsearch, Logstash, Kibana\n- Log aggregation from all systems\n- Real-time log streaming\n- Long-term log retention (7 years)\n\n✅ **Security Monitoring**\n- SIEM integration for threat detection\n- Automated alerting for suspicious activities\n- Incident response integration\n- Compliance reporting automation\n\n### Compliance Evidence\n- Audit log retention policy documented\n- Log integrity protection implemented\n- Regular log review procedures established\n- Audit trail completeness validated monthly",
+              "user": {
+                "login": "audit-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "audit",
+                  "color": "f9d0c4"
+                },
+                {
+                  "name": "logging",
+                  "color": "c5def5"
+                },
+                {
+                  "name": "compliance",
+                  "color": "bfd4f2"
+                }
+              ],
+              "created_at": "2024-08-10T09:15:00Z",
+              "updated_at": "2024-08-20T16:20:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/703",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4986
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=incident+response+security+breach+label%3Aincident-response%2Csecurity%2Cprocess
+  response:
+    body:
+      string: |
+        {
+          "total_count": 2,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 43,
+              "number": 704,
+              "title": "Incident response process and security breach procedures",
+              "state": "closed",
+              "body": "## Incident Response Framework Implementation\n\n### Incident Response Team\n✅ **Team Structure**\n- Incident Commander: Overall response coordination\n- Security Lead: Technical security analysis\n- Communications Lead: Internal and external communications\n- Legal Counsel: Legal and regulatory requirements\n- Business Lead: Business impact assessment\n\n✅ **Team Training**\n- Monthly incident response drills\n- Annual tabletop exercises\n- External incident response training\n- Cross-functional team collaboration\n\n### Incident Classification\n✅ **Severity Levels**\n- **P0 (Critical)**: Active breach with data exposure\n- **P1 (High)**: Security vulnerability with high risk\n- **P2 (Medium)**: Security incident with moderate impact\n- **P3 (Low)**: Minor security event or policy violation\n\n### Response Procedures\n✅ **Detection and Analysis**\n- 24/7 security monitoring with automated alerting\n- Threat intelligence integration\n- Forensic analysis capabilities\n- Evidence collection and preservation\n\n✅ **Containment and Eradication**\n- Immediate containment procedures\n- System isolation capabilities\n- Malware removal and system cleaning\n- Vulnerability patching and remediation\n\n✅ **Recovery and Post-Incident**\n- System restoration procedures\n- Business continuity activation\n- Lessons learned documentation\n- Process improvement implementation\n\n### Communication Plan\n✅ **Internal Communications**\n- Executive notification procedures\n- Employee communication templates\n- Stakeholder update processes\n- Regular status reporting\n\n✅ **External Communications**\n- Customer notification procedures\n- Regulatory reporting requirements\n- Media response plan\n- Partner and vendor communications\n\n### Compliance and Documentation\n- Incident response policy documented\n- Procedures tested and validated\n- Regulatory requirements mapped\n- Post-incident reports maintained",
+              "user": {
+                "login": "incident-response",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "incident-response",
+                  "color": "d93f0b"
+                },
+                {
+                  "name": "security",
+                  "color": "d73a4a"
+                },
+                {
+                  "name": "process",
+                  "color": "c5def5"
+                },
+                {
+                  "name": "completed",
+                  "color": "28a745"
+                }
+              ],
+              "created_at": "2024-07-25T13:30:00Z",
+              "updated_at": "2024-08-15T14:45:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/704",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4985
+    status:
+      code: 200
+      message: OK
+version: 1

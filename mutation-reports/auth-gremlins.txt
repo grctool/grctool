@@ -1,0 +1,10 @@
+Starting...
+Gathering coverage... 
+# github.com/7thsense/isms/grctool/internal/auth [github.com/7thsense/isms/grctool/internal/auth.test]
+internal/auth/auth_bench_test.go:6:2: "fmt" imported and not used
+internal/auth/auth_bench_test.go:9:2: "os" imported and not used
+internal/auth/auth_bench_test.go:10:2: "path/filepath" imported and not used
+FAIL	github.com/7thsense/isms/grctool/internal/auth [build failed]
+FAIL
+
+ERROR: failed to gather coverage: impossible to executeCoverage coverage: exit status 1

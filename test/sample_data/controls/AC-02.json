@@ -1,0 +1,72 @@
+{
+  "id": 778774,
+  "reference_id": "AC-02",
+  "name": "Access Control - Access Termination and Modification",
+  "description": "User access rights are reviewed and modified when job responsibilities change, and access is revoked in a timely manner when employment or contract relationships are terminated. Management maintains procedures to ensure consistent execution of termination and modification processes.",
+  "objective": "Ensure that user access is appropriately modified when roles change and completely revoked when individuals no longer require access, preventing unauthorized access to systems and data.",
+  "framework": "SOC2 Type II",
+  "category": "Logical and Physical Access Controls",
+  "subcategory": "Access Revocation",
+  "status": "implemented",
+  "risk_rating": "high",
+  "control_type": "preventive",
+  "frequency": "continuous",
+  "owner": "Information Technology",
+  "responsible_party": "IT Security Manager",
+  "implementation_date": "2023-01-01T00:00:00Z",
+  "last_review_date": "2024-08-15T00:00:00Z",
+  "next_review_date": "2025-02-15T00:00:00Z",
+  "testing_frequency": "quarterly",
+  "control_activities": [
+    "HR notifies IT of terminations within same business day",
+    "Termination checklist ensures all access is revoked",
+    "Access is disabled immediately upon notification",
+    "Role changes trigger access review and modification",
+    "Periodic access reviews identify and remove stale accounts",
+    "Shared account credentials are changed when users leave groups"
+  ],
+  "key_attributes": [
+    "Timely notification of terminations to IT",
+    "Standardized termination procedures via checklist",
+    "Immediate access revocation for terminated employees",
+    "Access modification for role changes",
+    "Regular review and cleanup of inactive accounts"
+  ],
+  "evidence_requirements": [
+    "Termination checklists with IT sign-off",
+    "Access revocation logs and timestamps",
+    "HR termination notifications to IT",
+    "Access modification records for role changes",
+    "Periodic access review reports",
+    "Disabled account reports"
+  ],
+  "related_controls": ["AC-01", "CC6.1", "CC6.2", "CC6.3"],
+  "related_policies": ["POL-003"],
+  "compliance_mappings": [
+    {
+      "framework": "SOC2",
+      "control_id": "CC6.1",
+      "requirement": "Logical and Physical Access Controls"
+    },
+    {
+      "framework": "ISO27001",
+      "control_id": "A.9.2.5",
+      "requirement": "Removal of access rights"
+    },
+    {
+      "framework": "NIST",
+      "control_id": "AC-2",
+      "requirement": "Account Management - Termination"
+    }
+  ],
+  "testing_procedures": [
+    "Review sample of terminations for timely access revocation",
+    "Verify termination checklists are completed",
+    "Test time between HR notification and access removal",
+    "Examine access modification for role changes",
+    "Review disabled/inactive account reports"
+  ],
+  "automation_level": "medium",
+  "maturity_level": "managed",
+  "tags": ["access_control", "termination", "deprovisioning", "soc2", "iso27001"]
+}

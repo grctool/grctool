@@ -1,0 +1,170 @@
+{
+  "description": "Tool selection validation key for evidence task test fixtures. This file maps evidence tasks to their expected tools for testing whether the AI correctly identifies appropriate tools based on task requirements.",
+  "version": "1.0",
+  "created": "2025-10-06",
+  "mappings": {
+    "ET-001": {
+      "task_name": "Infrastructure Security Configuration Evidence",
+      "expected_tools": [
+        "terraform-scanner",
+        "terraform-hcl-parser",
+        "terraform-security-analyzer"
+      ],
+      "rationale": "Infrastructure security evidence requires analysis of Terraform/IaC configurations to extract network security groups, encryption settings, IAM roles, and multi-AZ deployment evidence. The terraform-scanner provides comprehensive configuration analysis, terraform-hcl-parser extracts detailed resource configurations, and terraform-security-analyzer validates security best practices.",
+      "key_indicators": [
+        "network security groups",
+        "encryption at rest and in transit",
+        "IAM role configurations",
+        "multi-availability zone deployment",
+        "infrastructure as code",
+        "Terraform configurations"
+      ],
+      "alternative_tools": [
+        "terraform-query-interface"
+      ]
+    },
+    "ET-002": {
+      "task_name": "Repository Access Control Evidence",
+      "expected_tools": [
+        "github-permissions",
+        "github-deployment-access"
+      ],
+      "rationale": "Repository access control evidence requires extracting GitHub/GitLab organization permissions, repository collaborator lists, branch protection rules, and deployment environment access controls. The github-permissions tool extracts comprehensive repository access data and github-deployment-access retrieves deployment environment protection rules.",
+      "key_indicators": [
+        "repository permissions",
+        "branch protection rules",
+        "deployment environment access",
+        "user access levels",
+        "repository administrators",
+        "access reviews"
+      ],
+      "alternative_tools": [
+        "github-searcher"
+      ]
+    },
+    "ET-003": {
+      "task_name": "CI/CD Pipeline Security Evidence",
+      "expected_tools": [
+        "github-workflow-analyzer",
+        "github-security-features"
+      ],
+      "rationale": "CI/CD pipeline security evidence requires analysis of GitHub Actions workflows or similar CI/CD configurations to identify security scanning steps, secrets management, deployment approval gates, and security testing. The github-workflow-analyzer extracts workflow configurations and execution patterns, while github-security-features identifies security scanning integrations.",
+      "key_indicators": [
+        "CI/CD workflows",
+        "security scanning",
+        "secrets management",
+        "deployment approvals",
+        "pipeline execution logs",
+        "GitHub Actions",
+        "automated security scans"
+      ],
+      "alternative_tools": [
+        "docs-reader"
+      ]
+    },
+    "ET-004": {
+      "task_name": "Security Awareness Training Program Evidence",
+      "expected_tools": [
+        "google-workspace",
+        "docs-reader"
+      ],
+      "rationale": "Security training evidence is typically stored in documentation systems like Google Workspace (Drive, Docs, Sheets) containing training materials, completion records, and acknowledgment forms. The google-workspace tool can extract evidence from training documents and spreadsheets, while docs-reader can analyze local training documentation and policies.",
+      "key_indicators": [
+        "training materials",
+        "completion records",
+        "acknowledgments",
+        "learning management system",
+        "Google Drive",
+        "training documents",
+        "policy acknowledgments"
+      ],
+      "alternative_tools": [
+        "storage-read"
+      ]
+    },
+    "ET-005": {
+      "task_name": "Code Review Process Evidence",
+      "expected_tools": [
+        "github-review-analyzer",
+        "github-permissions"
+      ],
+      "rationale": "Code review process evidence requires analyzing pull request review data, approval workflows, reviewer assignments, and branch protection rules. The github-review-analyzer extracts pull request review statistics, approval patterns, and review discussions, while github-permissions validates branch protection and review requirements.",
+      "key_indicators": [
+        "pull request reviews",
+        "code review approvals",
+        "branch protection",
+        "review process",
+        "pull request statistics",
+        "reviewer qualifications",
+        "separation of duties"
+      ],
+      "alternative_tools": [
+        "github-searcher"
+      ]
+    },
+    "ET-101": {
+      "task_name": "Communication of Privacy Policies and Procedures",
+      "expected_tools": [
+        "docs-reader",
+        "google-workspace",
+        "storage-read"
+      ],
+      "rationale": "Privacy policy communication evidence requires accessing policy documents, training records, and communication materials. These are typically stored in documentation systems (Google Drive/Workspace) or local storage. The docs-reader can analyze local documentation, google-workspace can extract from cloud storage, and storage-read provides access to stored policy files.",
+      "key_indicators": [
+        "privacy policies",
+        "policy documentation",
+        "communication records",
+        "training records",
+        "acknowledgment receipts",
+        "policy accessibility",
+        "documentation"
+      ],
+      "alternative_tools": [
+        "policy-summary-generator"
+      ]
+    }
+  },
+  "testing_notes": {
+    "validation_approach": "Compare AI-selected tools against expected_tools list. Exact match is ideal, but alternatives are acceptable if justification is sound.",
+    "scoring": {
+      "perfect_match": "All expected tools selected",
+      "good_match": "At least 2/3 expected tools selected or 1 expected + valid alternatives",
+      "partial_match": "At least 1 expected tool selected",
+      "poor_match": "No expected tools selected, even if alternatives chosen"
+    },
+    "considerations": [
+      "AI may select additional meta-tools like evidence-task-details or docs-reader as supporting tools",
+      "Context-aware substitutions should be evaluated based on rationale",
+      "Tool selection should align with key_indicators in task description"
+    ]
+  },
+  "tool_categories": {
+    "infrastructure_analysis": [
+      "terraform-scanner",
+      "terraform-hcl-parser",
+      "terraform-security-analyzer",
+      "terraform-query-interface"
+    ],
+    "github_analysis": [
+      "github-permissions",
+      "github-deployment-access",
+      "github-workflow-analyzer",
+      "github-security-features",
+      "github-review-analyzer",
+      "github-searcher"
+    ],
+    "documentation_access": [
+      "docs-reader",
+      "google-workspace",
+      "storage-read"
+    ],
+    "evidence_management": [
+      "evidence-task-details",
+      "evidence-task-list",
+      "evidence-relationships",
+      "prompt-assembler",
+      "evidence-generator",
+      "evidence-validator"
+    ]
+  }
+}

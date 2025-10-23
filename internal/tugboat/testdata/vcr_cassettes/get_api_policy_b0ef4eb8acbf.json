@@ -1,0 +1,36 @@
+{
+  "name": "get_api_policy_b0ef4eb8acbf.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/policy/?embeds=tags\u0026embeds=assignees\u0026embeds=current_version_status\u0026embeds=read_time\u0026embeds=reviewers\u0026org=999999\u0026page=1\u0026page_size=25\u0026framework=SOC2",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 400,
+        "status": "400 Bad Request",
+        "headers": {
+          "Allow": "GET, POST, HEAD, OPTIONS",
+          "Content-Length": "33",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Tue, 01 Jul 2025 21:07:41 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"framework\":[\"Enter a number.\"]}"
+      },
+      "timestamp": "2025-07-01T17:07:41.006883-04:00"
+    }
+  ],
+  "recorded_at": "2025-07-01T17:07:41.006942-04:00"
+}

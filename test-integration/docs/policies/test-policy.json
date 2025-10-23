@@ -1,0 +1,11 @@
+{
+  "id": "TEST-001",
+  "name": "Test Policy with Variables",
+  "description": "A test policy containing interpolation variables",
+  "framework": "TEST",
+  "status": "active",
+  "content": "# Test Policy for {{organization.name}}\n\nThis policy applies to [Organization Name] and all employees.\n\nFor support, contact {{support.email}} or [Support Email].\n\n## Scope\nThis policy covers all activities at {{organization.name}}.",
+  "version": "1.0",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}

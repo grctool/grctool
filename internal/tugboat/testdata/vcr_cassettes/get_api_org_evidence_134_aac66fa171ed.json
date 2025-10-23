@@ -1,0 +1,126 @@
+{
+  "name": "get_api_org_evidence_134_aac66fa171ed.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:48:54 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:48:54.215375-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:49:43 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:49:43.409364-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:52:44 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:52:44.983037-04:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Allow": "GET, PUT, PATCH, DELETE, HEAD, OPTIONS",
+          "Content-Length": "23",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Thu, 03 Jul 2025 19:54:45 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"detail\":\"Not found.\"}"
+      },
+      "timestamp": "2025-07-03T15:54:45.435673-04:00"
+    }
+  ],
+  "recorded_at": "2025-07-03T15:48:54.215415-04:00"
+}

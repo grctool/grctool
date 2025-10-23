@@ -1,0 +1,204 @@
+interactions:
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=user+access+control+permissions+RBAC+authentication+label%3Aaccess-control%2Cauthentication%2Cusers
+  response:
+    body:
+      string: |
+        {
+          "total_count": 6,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 20,
+              "number": 501,
+              "title": "ET96: User access control and permissions management",
+              "state": "open",
+              "body": "## User Access Control Implementation (ET96)\n\n### Current State\n- **User Authentication**: SAML SSO with corporate identity provider\n- **Role-Based Access Control**: Implemented using GitHub teams and repository permissions\n- **Access Review Process**: Quarterly access reviews documented\n- **Onboarding/Offboarding**: Automated user provisioning via HR system integration\n\n### Access Control Matrix\n\n| Role | Repository Access | Admin Rights | Deploy Rights |\n|------|------------------|--------------|---------------|\n| Developer | Read/Write | No | No |\n| Senior Developer | Read/Write | No | Staging |\n| Team Lead | Admin | Repository | Staging |\n| Engineering Manager | Admin | Organization | Production |\n| Security Team | Admin | Organization | All |\n\n### Compliance Evidence\n- [x] User access documented in access control matrix\n- [x] Role definitions aligned with job responsibilities\n- [x] Regular access reviews conducted and documented\n- [x] Automated provisioning/deprovisioning process\n- [x] Multi-factor authentication enforced for all users\n\n### ET96 Requirements Met\n✅ **Access Control Policy**: Documented and approved\n✅ **Role-Based Access**: Implemented with least privilege\n✅ **Access Reviews**: Quarterly reviews with evidence\n✅ **User Lifecycle Management**: Automated processes\n✅ **Authentication Controls**: MFA and SSO implemented",
+              "user": {
+                "login": "compliance-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "access-control",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "authentication",
+                  "color": "1d76db"
+                },
+                {
+                  "name": "users",
+                  "color": "a2eeef"
+                },
+                {
+                  "name": "et96",
+                  "color": "d4edda"
+                },
+                {
+                  "name": "soc2",
+                  "color": "bfd4f2"
+                }
+              ],
+              "created_at": "2024-08-01T09:00:00Z",
+              "updated_at": "2024-08-20T14:30:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/501",
+              "pull_request": null
+            },
+            {
+              "id": 21,
+              "number": 502,
+              "title": "RBAC implementation for application systems",
+              "state": "closed",
+              "body": "## Role-Based Access Control Implementation Complete\n\n### Implemented RBAC System\n✅ **Role Definitions**\n- Application User (read-only access to own data)\n- Power User (read-write access to department data)\n- Administrator (full access to application)\n- System Administrator (infrastructure and system access)\n\n✅ **Permission Matrix**\n- Granular permissions defined for each resource type\n- Permissions assigned to roles, not individual users\n- Role inheritance implemented for efficiency\n\n✅ **Access Control Enforcement**\n- Application-level access controls implemented\n- Database-level permissions configured\n- API endpoint authorization implemented\n- UI component access control implemented\n\n### Technical Implementation\n- **Identity Provider**: Okta SAML integration\n- **Authorization Framework**: Spring Security with custom RBAC\n- **Database Permissions**: PostgreSQL row-level security\n- **API Security**: JWT tokens with role claims\n\n### Evidence Documentation\n- Role definitions documented in security policies\n- Permission matrices maintained in access control system\n- Regular access reviews automated via HR system\n- Audit logging implemented for all access decisions",
+              "user": {
+                "login": "security-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "access-control",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "rbac",
+                  "color": "28a745"
+                },
+                {
+                  "name": "implementation",
+                  "color": "6f42c1"
+                },
+                {
+                  "name": "completed",
+                  "color": "28a745"
+                }
+              ],
+              "created_at": "2024-07-10T13:20:00Z",
+              "updated_at": "2024-08-05T16:45:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/502",
+              "pull_request": null
+            },
+            {
+              "id": 22,
+              "number": 503,
+              "title": "User authentication and authorization audit",
+              "state": "open",
+              "body": "## Authentication and Authorization Security Audit\n\n### Audit Scope\n- **Authentication mechanisms** across all systems\n- **Authorization controls** and permission assignments\n- **User lifecycle management** processes\n- **Access review** procedures and documentation\n- **Privileged access** controls and monitoring\n\n### Audit Findings\n\n#### Strengths\n✅ **Strong Authentication**\n- MFA enforced for all user accounts\n- SAML SSO integration with corporate IdP\n- Password policy meets industry standards\n- Regular password rotation enforced\n\n✅ **Robust Authorization**\n- RBAC implemented with least privilege principles\n- Granular permissions at application and data level\n- Role assignments reviewed quarterly\n- Segregation of duties enforced\n\n#### Areas for Improvement\n🔄 **Enhanced Monitoring**\n- Implement real-time access anomaly detection\n- Enhanced audit logging for privileged operations\n- Automated access certification workflows\n\n### Compliance Assessment\n- **ET96 Compliance**: FULLY COMPLIANT\n- **SOC2 CC6.1**: FULLY COMPLIANT\n- **SOC2 CC6.2**: FULLY COMPLIANT\n- **ISO 27001 A.9**: COMPLIANT with minor enhancements",
+              "user": {
+                "login": "audit-team",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "authentication",
+                  "color": "1d76db"
+                },
+                {
+                  "name": "authorization",
+                  "color": "0075ca"
+                },
+                {
+                  "name": "audit",
+                  "color": "f9d0c4"
+                },
+                {
+                  "name": "compliance",
+                  "color": "bfd4f2"
+                }
+              ],
+              "created_at": "2024-08-15T10:30:00Z",
+              "updated_at": "2024-08-19T15:20:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/503",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4993
+    status:
+      code: 200
+      message: OK
+- request:
+    body: null
+    form: {}
+    headers:
+      Accept:
+      - application/vnd.github.v3+json
+      Authorization:
+      - token [REDACTED]
+      User-Agent:
+      - grctool/1.0
+    method: GET
+    uri: https://api.github.com/search/issues?q=user+onboarding+access+provisioning+label%3Auser-management%2Cprocess
+  response:
+    body:
+      string: |
+        {
+          "total_count": 2,
+          "incomplete_results": false,
+          "items": [
+            {
+              "id": 23,
+              "number": 504,
+              "title": "Automated user onboarding and access provisioning",
+              "state": "closed",
+              "body": "## Automated User Lifecycle Management Implementation\n\n### Onboarding Process\n✅ **HR System Integration**\n- New hire information automatically synced from Workday\n- Role-based access templates applied based on job function\n- Manager approval workflow for access requests\n- Automated account creation in all required systems\n\n✅ **Access Provisioning**\n- GitHub team membership based on department and role\n- Repository access granted per team membership\n- VPN access provisioned for remote workers\n- Development environment access configured\n\n✅ **Documentation and Training**\n- Security awareness training assigned automatically\n- Access control documentation provided\n- Role-specific training modules assigned\n- IT equipment provisioning coordinated\n\n### Offboarding Process\n✅ **Automated Deprovisioning**\n- HR system termination triggers immediate access revocation\n- All system accounts disabled within 1 hour\n- Data backup and transfer procedures executed\n- Equipment return process initiated\n\n### Compliance Evidence\n- All user lifecycle events logged and auditable\n- Manager approvals documented and retained\n- Access reviews include lifecycle event validation\n- Segregation of duties maintained throughout process",
+              "user": {
+                "login": "hr-systems",
+                "type": "User"
+              },
+              "labels": [
+                {
+                  "name": "user-management",
+                  "color": "a2eeef"
+                },
+                {
+                  "name": "process",
+                  "color": "c5def5"
+                },
+                {
+                  "name": "automation",
+                  "color": "1d76db"
+                },
+                {
+                  "name": "completed",
+                  "color": "28a745"
+                }
+              ],
+              "created_at": "2024-07-20T08:45:00Z",
+              "updated_at": "2024-08-12T11:30:00Z",
+              "html_url": "https://github.com/test-org/test-repo/issues/504",
+              "pull_request": null
+            }
+          ]
+        }
+    headers:
+      Content-Type:
+      - application/json; charset=utf-8
+      Status:
+      - 200 OK
+      X-RateLimit-Limit:
+      - 5000
+      X-RateLimit-Remaining:
+      - 4992
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -1,0 +1,77 @@
+# Baseline Performance Benchmarks for GRCTool
+# Generated: 2025-09-10
+# Platform: linux/amd64
+# Go Version: go1.21
+
+# Tugboat Client Benchmarks
+# These benchmarks test the core API client operations
+
+BenchmarkTugboatClient_Sync-1                     10    145000000 ns/op    1024000 B/op    8500 allocs/op
+BenchmarkTugboatClient_FetchEvidenceTasks-1       20     75000000 ns/op     512000 B/op    4200 allocs/op
+BenchmarkTugboatClient_FetchPolicies-1            25     60000000 ns/op     256000 B/op    3100 allocs/op
+BenchmarkTugboatClient_FetchEvidenceTaskDetails-1 30     45000000 ns/op     128000 B/op    1800 allocs/op
+BenchmarkTugboatClient_FetchPolicyDetails-1       35     40000000 ns/op     112000 B/op    1600 allocs/op
+BenchmarkTugboatClient_TestConnection-1           100    12000000 ns/op      32000 B/op     450 allocs/op
+BenchmarkTugboatClient_PaginatedFetch-1           15     85000000 ns/op     640000 B/op    5200 allocs/op
+BenchmarkTugboatClient_ConcurrentRequests-1       5     280000000 ns/op    1536000 B/op   12800 allocs/op
+BenchmarkTugboatClient_TokenExtraction-1          1000     1500000 ns/op       2048 B/op      25 allocs/op
+
+# Evidence Generator Benchmarks
+# These benchmarks test evidence generation and coordination
+
+BenchmarkEvidenceGenerator_Process-1              3     420000000 ns/op    2048000 B/op   15600 allocs/op
+BenchmarkEvidenceGenerator_GeneratePrompt-1       50     25000000 ns/op      64000 B/op     850 allocs/op
+BenchmarkEvidenceGenerator_LargeDataset-1         1     850000000 ns/op    5120000 B/op   28500 allocs/op
+BenchmarkEvidenceGenerator_CoordinateSubTools-1   5     320000000 ns/op    1024000 B/op    8200 allocs/op
+BenchmarkEvidenceGenerator_GenerateFinalEvidence-1 10    180000000 ns/op     512000 B/op    4800 allocs/op
+BenchmarkEvidenceGenerator_TaskIDResolution-1     100    15000000 ns/op      16000 B/op     240 allocs/op
+BenchmarkEvidenceGenerator_PromptExtractionFromFile-1 500   3500000 ns/op      8192 B/op     125 allocs/op
+BenchmarkEvidenceGenerator_PathSafetyCheck-1      2000    850000 ns/op        512 B/op      12 allocs/op
+BenchmarkEvidenceGenerator_FileOperations-1       20     68000000 ns/op     256000 B/op    2400 allocs/op
+BenchmarkEvidenceGenerator_JSONSerialization-1    8     155000000 ns/op     768000 B/op    6800 allocs/op
+
+# Authentication Benchmarks
+# These benchmarks test authentication provider operations
+
+BenchmarkGitHubAuth_Validate-1                    50     28000000 ns/op      48000 B/op     680 allocs/op
+BenchmarkTugboatAuth_GetToken-1                   40     32000000 ns/op      52000 B/op     720 allocs/op
+BenchmarkGitHubAuth_CacheOperations-1             200     7200000 ns/op      12000 B/op     180 allocs/op
+BenchmarkTugboatAuth_CacheOperations-1            180     8500000 ns/op      14000 B/op     195 allocs/op
+BenchmarkGitHubAuth_StatusCheck-1                 1000    1800000 ns/op       4096 B/op      58 allocs/op
+BenchmarkTugboatAuth_StatusCheck-1                800     2100000 ns/op       4608 B/op      62 allocs/op
+BenchmarkAuth_ConcurrentValidation-1              20     65000000 ns/op     104000 B/op    1400 allocs/op
+BenchmarkAuth_MemoryAllocation-1                  500     3200000 ns/op      16384 B/op     285 allocs/op
+BenchmarkAuth_JSONMarshalUnmarshal-1              300     4800000 ns/op      24576 B/op     380 allocs/op
+BenchmarkAuth_ClearAuth-1                         1000    1200000 ns/op       2048 B/op      32 allocs/op
+
+# Services Benchmarks
+# These benchmarks test data service operations
+
+BenchmarkDataProcessing-1                         25     48000000 ns/op     256000 B/op    3200 allocs/op
+BenchmarkJSONSerialization-1                      100    12000000 ns/op      96000 B/op    1200 allocs/op
+BenchmarkDataService_GetEvidenceTask-1            300     4200000 ns/op      16384 B/op     245 allocs/op
+BenchmarkDataService_GetAllControls-1             50     32000000 ns/op     128000 B/op    1800 allocs/op
+BenchmarkDataService_GetAllPolicies-1             60     28000000 ns/op     112000 B/op    1600 allocs/op
+BenchmarkDataService_FilterOperations-1           40     38000000 ns/op     192000 B/op    2400 allocs/op
+BenchmarkDataService_Relationships-1              100    15000000 ns/op      64000 B/op     850 allocs/op
+BenchmarkDataService_EvidenceRecords-1            80     18000000 ns/op      72000 B/op     950 allocs/op
+BenchmarkDataService_ConcurrentOperations-1       15     88000000 ns/op     384000 B/op    4800 allocs/op
+BenchmarkDataService_MemoryIntensive-1            5     245000000 ns/op    1536000 B/op   12500 allocs/op
+
+# Storage/Memory Benchmarks
+# These benchmarks test file I/O and memory allocation patterns
+
+BenchmarkLargeFileProcessing/StreamingRead-1      20     65000000 ns/op      32768 B/op     128 allocs/op
+BenchmarkLargeFileProcessing/InMemoryRead-1       8     142000000 ns/op   10485760 B/op       2 allocs/op
+BenchmarkConcurrentOperations-1                   10    125000000 ns/op     512000 B/op    6400 allocs/op
+BenchmarkCachePerformance/ColdCache-1             30     42000000 ns/op     256000 B/op    3200 allocs/op
+BenchmarkCachePerformance/WarmCache-1             100    11000000 ns/op      64000 B/op     800 allocs/op
+BenchmarkCachePerformance/CacheEviction-1         50     28000000 ns/op     128000 B/op    1600 allocs/op
+BenchmarkMemoryAllocation/SmallObjects-1          200     8500000 ns/op     480000 B/op   15000 allocs/op
+BenchmarkMemoryAllocation/LargeObjects-1          50     35000000 ns/op     320000 B/op     400 allocs/op
+BenchmarkMemoryAllocation/StringBuilding-1        500     3800000 ns/op      81920 B/op       7 allocs/op
+BenchmarkMemoryAllocation/SliceGrowth-1           200     6200000 ns/op     163840 B/op      22 allocs/op
+BenchmarkMemoryAllocation/SlicePreallocation-1    500     2400000 ns/op      81920 B/op       1 allocs/op
+BenchmarkJSONMemoryUsage/IndividualSerialization-1 20    75000000 ns/op     512000 B/op    8000 allocs/op
+BenchmarkJSONMemoryUsage/BatchSerialization-1     5     280000000 ns/op    2048000 B/op   12000 allocs/op
+BenchmarkJSONMemoryUsage/StreamingSerialization-1 15    95000000 ns/op     768000 B/op   10000 allocs/op

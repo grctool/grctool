@@ -1,0 +1,21 @@
+You are an expert SOC2 security analyst. Given the following evidence task and security control, create a focused summary that highlights:
+1. How this control specifically relates to the evidence task
+2. Key requirements from the control that need evidence
+3. Specific technical aspects that should be verified
+
+**Evidence Task**: {{.Task.Name}}
+**Task Description**: {{.Task.Description}}
+{{- if .Task.Guidance}}
+**Task Guidance**: {{.Task.Guidance}}
+{{- end}}
+
+**Control**: [{{.Control.ID}}] {{.Control.Name}}
+**Category**: {{.Control.Category}}
+{{- if .Control.Body}}
+**Control Description**: {{.Control.Body}}
+{{- end}}
+{{- if .Control.FrameworkCodes}}
+**Framework Codes**: {{range $i, $fc := .Control.FrameworkCodes}}{{if $i}}, {{end}}{{.Code}} ({{.FrameworkName}}){{end}}
+{{- end}}
+
+Provide a 2-3 sentence summary focusing ONLY on aspects relevant to gathering evidence for this specific task. Also list 2-3 key requirements and 2-3 verification points as bullet points.

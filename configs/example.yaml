@@ -1,0 +1,122 @@
+# Tugboat Logic Security Program Manager Configuration
+# Copy this file to .grctool.yaml and customize for your environment
+
+# Tugboat Logic Configuration
+tugboat:
+  # Base URL for Tugboat Logic
+  base_url: "https://api-my.tugboatlogic.com"
+  
+  # Organization ID (find in URL: /org/{org_id}/policies)
+  org_id: "YOUR_ORG_ID"
+  
+  # Request timeout (default: 30s)
+  timeout: "30s"
+  
+  # Rate limiting (requests per second)
+  rate_limit: 10
+  
+  # Authentication mode (always use "browser" for Safari-based auth)
+  auth_mode: "browser"
+  
+  # Note: Authentication credentials (bearer_token, cookie_header, auth_expires)
+  # are automatically added by 'grctool auth login' command
+
+# Storage Configuration
+storage:
+  # Parent directory containing docs/, evidence/, prompts/, etc.
+  # Tools will look for synced data in: {data_dir}/docs/
+  # Default "./" keeps everything in current directory; override in .grctool.yaml
+  data_dir: "./"
+
+  # Local data directory for offline-first storage
+  local_data_dir: "./local_data"
+
+  # Cache directory for performance optimization
+  cache_dir: "./.cache"
+
+  # Customizable subdirectory paths (all relative to data_dir)
+  # These paths allow you to customize where different types of data are stored
+  # If not specified, sensible defaults are used
+  paths:
+    # Top-level directories
+    docs: "docs"              # Synced documents from Tugboat (policies, controls, tasks)
+    evidence: "evidence"      # Generated evidence files
+    cache: ".cache"           # Cache for performance
+    prompts: "prompts"        # Custom evidence prompts
+
+    # Document subdirectories (organized by type then format: docs/{type}/{format}/)
+    policies_json: "docs/policies/json"
+    policies_markdown: "docs/policies/markdown"
+    controls_json: "docs/controls/json"
+    controls_markdown: "docs/controls/markdown"
+    evidence_tasks_json: "docs/evidence_tasks/json"
+    evidence_prompts: "docs/evidence_prompts"
+
+    # Cache subdirectories (within cache/)
+    prompt_cache: ".cache/prompts"           # Cached prompts
+    summary_cache: ".cache/summaries"        # Cached summaries
+    tool_cache: ".cache/tool_outputs"        # Tool output cache
+    relationship_cache: ".cache/relationships" # Relationship cache
+    validation_cache: ".cache/validations"   # Validation cache
+
+# Authentication Configuration (optional)
+auth:
+  # Cache directory for authentication tokens and status
+  cache_dir: "./.cache/auth"
+  
+  # GitHub authentication (optional - for github-searcher tool)
+  github:
+    # Personal Access Token for GitHub API
+    # Can use environment variable: ${GITHUB_TOKEN}
+    token: ""
+  
+  # Tugboat authentication (optional - for tugboat-sync-wrapper tool)
+  tugboat:
+    # Bearer token for Tugboat API access
+    # Can use environment variable: ${TUGBOAT_BEARER_TOKEN}
+    bearer_token: ""
+
+# Logging Configuration
+# Multi-logger support: configure multiple independent loggers
+logging:
+  loggers:
+    # Console logger - warnings and errors on stderr
+    console:
+      enabled: true
+      level: "warn"        # Only warnings and errors to console
+      format: "text"
+      output: "stderr"
+
+    # File logger - detailed info logging
+    file:
+      enabled: true
+      level: "info"        # Info, warnings, and errors to file
+      format: "text"
+      output: "file"
+      file_path: "~/Library/Logs/grctool/grctool.log"  # macOS example
+      # file_path: "~/.local/state/grctool/grctool.log"  # Linux example
+      # file_path: "%LOCALAPPDATA%\\grctool\\grctool.log"  # Windows example
+
+    # Debug logger - disabled by default, enable for troubleshooting
+    # debug:
+    #   enabled: false
+    #   level: "debug"
+    #   format: "text"
+    #   output: "file"
+    #   file_path: "~/Library/Logs/grctool/grctool-debug.log"
+
+# Evidence Collection Configuration (optional)
+evidence:
+  # Terraform tool configuration for evidence collection
+  terraform:
+    include_patterns:
+      - "*.tf"
+      - "*.yaml"
+      - "*.yml"
+    exclude_patterns:
+      - "*.secret"
+      - "builds/"
+      - "terraform.tfstate*"
+
+# Note: AI integration has been removed. Tools now generate
+# structured data files for external AI consumption via chat interfaces

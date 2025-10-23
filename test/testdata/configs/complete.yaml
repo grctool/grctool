@@ -1,0 +1,54 @@
+data_dir: .
+log_level: debug
+
+evidence:
+  tools:
+    github:
+      enabled: true
+      repository: 7thsense/security-compliance-repo
+      api_token: ${GITHUB_TOKEN}
+      branch_protection_enabled: true
+      secret_scanning_enabled: true
+      dependency_scanning_enabled: true
+      code_review_required: true
+      admin_enforcement_enabled: true
+    terraform:
+      enabled: true
+      scan_paths:
+        - terraform/
+        - infrastructure/
+        - modules/
+      include_patterns:
+        - "*.tf"
+        - "*.tfvars"
+        - "*.tfstate"
+      exclude_patterns:
+        - ".terraform/"
+        - "*.backup"
+        - ".terraform.lock.hcl"
+      security_checks_enabled: true
+      compliance_rules_enabled: true
+
+storage:
+  data_dir: .
+  cache_enabled: true
+  cache_ttl: 3600
+  max_file_size: 10485760 # 10MB
+
+logging:
+  level: debug
+  format: json
+  output: stdout
+  include_caller: true
+  include_timestamp: true
+
+compliance:
+  soc2_enabled: true
+  iso27001_enabled: false
+  gdpr_enabled: true
+  hipaa_enabled: false
+  
+audit:
+  enabled: true
+  retention_days: 2555 # 7 years
+  log_level: info

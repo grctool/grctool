@@ -1,0 +1,165 @@
+{
+  "report_id": "COMP-2024-08-20-001",
+  "generated_at": "2024-08-20T16:00:00Z",
+  "report_type": "quarterly_compliance_assessment",
+  "period": {
+    "start_date": "2024-05-01",
+    "end_date": "2024-07-31"
+  },
+  "frameworks": [
+    {
+      "name": "SOC2",
+      "version": "2017",
+      "assessment_date": "2024-07-31",
+      "overall_compliance": 94.2,
+      "controls_assessed": 68,
+      "controls_passed": 64,
+      "controls_failed": 4,
+      "critical_findings": 2,
+      "major_findings": 5,
+      "minor_findings": 12
+    },
+    {
+      "name": "ISO27001",
+      "version": "2013",
+      "assessment_date": "2024-07-31", 
+      "overall_compliance": 89.7,
+      "controls_assessed": 114,
+      "controls_passed": 102,
+      "controls_failed": 12,
+      "critical_findings": 3,
+      "major_findings": 8,
+      "minor_findings": 18
+    }
+  ],
+  "evidence_tasks": [
+    {
+      "task_ref": "ET-96",
+      "title": "Data Encryption at Rest",
+      "status": "compliant",
+      "compliance_score": 100.0,
+      "last_assessed": "2024-07-30",
+      "evidence_artifacts": 4,
+      "automation_level": "fully_automated"
+    },
+    {
+      "task_ref": "ET-103",
+      "title": "Access Control and Authentication",
+      "status": "minor_issues",
+      "compliance_score": 92.5,
+      "last_assessed": "2024-07-28",
+      "evidence_artifacts": 6,
+      "automation_level": "mostly_automated",
+      "findings": [
+        {
+          "severity": "minor",
+          "description": "3 GitHub repositories missing required reviewers",
+          "remediation": "Add required reviewers to branch protection rules"
+        }
+      ]
+    },
+    {
+      "task_ref": "ET-105",
+      "title": "Network Security Configuration",
+      "status": "compliant",
+      "compliance_score": 98.2,
+      "last_assessed": "2024-07-29",
+      "evidence_artifacts": 8,
+      "automation_level": "fully_automated"
+    },
+    {
+      "task_ref": "ET-120",
+      "title": "Incident Response Procedures", 
+      "status": "major_issues",
+      "compliance_score": 73.4,
+      "last_assessed": "2024-07-25",
+      "evidence_artifacts": 2,
+      "automation_level": "manual",
+      "findings": [
+        {
+          "severity": "major",
+          "description": "Incident response plan not updated in 18 months",
+          "remediation": "Update and test incident response procedures"
+        },
+        {
+          "severity": "minor",
+          "description": "Missing contact information for 2 team members",
+          "remediation": "Update emergency contact database"
+        }
+      ]
+    }
+  ],
+  "automation_statistics": {
+    "total_evidence_tasks": 45,
+    "fully_automated": 28,
+    "mostly_automated": 12,
+    "manual": 5,
+    "automation_coverage": 88.9
+  },
+  "tool_usage": {
+    "terraform_scanner": {
+      "tasks_covered": 15,
+      "success_rate": 96.7,
+      "avg_execution_time": "2.3s"
+    },
+    "github_analyzer": {
+      "tasks_covered": 8,
+      "success_rate": 94.2,
+      "avg_execution_time": "4.1s"
+    },
+    "aws_config_scanner": {
+      "tasks_covered": 12,
+      "success_rate": 98.1,
+      "avg_execution_time": "6.8s"
+    },
+    "document_reviewer": {
+      "tasks_covered": 10,
+      "success_rate": 85.0,
+      "avg_execution_time": "manual"
+    }
+  },
+  "remediation_tracking": {
+    "open_findings": 23,
+    "in_progress": 8,
+    "completed_this_period": 15,
+    "overdue": 3,
+    "avg_resolution_time_days": 12.4
+  },
+  "risk_assessment": {
+    "overall_risk_level": "medium",
+    "critical_risks": 2,
+    "high_risks": 8,
+    "medium_risks": 13,
+    "low_risks": 22,
+    "risk_trend": "improving"
+  },
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "incident_response",
+      "description": "Update and test incident response procedures",
+      "estimated_effort": "2 weeks",
+      "compliance_impact": "major"
+    },
+    {
+      "priority": "medium",
+      "category": "access_control",
+      "description": "Implement automated GitHub repository compliance checks",
+      "estimated_effort": "1 week",
+      "compliance_impact": "minor"
+    },
+    {
+      "priority": "low",
+      "category": "automation",
+      "description": "Increase automation coverage for manual evidence tasks",
+      "estimated_effort": "4 weeks",
+      "compliance_impact": "efficiency"
+    }
+  ],
+  "next_assessment": "2024-10-31",
+  "report_prepared_by": {
+    "name": "GRCTool Automated Assessment",
+    "version": "1.2.0",
+    "contact": "security@7thsense.io"
+  }
+}

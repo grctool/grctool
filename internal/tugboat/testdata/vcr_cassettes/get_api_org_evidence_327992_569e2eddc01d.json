@@ -1,0 +1,35 @@
+{
+  "name": "get_api_org_evidence_327992_569e2eddc01d.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/327992/controls/",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "status": "404 Not Found",
+        "headers": {
+          "Content-Length": "179",
+          "Content-Type": "text/html; charset=utf-8",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Sat, 05 Jul 2025 23:02:00 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "\n\u003c!doctype html\u003e\n\u003chtml lang=\"en\"\u003e\n\u003chead\u003e\n  \u003ctitle\u003eNot Found\u003c/title\u003e\n\u003c/head\u003e\n\u003cbody\u003e\n  \u003ch1\u003eNot Found\u003c/h1\u003e\u003cp\u003eThe requested resource was not found on this server.\u003c/p\u003e\n\u003c/body\u003e\n\u003c/html\u003e\n"
+      },
+      "timestamp": "2025-07-05T19:02:00.136114-04:00"
+    }
+  ],
+  "recorded_at": "2025-07-05T19:02:00.136209-04:00"
+}
