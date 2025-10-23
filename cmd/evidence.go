@@ -31,7 +31,9 @@ import (
 	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/services/evidence"
+	"github.com/grctool/grctool/internal/services/submission"
 	"github.com/grctool/grctool/internal/storage"
+	"github.com/grctool/grctool/internal/tugboat"
 	"github.com/spf13/cobra"
 )
 
@@ -194,6 +196,13 @@ func init() {
 	// Evidence review flags
 	evidenceReviewCmd.Flags().Bool("show-reasoning", true, "show AI reasoning process")
 	evidenceReviewCmd.Flags().Bool("show-sources", true, "show evidence sources")
+
+	// Evidence submit flags
+	evidenceSubmitCmd.Flags().String("window", "", "evidence collection window (e.g., 2025-Q4)")
+	evidenceSubmitCmd.Flags().String("notes", "", "submission notes for auditors")
+	evidenceSubmitCmd.Flags().Bool("skip-validation", false, "skip evidence validation checks")
+	evidenceSubmitCmd.Flags().Bool("dry-run", false, "preview submission without uploading to Tugboat")
+	evidenceSubmitCmd.MarkFlagRequired("window")
 }
 
 func runEvidenceList(cmd *cobra.Command, args []string) error {
@@ -407,21 +416,111 @@ func processEvidenceReview(cmd *cobra.Command, evidenceService evidence.Service,
 func runEvidenceSubmit(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 
-	// Initialize service
-	evidenceService, err := initializeEvidenceService()
+	// Get flags
+	window, _ := cmd.Flags().GetString("window")
+	notes, _ := cmd.Flags().GetString("notes")
+	skipValidation, _ := cmd.Flags().GetBool("skip-validation")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+
+	taskRef := args[0]
+
+	// Load configuration
+	cfg, err := config.Load()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	taskID, err := evidenceService.ResolveTaskID(ctx, args[0])
+	// Initialize storage
+	storage, err := storage.NewStorage(cfg.Storage)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
 
-	// Implementation delegated to service layer
-	cmd.Printf("Submitting evidence for task %d\n", taskID)
-	cmd.Println("Evidence submission functionality has been moved to the service layer.")
-	cmd.Printf("Task %d submission process would be handled by the evidence service.\n", taskID)
+	// Initialize Tugboat client (only if not dry-run)
+	var tugboatClient *tugboat.Client
+	if !dryRun {
+		tugboatClient = tugboat.NewClient(&cfg.Tugboat, nil) // nil VCR config for production use
+	}
+
+	// Initialize submission service
+	submissionService := submission.NewSubmissionService(
+		storage,
+		tugboatClient,
+		cfg.Tugboat.OrgID,
+		cfg.Tugboat.CollectorURLs,
+	)
+
+	// Build submission request
+	req := &submission.SubmitRequest{
+		TaskRef:        taskRef,
+		Window:         window,
+		Notes:          notes,
+		SkipValidation: skipValidation,
+		SubmittedBy:    "grctool-cli",
+	}
+
+	// Preview files
+	files, err := storage.GetEvidenceFiles(taskRef, window)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence files: %w", err)
+	}
+
+	cmd.Printf("📁 Evidence directory: data/evidence/%s/%s\n", taskRef, window)
+	cmd.Printf("📄 Files to submit: %d\n\n", len(files))
+	for i, file := range files {
+		cmd.Printf("  %d. %s (%d bytes)\n", i+1, file.Filename, file.SizeBytes)
+	}
+	cmd.Println()
+
+	if dryRun {
+		cmd.Println("🔍 Dry-run mode - no files will be uploaded")
+		if collectorURL, ok := cfg.Tugboat.CollectorURLs[taskRef]; ok {
+			cmd.Printf("Would submit to: %s\n", collectorURL)
+		} else {
+			cmd.Printf("⚠️  Warning: No collector URL configured for %s\n", taskRef)
+			cmd.Println("Add to .grctool.yaml under tugboat.collector_urls")
+		}
+		return nil
+	}
+
+	// Submit evidence
+	cmd.Printf("🚀 Submitting evidence to Tugboat Logic...\n\n")
+	resp, err := submissionService.Submit(ctx, req)
+	if err != nil {
+		return fmt.Errorf("submission failed: %w", err)
+	}
+
+	// Display results
+	if resp.Success {
+		cmd.Printf("✅ Success! Submission ID: %s\n", resp.SubmissionID)
+		cmd.Printf("Status: %s\n", resp.Status)
+		if resp.Submission != nil {
+			cmd.Printf("Files submitted: %d/%d\n", resp.Submission.TotalFileCount, len(files))
+
+			// Show failed files if any
+			if resp.Submission.TugboatResponse != nil && resp.Submission.TugboatResponse.Metadata != nil {
+				if failedCount, ok := resp.Submission.TugboatResponse.Metadata["files_failed"].(int); ok && failedCount > 0 {
+					cmd.Printf("\n⚠️  Warning: %d file(s) failed to upload\n", failedCount)
+					if failedFiles, ok := resp.Submission.TugboatResponse.Metadata["failed_files"].([]string); ok {
+						for _, failedFile := range failedFiles {
+							cmd.Printf("  ❌ %s\n", failedFile)
+						}
+					}
+				}
+			}
+		}
+		if resp.Message != "" {
+			cmd.Printf("\n%s\n", resp.Message)
+		}
+	} else {
+		cmd.Printf("❌ Submission failed: %s\n", resp.Message)
+		if resp.ValidationResult != nil && !resp.ValidationResult.ReadyForSubmission {
+			cmd.Printf("\nValidation errors: %d\n", resp.ValidationResult.FailedChecks)
+			for _, err := range resp.ValidationResult.Errors {
+				cmd.Printf("  - %s\n", err)
+			}
+		}
+	}
 
 	return nil
 }

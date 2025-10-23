@@ -159,8 +159,9 @@ func ValidateFileType(filename string) error {
 	// Check supported extensions
 	supported := map[string]bool{
 		"txt": true, "csv": true, "odt": true, "ods": true,
-		"xls": true, "json": true, "pdf": true, "png": true,
-		"gif": true, "jpg": true, "jpeg": true,
+		"xls": true, "xlsx": true, "doc": true, "docx": true,
+		"json": true, "pdf": true, "png": true,
+		"gif": true, "jpg": true, "jpeg": true, "md": true,
 	}
 	if !supported[ext] {
 		return fmt.Errorf("file extension .%s is not in the list of supported types", ext)

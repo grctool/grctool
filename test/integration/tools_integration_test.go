@@ -87,6 +87,7 @@ func TestToolsIntegration_SOC2Evidence(t *testing.T) {
 		}
 
 		githubResult, githubSource, err := githubTool.Execute(ctx, githubParams)
+		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, githubResult)
 		assert.NotNil(t, githubSource)
@@ -137,6 +138,7 @@ func TestToolsIntegration_SOC2Evidence(t *testing.T) {
 		}
 
 		githubResult, githubSource, err := githubTool.Execute(ctx, githubParams)
+		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, githubResult)
 		assert.NotNil(t, githubSource)
@@ -186,6 +188,7 @@ func TestToolsIntegration_SOC2Evidence(t *testing.T) {
 		}
 
 		githubResult, githubSource, err := githubTool.Execute(ctx, githubParams)
+		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 		assert.NotEmpty(t, githubResult)
 		assert.NotNil(t, githubSource)
@@ -260,6 +263,7 @@ func TestToolsIntegration_CrossValidation(t *testing.T) {
 		githubRes := <-githubChan
 
 		require.NoError(t, terraformRes.err)
+		skipIfGitHubAuthFails(t, githubRes.err)
 		require.NoError(t, githubRes.err)
 
 		// Validate cross-tool consistency
@@ -303,6 +307,7 @@ func TestToolsIntegration_CrossValidation(t *testing.T) {
 		}
 
 		githubResult, githubSource, err := githubTool.Execute(ctx, githubParams)
+		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 
 		// Parse Terraform data

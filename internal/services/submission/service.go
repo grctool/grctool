@@ -232,6 +232,7 @@ func (s *SubmissionService) submitToTugboat(
 	// Note: Custom Evidence Integration API accepts one file per submission
 	var lastResponse *tugboat.SubmitEvidenceResponse
 	submittedFiles := 0
+	failedFiles := []string{}
 	collectionDate := time.Now() // Use current time as collection date
 
 	for _, fileRef := range submission.EvidenceFiles {
@@ -240,7 +241,8 @@ func (s *SubmissionService) submitToTugboat(
 
 		// Validate file type before submission
 		if err := tugboat.ValidateFileType(fileRef.Filename); err != nil {
-			return nil, fmt.Errorf("file %s validation failed: %w", fileRef.Filename, err)
+			failedFiles = append(failedFiles, fmt.Sprintf("%s: %v", fileRef.Filename, err))
+			continue
 		}
 
 		// Build submission request for this file
@@ -254,7 +256,9 @@ func (s *SubmissionService) submitToTugboat(
 		// Submit to Tugboat
 		resp, err := s.tugboatClient.SubmitEvidence(ctx, submitReq)
 		if err != nil {
-			return nil, fmt.Errorf("failed to submit file %s: %w", fileRef.Filename, err)
+			// Collect error but continue with other files
+			failedFiles = append(failedFiles, fmt.Sprintf("%s: %v", fileRef.Filename, err))
+			continue
 		}
 
 		lastResponse = resp
@@ -262,19 +266,38 @@ func (s *SubmissionService) submitToTugboat(
 	}
 
 	if submittedFiles == 0 {
+		if len(failedFiles) > 0 {
+			return nil, fmt.Errorf("all %d file(s) failed submission:\n  - %s", len(failedFiles), failedFiles[0])
+		}
 		return nil, fmt.Errorf("no evidence files to submit")
+	}
+
+	// Build response message
+	message := fmt.Sprintf("Successfully submitted %d file(s) to Tugboat", submittedFiles)
+	if len(failedFiles) > 0 {
+		message = fmt.Sprintf("Submitted %d file(s), %d failed", submittedFiles, len(failedFiles))
 	}
 
 	// Return response from last submission
 	// Note: In the Custom Evidence Integration API, each file is submitted separately
 	// so we track the last successful response
-	return &models.TugboatSubmissionResponse{
+	response := &models.TugboatSubmissionResponse{
 		SubmissionID: fmt.Sprintf("batch-%d-files-%d", time.Now().Unix(), submittedFiles),
 		Status:       "submitted",
-		Message:      fmt.Sprintf("Successfully submitted %d file(s) to Tugboat", submittedFiles),
+		Message:      message,
 		ReceivedAt:   lastResponse.ReceivedAt,
-		Metadata:     map[string]interface{}{"files_submitted": submittedFiles},
-	}, nil
+		Metadata: map[string]interface{}{
+			"files_submitted": submittedFiles,
+			"files_failed":    len(failedFiles),
+		},
+	}
+
+	// Add failed files to metadata if any
+	if len(failedFiles) > 0 {
+		response.Metadata["failed_files"] = failedFiles
+	}
+
+	return response, nil
 }
 
 // getContentType determines the MIME type based on file extension
@@ -295,6 +318,12 @@ func (s *SubmissionService) getContentType(filename string) string {
 		"jpg":  "image/jpeg",
 		"jpeg": "image/jpeg",
 		"md":   "text/markdown",
+		"doc":  "application/msword",
+		"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		"xls":  "application/vnd.ms-excel",
+		"xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		"odt":  "application/vnd.oasis.opendocument.text",
+		"ods":  "application/vnd.oasis.opendocument.spreadsheet",
 	}
 
 	if ct, ok := contentTypes[ext]; ok {

@@ -143,6 +143,7 @@ func TestEvidenceCollection_ET96_UserAccess(t *testing.T) {
 		}
 
 		githubResult, githubSource, err := githubTool.Execute(ctx, githubParams)
+		skipIfGitHubAuthFails(t, err)
 		require.NoError(t, err)
 
 		// Collect Terraform infrastructure evidence
@@ -350,6 +351,7 @@ func TestEvidenceCollection_CrossTool(t *testing.T) {
 			}
 
 			githubResult, githubSource, err := githubTool.Execute(ctx, githubParams)
+			skipIfGitHubAuthFails(t, err)
 			require.NoError(t, err)
 			assert.NotEmpty(t, githubResult)
 
@@ -898,4 +900,5 @@ func createEvidenceTestConfig(tempDir string, cassetteName string) *config.Confi
 	}
 }
 
-// convertToInterface is defined in github_integration_test.go
+// Helper functions skipIfGitHubAuthFails and convertToInterface
+// are defined in github_integration_test.go and shared across integration tests

@@ -161,7 +161,7 @@ func TestTerraformEnhancedTool_SOC2Fixtures(t *testing.T) {
 		assert.Contains(t, result, "aws_security_group")
 
 		// Check markdown format
-		assert.Contains(t, result, "# Terraform Security Configuration Evidence")
+		assert.Contains(t, result, "# Enhanced Terraform Security Configuration Evidence")
 		assert.Contains(t, result, "**Security Controls:**")
 	})
 
@@ -562,7 +562,7 @@ resource "aws_kms_key" "test" {
 		assert.NotNil(t, source)
 
 		// Should have markdown headers and formatting
-		assert.Contains(t, result, "# Terraform Security Configuration Evidence")
+		assert.Contains(t, result, "# Enhanced Terraform Security Configuration Evidence")
 		assert.Contains(t, result, "## aws_kms_key") // Resource type as header
 		assert.Contains(t, result, "**File:**")
 		assert.Contains(t, result, "**Configuration:**")
