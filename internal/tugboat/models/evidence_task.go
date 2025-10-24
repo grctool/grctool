@@ -134,3 +134,54 @@ type InternalAec struct {
 	LastExecuted  *FlexibleTime          `json:"last_executed,omitempty"`
 	Schedule      string                 `json:"schedule,omitempty"`
 }
+
+// EvidenceAttachment represents a file attachment for an evidence task
+// This structure is based on OneTrust GRC Security Assurance API
+type EvidenceAttachment struct {
+	ID          interface{}  `json:"id"` // Can be string or int
+	Name        string       `json:"name"`
+	Filename    string       `json:"filename,omitempty"`
+	ContentType string       `json:"content_type,omitempty"`
+	Size        int64        `json:"size,omitempty"`
+	UploadedAt  FlexibleTime `json:"uploaded_at,omitempty"`
+	UploadedBy  interface{}  `json:"uploaded_by,omitempty"` // Can be user ID or user object
+	Description string       `json:"description,omitempty"`
+	URL         string       `json:"url,omitempty"`             // Download URL
+	EntityType  string       `json:"__entity_type__,omitempty"` // Usually "attachment"
+	Permissions []string     `json:"__permissions__,omitempty"`
+}
+
+// EvidenceImplementation represents an evidence task implementation
+// This is the container for submitted evidence in Tugboat/OneTrust
+type EvidenceImplementation struct {
+	ID             interface{}          `json:"id"` // Can be string or int
+	EvidenceTaskID interface{}          `json:"evidence_task_id,omitempty"`
+	CollectedDate  string               `json:"collected_date,omitempty"` // ISO8601 date
+	Status         string               `json:"status,omitempty"`
+	Notes          string               `json:"notes,omitempty"`
+	Attachments    []EvidenceAttachment `json:"attachments,omitempty"`
+	Links          []EvidenceLink       `json:"links,omitempty"`
+	CreatedAt      FlexibleTime         `json:"created_at,omitempty"`
+	UpdatedAt      FlexibleTime         `json:"updated_at,omitempty"`
+	CreatedBy      interface{}          `json:"created_by,omitempty"`
+	AuditProjectID interface{}          `json:"audit_project_id,omitempty"`
+	EntityType     string               `json:"__entity_type__,omitempty"`
+	Permissions    []string             `json:"__permissions__,omitempty"`
+}
+
+// EvidenceLink represents a URL link associated with evidence
+type EvidenceLink struct {
+	ID          interface{}  `json:"id"`
+	URL         string       `json:"url"`
+	Description string       `json:"description,omitempty"`
+	CreatedAt   FlexibleTime `json:"created_at,omitempty"`
+}
+
+// EvidenceSubmissionHistory represents the history of evidence submissions for a task
+type EvidenceSubmissionHistory struct {
+	TaskID          interface{}              `json:"task_id"`
+	TaskRef         string                   `json:"task_ref,omitempty"` // ET-0001 format
+	Implementations []EvidenceImplementation `json:"implementations"`
+	TotalCount      int                      `json:"total_count"`
+	LastSubmitted   *FlexibleTime            `json:"last_submitted,omitempty"`
+}

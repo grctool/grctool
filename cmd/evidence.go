@@ -17,9 +17,11 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"text/tabwriter"
 	"time"
 
@@ -34,6 +36,7 @@ import (
 	"github.com/grctool/grctool/internal/services/submission"
 	"github.com/grctool/grctool/internal/storage"
 	"github.com/grctool/grctool/internal/tugboat"
+	tugboatModels "github.com/grctool/grctool/internal/tugboat/models"
 	"github.com/spf13/cobra"
 )
 
@@ -121,6 +124,56 @@ var evidenceSubmitCmd = &cobra.Command{
 	RunE:  runEvidenceSubmit,
 }
 
+var evidenceListSubmittedCmd = &cobra.Command{
+	Use:   "list-submitted [task-id]",
+	Short: "List submitted evidence for a task",
+	Long: `List all evidence that has been previously submitted to Tugboat Logic for an evidence task.
+
+This command retrieves the history of evidence submissions including:
+- Evidence implementations (submissions)
+- Attached files and documents
+- Submission dates and metadata
+- Collection dates
+
+Examples:
+  # List submitted evidence for a specific task
+  grctool evidence list-submitted ET-0001
+  grctool evidence list-submitted 327992
+
+  # List submitted evidence with detailed output
+  grctool evidence list-submitted ET-0001 --format detailed`,
+	Args: cobra.ExactArgs(1),
+	RunE: runEvidenceListSubmitted,
+}
+
+var evidenceDownloadCmd = &cobra.Command{
+	Use:   "download [task-id]",
+	Short: "Download submitted evidence attachments",
+	Long: `Download evidence files and attachments that have been previously submitted to Tugboat Logic.
+
+This command downloads:
+- All attachments for a specific evidence task
+- Individual attachments by attachment ID
+- Evidence files to a local directory for reference or reuse
+
+Downloaded evidence can be used as context for generating new evidence or for audit review.
+
+Examples:
+  # Download all submitted evidence for a task
+  grctool evidence download ET-0001
+
+  # Download to a specific directory
+  grctool evidence download ET-0001 --output-dir ./evidence/ET-0001/submitted
+
+  # Download only recent submissions (e.g., last 30 days)
+  grctool evidence download ET-0001 --since 30d
+
+  # Download specific attachment by ID
+  grctool evidence download --attachment-id 12345 --output evidence.pdf`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runEvidenceDownload,
+}
+
 func init() {
 	rootCmd.AddCommand(evidenceCmd)
 
@@ -131,6 +184,8 @@ func init() {
 	evidenceCmd.AddCommand(evidenceGenerateCmd)
 	evidenceCmd.AddCommand(evidenceReviewCmd)
 	evidenceCmd.AddCommand(evidenceSubmitCmd)
+	evidenceCmd.AddCommand(evidenceListSubmittedCmd)
+	evidenceCmd.AddCommand(evidenceDownloadCmd)
 
 	// Register completion functions for task ID arguments
 	evidenceAnalyzeCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -152,6 +207,18 @@ func init() {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	evidenceSubmitCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 0 {
+			return completeTaskRefs(cmd, args, toComplete)
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	evidenceListSubmittedCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 0 {
+			return completeTaskRefs(cmd, args, toComplete)
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	evidenceDownloadCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
 			return completeTaskRefs(cmd, args, toComplete)
 		}
@@ -203,6 +270,17 @@ func init() {
 	evidenceSubmitCmd.Flags().Bool("skip-validation", false, "skip evidence validation checks")
 	evidenceSubmitCmd.Flags().Bool("dry-run", false, "preview submission without uploading to Tugboat")
 	evidenceSubmitCmd.MarkFlagRequired("window")
+
+	// Evidence list-submitted flags
+	evidenceListSubmittedCmd.Flags().String("format", "table", "output format (table, detailed, json)")
+	evidenceListSubmittedCmd.Flags().String("since", "", "show submissions since date or duration (e.g., 30d, 2025-01-01)")
+
+	// Evidence download flags
+	evidenceDownloadCmd.Flags().String("output-dir", "", "directory to download evidence files (default: data/evidence/{task}/submitted)")
+	evidenceDownloadCmd.Flags().String("attachment-id", "", "download specific attachment by ID")
+	evidenceDownloadCmd.Flags().String("output", "", "output filename when downloading specific attachment")
+	evidenceDownloadCmd.Flags().String("since", "", "download only submissions since date or duration (e.g., 30d, 2025-01-01)")
+	evidenceDownloadCmd.Flags().Bool("dry-run", false, "preview downloads without actually downloading files")
 }
 
 func runEvidenceList(cmd *cobra.Command, args []string) error {
@@ -525,6 +603,134 @@ func runEvidenceSubmit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+func runEvidenceListSubmitted(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+
+	// Get flags
+	format, _ := cmd.Flags().GetString("format")
+	sinceStr, _ := cmd.Flags().GetString("since")
+
+	taskIDOrRef := args[0]
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize storage to resolve task ref
+	storage, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+
+	// Resolve task ID from reference
+	taskID, taskRef, err := resolveTaskIdentifier(ctx, storage, taskIDOrRef)
+	if err != nil {
+		return fmt.Errorf("failed to resolve task: %w", err)
+	}
+
+	// Initialize Tugboat client
+	tugboatClient := tugboat.NewClient(&cfg.Tugboat, nil)
+
+	// Get submission history
+	cmd.Printf("📋 Retrieving submitted evidence for %s...\n\n", taskRef)
+	history, err := tugboatClient.GetSubmittedEvidenceHistory(ctx, fmt.Sprintf("%d", taskID), taskRef)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve submission history: %w", err)
+	}
+
+	// Filter by date if specified
+	if sinceStr != "" {
+		sinceTime, err := parseSinceFlag(sinceStr)
+		if err != nil {
+			return fmt.Errorf("invalid --since value: %w", err)
+		}
+		history.Implementations = filterImplementationsBySince(history.Implementations, sinceTime)
+	}
+
+	// Display results based on format
+	switch format {
+	case "json":
+		return displaySubmittedEvidenceJSON(cmd, history)
+	case "detailed":
+		return displaySubmittedEvidenceDetailed(cmd, history)
+	default: // table
+		return displaySubmittedEvidenceTable(cmd, history)
+	}
+}
+
+func runEvidenceDownload(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+
+	// Get flags
+	outputDir, _ := cmd.Flags().GetString("output-dir")
+	attachmentID, _ := cmd.Flags().GetString("attachment-id")
+	outputFile, _ := cmd.Flags().GetString("output")
+	sinceStr, _ := cmd.Flags().GetString("since")
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize Tugboat client
+	tugboatClient := tugboat.NewClient(&cfg.Tugboat, nil)
+
+	// Case 1: Download specific attachment by ID
+	if attachmentID != "" {
+		if outputFile == "" {
+			return fmt.Errorf("--output flag required when downloading specific attachment")
+		}
+		return downloadSpecificAttachment(ctx, cmd, tugboatClient, attachmentID, outputFile, dryRun)
+	}
+
+	// Case 2: Download all attachments for a task
+	if len(args) == 0 {
+		return fmt.Errorf("task ID required when not using --attachment-id")
+	}
+
+	taskIDOrRef := args[0]
+
+	// Initialize storage to resolve task ref
+	storage, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+
+	// Resolve task ID from reference
+	taskID, taskRef, err := resolveTaskIdentifier(ctx, storage, taskIDOrRef)
+	if err != nil {
+		return fmt.Errorf("failed to resolve task: %w", err)
+	}
+
+	// Determine output directory
+	if outputDir == "" {
+		outputDir = filepath.Join(cfg.Storage.DataDir, "evidence", taskRef, "submitted")
+	}
+
+	// Get submission history
+	cmd.Printf("📥 Downloading evidence for %s...\n\n", taskRef)
+	history, err := tugboatClient.GetSubmittedEvidenceHistory(ctx, fmt.Sprintf("%d", taskID), taskRef)
+	if err != nil {
+		return fmt.Errorf("failed to retrieve submission history: %w", err)
+	}
+
+	// Filter by date if specified
+	if sinceStr != "" {
+		sinceTime, err := parseSinceFlag(sinceStr)
+		if err != nil {
+			return fmt.Errorf("invalid --since value: %w", err)
+		}
+		history.Implementations = filterImplementationsBySince(history.Implementations, sinceTime)
+	}
+
+	// Download all attachments
+	return downloadAllAttachments(ctx, cmd, tugboatClient, history, outputDir, dryRun)
+}
+
 // Helper functions
 
 func initializeEvidenceService() (evidence.Service, error) {
@@ -793,4 +999,286 @@ func displayEvidenceMap(cmd *cobra.Command, mapResult *evidence.EvidenceMapResul
 func generateTemplateBasedPrompt(context *models.EvidenceContext, outputFormat string) string {
 	// Delegate to service layer
 	return "Legacy function - use service layer implementation"
+}
+
+// Evidence retrieval helper functions
+
+func resolveTaskIdentifier(ctx context.Context, storage *storage.Storage, taskIDOrRef string) (int, string, error) {
+	// Try to parse as ET-XXXX format first
+	if len(taskIDOrRef) > 3 && taskIDOrRef[:3] == "ET-" {
+		// Get task from storage by reference
+		tasks, err := storage.GetAllEvidenceTasks()
+		if err != nil {
+			return 0, "", fmt.Errorf("failed to get evidence tasks: %w", err)
+		}
+
+		for _, task := range tasks {
+			// Generate task ref from ID (ET-XXXX format)
+			taskRef := fmt.Sprintf("ET-%04d", task.ID)
+			if taskRef == taskIDOrRef {
+				return task.ID, taskRef, nil
+			}
+		}
+		return 0, "", fmt.Errorf("task not found: %s", taskIDOrRef)
+	}
+
+	// Try to parse as numeric ID
+	taskID, err := strconv.Atoi(taskIDOrRef)
+	if err != nil {
+		return 0, "", fmt.Errorf("invalid task ID or reference: %s", taskIDOrRef)
+	}
+
+	taskRef := fmt.Sprintf("ET-%04d", taskID)
+	return taskID, taskRef, nil
+}
+
+func parseSinceFlag(sinceStr string) (time.Time, error) {
+	// Try parsing as duration (e.g., "30d", "7d", "1h")
+	if len(sinceStr) > 1 {
+		unit := sinceStr[len(sinceStr)-1:]
+		valueStr := sinceStr[:len(sinceStr)-1]
+		value, err := strconv.Atoi(valueStr)
+		if err == nil {
+			var duration time.Duration
+			switch unit {
+			case "d":
+				duration = time.Duration(value) * 24 * time.Hour
+			case "h":
+				duration = time.Duration(value) * time.Hour
+			case "m":
+				duration = time.Duration(value) * time.Minute
+			default:
+				goto parseAsDate
+			}
+			return time.Now().Add(-duration), nil
+		}
+	}
+
+parseAsDate:
+	// Try parsing as ISO date
+	layouts := []string{
+		"2006-01-02",
+		"2006-01-02T15:04:05",
+		time.RFC3339,
+	}
+	for _, layout := range layouts {
+		t, err := time.Parse(layout, sinceStr)
+		if err == nil {
+			return t, nil
+		}
+	}
+
+	return time.Time{}, fmt.Errorf("invalid date format (use '30d' or '2025-01-01')")
+}
+
+func filterImplementationsBySince(implementations []tugboatModels.EvidenceImplementation, sinceTime time.Time) []tugboatModels.EvidenceImplementation {
+	filtered := make([]tugboatModels.EvidenceImplementation, 0)
+	for _, impl := range implementations {
+		if !impl.CreatedAt.IsZero() && impl.CreatedAt.After(sinceTime) {
+			filtered = append(filtered, impl)
+		}
+	}
+	return filtered
+}
+
+func displaySubmittedEvidenceTable(cmd *cobra.Command, history *tugboatModels.EvidenceSubmissionHistory) error {
+	if len(history.Implementations) == 0 {
+		cmd.Println("No submitted evidence found for this task.")
+		return nil
+	}
+
+	cmd.Printf("Task: %s (ID: %v)\n", history.TaskRef, history.TaskID)
+	cmd.Printf("Total Submissions: %d\n", history.TotalCount)
+	if history.LastSubmitted != nil && !history.LastSubmitted.IsZero() {
+		cmd.Printf("Last Submitted: %s\n", history.LastSubmitted.Format("2006-01-02 15:04:05"))
+	}
+	cmd.Println()
+
+	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+	fmt.Fprintln(w, "Collected Date\tSubmitted\tAttachments\tNotes")
+	fmt.Fprintln(w, "─────────────\t─────────\t───────────\t─────")
+
+	for _, impl := range history.Implementations {
+		collectedDate := impl.CollectedDate
+		if collectedDate == "" {
+			collectedDate = "N/A"
+		}
+
+		submittedAt := "N/A"
+		if !impl.CreatedAt.IsZero() {
+			submittedAt = impl.CreatedAt.Format("2006-01-02")
+		}
+
+		attachmentCount := len(impl.Attachments)
+		notes := impl.Notes
+		if len(notes) > 40 {
+			notes = notes[:37] + "..."
+		}
+
+		fmt.Fprintf(w, "%s\t%s\t%d\t%s\n", collectedDate, submittedAt, attachmentCount, notes)
+	}
+
+	w.Flush()
+	return nil
+}
+
+func displaySubmittedEvidenceDetailed(cmd *cobra.Command, history *tugboatModels.EvidenceSubmissionHistory) error {
+	if len(history.Implementations) == 0 {
+		cmd.Println("No submitted evidence found for this task.")
+		return nil
+	}
+
+	cmd.Printf("# Evidence Submission History: %s\n\n", history.TaskRef)
+	cmd.Printf("**Task ID:** %v\n", history.TaskID)
+	cmd.Printf("**Total Submissions:** %d\n", history.TotalCount)
+	if history.LastSubmitted != nil && !history.LastSubmitted.IsZero() {
+		cmd.Printf("**Last Submitted:** %s\n", history.LastSubmitted.Format("2006-01-02 15:04:05"))
+	}
+	cmd.Println()
+
+	for i, impl := range history.Implementations {
+		cmd.Printf("## Submission %d\n\n", i+1)
+		cmd.Printf("**Collected Date:** %s\n", impl.CollectedDate)
+		if !impl.CreatedAt.IsZero() {
+			cmd.Printf("**Submitted At:** %s\n", impl.CreatedAt.Format("2006-01-02 15:04:05"))
+		}
+		cmd.Printf("**Status:** %s\n", impl.Status)
+		if impl.Notes != "" {
+			cmd.Printf("**Notes:** %s\n", impl.Notes)
+		}
+		cmd.Println()
+
+		if len(impl.Attachments) > 0 {
+			cmd.Println("**Attachments:**")
+			for j, att := range impl.Attachments {
+				cmd.Printf("  %d. %s", j+1, att.Filename)
+				if att.Size > 0 {
+					cmd.Printf(" (%d bytes)", att.Size)
+				}
+				cmd.Println()
+				if att.Description != "" {
+					cmd.Printf("     Description: %s\n", att.Description)
+				}
+			}
+			cmd.Println()
+		}
+
+		if len(impl.Links) > 0 {
+			cmd.Println("**Links:**")
+			for j, link := range impl.Links {
+				cmd.Printf("  %d. %s\n", j+1, link.URL)
+				if link.Description != "" {
+					cmd.Printf("     %s\n", link.Description)
+				}
+			}
+			cmd.Println()
+		}
+
+		cmd.Println("---")
+		cmd.Println()
+	}
+
+	return nil
+}
+
+func displaySubmittedEvidenceJSON(cmd *cobra.Command, history *tugboatModels.EvidenceSubmissionHistory) error {
+	encoder := json.NewEncoder(cmd.OutOrStdout())
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(history)
+}
+
+func downloadSpecificAttachment(ctx context.Context, cmd *cobra.Command, client *tugboat.Client, attachmentID, outputFile string, dryRun bool) error {
+	if dryRun {
+		cmd.Printf("🔍 Dry-run: Would download attachment %s to %s\n", attachmentID, outputFile)
+		return nil
+	}
+
+	cmd.Printf("⬇️  Downloading attachment %s...\n", attachmentID)
+	bytes, err := client.DownloadEvidenceAttachment(ctx, attachmentID, outputFile)
+	if err != nil {
+		return fmt.Errorf("download failed: %w", err)
+	}
+
+	cmd.Printf("✅ Downloaded %d bytes to %s\n", bytes, outputFile)
+	return nil
+}
+
+func downloadAllAttachments(ctx context.Context, cmd *cobra.Command, client *tugboat.Client, history *tugboatModels.EvidenceSubmissionHistory, outputDir string, dryRun bool) error {
+	totalAttachments := 0
+	for _, impl := range history.Implementations {
+		totalAttachments += len(impl.Attachments)
+	}
+
+	if totalAttachments == 0 {
+		cmd.Println("No attachments found for this task.")
+		return nil
+	}
+
+	if !dryRun {
+		// Create output directory
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			return fmt.Errorf("failed to create output directory: %w", err)
+		}
+	}
+
+	cmd.Printf("📂 Output directory: %s\n", outputDir)
+	cmd.Printf("📎 Total attachments: %d\n\n", totalAttachments)
+
+	downloaded := 0
+	failed := 0
+
+	for implIdx, impl := range history.Implementations {
+		if len(impl.Attachments) == 0 {
+			continue
+		}
+
+		// Create subdirectory for this submission
+		submissionDir := filepath.Join(outputDir, fmt.Sprintf("submission-%d", implIdx+1))
+		if !dryRun {
+			if err := os.MkdirAll(submissionDir, 0755); err != nil {
+				cmd.Printf("⚠️  Failed to create directory %s: %v\n", submissionDir, err)
+				continue
+			}
+		}
+
+		for _, att := range impl.Attachments {
+			filename := att.Filename
+			if filename == "" {
+				filename = att.Name
+			}
+			if filename == "" {
+				filename = fmt.Sprintf("attachment-%v", att.ID)
+			}
+
+			outputPath := filepath.Join(submissionDir, filename)
+
+			if dryRun {
+				cmd.Printf("  Would download: %s\n", filename)
+				continue
+			}
+
+			cmd.Printf("⬇️  Downloading %s...", filename)
+
+			attID := fmt.Sprintf("%v", att.ID)
+			bytes, err := client.DownloadEvidenceAttachment(ctx, attID, outputPath)
+			if err != nil {
+				cmd.Printf(" ❌ Failed: %v\n", err)
+				failed++
+				continue
+			}
+
+			cmd.Printf(" ✅ (%d bytes)\n", bytes)
+			downloaded++
+		}
+	}
+
+	cmd.Println()
+	if dryRun {
+		cmd.Printf("🔍 Dry-run complete. Would download %d attachments to %s\n", totalAttachments, outputDir)
+	} else {
+		cmd.Printf("✅ Download complete: %d successful, %d failed\n", downloaded, failed)
+		cmd.Printf("📁 Files saved to: %s\n", outputDir)
+	}
+
+	return nil
 }

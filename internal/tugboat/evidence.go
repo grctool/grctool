@@ -18,6 +18,8 @@ package tugboat
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 
 	"github.com/grctool/grctool/internal/logger"
@@ -167,4 +169,118 @@ func (c *Client) GetEvidenceTasksByControl(ctx context.Context, controlID string
 	}
 
 	return response.Results, nil
+}
+
+// GetEvidenceImplementations retrieves all evidence implementations (submissions) for an evidence task
+// These are the actual evidence files and data that have been submitted for the task
+func (c *Client) GetEvidenceImplementations(ctx context.Context, evidenceTaskID string) ([]models.EvidenceImplementation, error) {
+	// Try multiple possible API endpoint patterns based on OneTrust/Tugboat API structure
+	// Pattern 1: Direct evidence task implementations endpoint
+	endpoint := fmt.Sprintf("/api/org_evidence/%s/implementations/", evidenceTaskID)
+
+	var implementations []models.EvidenceImplementation
+	err := c.get(ctx, endpoint, &implementations)
+	if err == nil {
+		return implementations, nil
+	}
+
+	// Pattern 2: Evidence task implementations as embedded data
+	endpoint = fmt.Sprintf("/api/org_evidence/%s/?embeds=implementations", evidenceTaskID)
+
+	var taskWithImpls struct {
+		Implementations []models.EvidenceImplementation `json:"implementations"`
+	}
+	err = c.get(ctx, endpoint, &taskWithImpls)
+	if err == nil {
+		return taskWithImpls.Implementations, nil
+	}
+
+	// Pattern 3: Via evidence-task-implementations endpoint (OneTrust GRC API)
+	endpoint = fmt.Sprintf("/api/controls/v1/evidence-task-implementations/?evidenceTaskId=%s", evidenceTaskID)
+
+	var implResponse struct {
+		Data []models.EvidenceImplementation `json:"data"`
+	}
+	err = c.get(ctx, endpoint, &implResponse)
+	if err == nil {
+		return implResponse.Data, nil
+	}
+
+	return nil, fmt.Errorf("failed to get evidence implementations for task %s (tried multiple endpoints): %w", evidenceTaskID, err)
+}
+
+// GetEvidenceAttachments retrieves all attachments for a specific evidence implementation
+func (c *Client) GetEvidenceAttachments(ctx context.Context, implementationID string) ([]models.EvidenceAttachment, error) {
+	endpoint := fmt.Sprintf("/api/controls/v1/evidence-task-implementations/%s/attachments/", implementationID)
+
+	var attachments []models.EvidenceAttachment
+	if err := c.get(ctx, endpoint, &attachments); err != nil {
+		return nil, fmt.Errorf("failed to get attachments for implementation %s: %w", implementationID, err)
+	}
+
+	return attachments, nil
+}
+
+// DownloadEvidenceAttachment downloads a specific evidence attachment to a file
+// Returns the number of bytes downloaded
+func (c *Client) DownloadEvidenceAttachment(ctx context.Context, attachmentID string, filepath string) (int64, error) {
+	// Try the OneTrust GRC API endpoint pattern first
+	endpoint := fmt.Sprintf("/api/controls/v1/attachments/%s/download/", attachmentID)
+
+	resp, err := c.makeRequest(ctx, "GET", endpoint, nil)
+	if err != nil {
+		return 0, fmt.Errorf("failed to download attachment %s: %w", attachmentID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return 0, fmt.Errorf("failed to download attachment %s: HTTP %d", attachmentID, resp.StatusCode)
+	}
+
+	// Create the output file
+	outFile, err := os.Create(filepath)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create file %s: %w", filepath, err)
+	}
+	defer outFile.Close()
+
+	// Copy the response body to the file
+	bytesWritten, err := io.Copy(outFile, resp.Body)
+	if err != nil {
+		return bytesWritten, fmt.Errorf("failed to write attachment to file: %w", err)
+	}
+
+	return bytesWritten, nil
+}
+
+// GetSubmittedEvidenceHistory retrieves the full submission history for an evidence task
+// This provides a consolidated view of all evidence implementations and attachments
+func (c *Client) GetSubmittedEvidenceHistory(ctx context.Context, taskID string, taskRef string) (*models.EvidenceSubmissionHistory, error) {
+	// Get all implementations for this task
+	implementations, err := c.GetEvidenceImplementations(ctx, taskID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get submission history for task %s: %w", taskRef, err)
+	}
+
+	history := &models.EvidenceSubmissionHistory{
+		TaskID:          taskID,
+		TaskRef:         taskRef,
+		Implementations: implementations,
+		TotalCount:      len(implementations),
+	}
+
+	// Find the most recent submission date
+	for _, impl := range implementations {
+		if !impl.CreatedAt.IsZero() {
+			if history.LastSubmitted == nil {
+				createdAt := impl.CreatedAt
+				history.LastSubmitted = &createdAt
+			} else if impl.CreatedAt.After(history.LastSubmitted.Time) {
+				createdAt := impl.CreatedAt
+				history.LastSubmitted = &createdAt
+			}
+		}
+	}
+
+	return history, nil
 }
