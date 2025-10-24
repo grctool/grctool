@@ -545,3 +545,8 @@ func (us *Storage) Clear() error {
 
 	return nil
 }
+
+// GetBaseDir returns the base directory for storage
+func (us *Storage) GetBaseDir() string {
+	return us.localDataStore.GetBaseDir()
+}

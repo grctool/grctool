@@ -24,6 +24,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -41,6 +42,11 @@ type Client struct {
 	rateLimiter  *time.Ticker
 	logger       logger.Logger
 	vcrConfig    *vcr.Config
+
+	// Custom Evidence Integration API credentials
+	username string // HTTP Basic Auth username
+	password string // HTTP Basic Auth password
+	apiKey   string // X-API-KEY header value (from TUGBOAT_API_KEY env var)
 }
 
 // APIResponse represents a generic API response wrapper
@@ -87,6 +93,12 @@ func NewClient(cfg *config.TugboatConfig, vcrConfig *vcr.Config) *Client {
 		httpTransport = vcr.New(vcrConfig)
 	}
 
+	// Get API key from environment variable for Custom Evidence Integration
+	apiKey := os.Getenv("TUGBOAT_API_KEY")
+	if apiKey == "" {
+		log.Warn("TUGBOAT_API_KEY environment variable not set - evidence submission will not be available")
+	}
+
 	client := &Client{
 		baseURL:      cfg.BaseURL,
 		cookieHeader: cfg.CookieHeader,
@@ -96,6 +108,11 @@ func NewClient(cfg *config.TugboatConfig, vcrConfig *vcr.Config) *Client {
 		},
 		logger:    log,
 		vcrConfig: vcrConfig,
+
+		// Custom Evidence Integration API credentials
+		username: cfg.Username,
+		password: cfg.Password,
+		apiKey:   apiKey,
 	}
 
 	// Set up rate limiting if specified
@@ -339,6 +356,52 @@ func (c *Client) delete(ctx context.Context, endpoint string) error {
 		return err
 	}
 	return c.handleResponse(resp, nil)
+}
+
+// makeEvidenceRequest makes an HTTP request to the Custom Evidence Integration API
+// Uses HTTP Basic Auth + X-API-KEY header instead of bearer token
+func (c *Client) makeEvidenceRequest(ctx context.Context, method, url string, body io.Reader, contentType string) (*http.Response, error) {
+	// Check credentials are configured
+	if c.username == "" || c.password == "" {
+		return nil, fmt.Errorf("custom evidence integration credentials not configured (username/password)")
+	}
+	if c.apiKey == "" {
+		return nil, fmt.Errorf("TUGBOAT_API_KEY environment variable not set")
+	}
+
+	// Rate limiting
+	if c.rateLimiter != nil {
+		select {
+		case <-c.rateLimiter.C:
+			// Continue
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+
+	// Create request
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set HTTP Basic Auth
+	req.SetBasicAuth(c.username, c.password)
+
+	// Set Custom Evidence Integration headers
+	req.Header.Set("X-API-KEY", c.apiKey)
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+	req.Header.Set("User-Agent", "grctool/1.0.0")
+
+	// Make request
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+
+	return resp, nil
 }
 
 func min(a, b int) int {

@@ -48,6 +48,12 @@ type TugboatConfig struct {
 	AuthExpires     string        `mapstructure:"auth_expires" yaml:"auth_expires"`           // When auth expires
 	LogAPIRequests  bool          `mapstructure:"log_api_requests" yaml:"log_api_requests"`   // Log HTTP request details
 	LogAPIResponses bool          `mapstructure:"log_api_responses" yaml:"log_api_responses"` // Log HTTP response details
+
+	// Custom Evidence Integration API (for evidence submission)
+	// API Key should be set via TUGBOAT_API_KEY environment variable (not stored in config for security)
+	Username      string            `mapstructure:"username" yaml:"username"`             // HTTP Basic Auth username
+	Password      string            `mapstructure:"password" yaml:"password"`             // HTTP Basic Auth password
+	CollectorURLs map[string]string `mapstructure:"collector_urls" yaml:"collector_urls"` // Evidence task ref -> collector URL mapping
 }
 
 // EvidenceConfig holds evidence collection configuration
@@ -464,6 +470,18 @@ func processEnvVars(config *Config) error {
 		} else {
 			// Tugboat bearer token is optional - clear it if env var not set
 			config.Auth.Tugboat.BearerToken = ""
+		}
+	}
+
+	// Custom Evidence Integration API credentials
+	// Password can be in config or environment variable
+	if strings.HasPrefix(config.Tugboat.Password, "${") && strings.HasSuffix(config.Tugboat.Password, "}") {
+		envVar := strings.TrimSuffix(strings.TrimPrefix(config.Tugboat.Password, "${"), "}")
+		if value := os.Getenv(envVar); value != "" {
+			config.Tugboat.Password = value
+		} else {
+			// Password is optional - clear it if env var not set
+			config.Tugboat.Password = ""
 		}
 	}
 

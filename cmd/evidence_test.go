@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -464,9 +465,14 @@ func TestEvidenceSubmitCommand(t *testing.T) {
 			name: "submit specific task",
 			args: []string{"327992"},
 			checkFunc: func(t *testing.T, output string, err error) {
-				// In test environment, we expect this to fail since there's no synced data
+				// In test environment, we expect this to fail since there's no synced data or evidence files
 				if err != nil {
-					assert.Contains(t, err.Error(), "evidence task not found")
+					// Accept either "evidence directory not found" or "evidence task not found" or missing required flags
+					assert.True(t,
+						strings.Contains(err.Error(), "evidence directory not found") ||
+							strings.Contains(err.Error(), "evidence task not found") ||
+							strings.Contains(err.Error(), "required flag(s)"),
+						"Expected error about missing evidence or required flags, got: %s", err.Error())
 					t.Log("✅ Expected failure - no synced data in test environment")
 				} else {
 					t.Log("✅ Evidence task submit succeeded")
@@ -493,7 +499,18 @@ func TestEvidenceSubmitCommand(t *testing.T) {
 				RunE: runEvidenceSubmit,
 			}
 
-			cmd.SetArgs(tt.args)
+			// Add required flags
+			cmd.Flags().String("window", "", "evidence collection window")
+			cmd.Flags().String("notes", "", "submission notes")
+			cmd.Flags().Bool("skip-validation", false, "skip validation")
+			cmd.Flags().Bool("dry-run", false, "dry-run mode")
+
+			// Set window flag if not testing error cases
+			if !tt.expectErr && len(tt.args) > 0 {
+				cmd.SetArgs(append(tt.args, "--window", "2025-Q4"))
+			} else {
+				cmd.SetArgs(tt.args)
+			}
 
 			output := &bytes.Buffer{}
 			cmd.SetOut(output)

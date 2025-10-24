@@ -16,6 +16,9 @@
 //go:build disabled
 // +build disabled
 
+// NOTE: These tests are temporarily disabled due to dependency on setupTestClient
+// which is defined in client_test.go (also disabled). Re-enable both together.
+
 package tugboat
 
 import (
