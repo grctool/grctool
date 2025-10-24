@@ -58,13 +58,15 @@ type EvidenceSubmission struct {
 
 // EvidenceFileRef references a single evidence file
 type EvidenceFileRef struct {
-	Filename          string   `yaml:"filename" json:"filename"`           // 01_terraform_iam_roles.md
-	RelativePath      string   `yaml:"relative_path" json:"relative_path"` // evidence/ET-0001/2025-Q4/01_terraform_iam_roles.md
-	Title             string   `yaml:"title" json:"title"`
-	Source            string   `yaml:"source" json:"source"` // terraform-scanner, github-permissions
-	SizeBytes         int64    `yaml:"size_bytes" json:"size_bytes"`
-	ChecksumSHA256    string   `yaml:"checksum_sha256" json:"checksum_sha256"`
-	ControlsSatisfied []string `yaml:"controls_satisfied,omitempty" json:"controls_satisfied,omitempty"` // CC6.8, AC-01
+	Filename          string          `yaml:"filename" json:"filename"`           // 01_terraform_iam_roles.md
+	RelativePath      string          `yaml:"relative_path" json:"relative_path"` // evidence/ET-0001/2025-Q4/01_terraform_iam_roles.md
+	Title             string          `yaml:"title" json:"title"`
+	Source            string          `yaml:"source" json:"source"` // terraform-scanner, github-permissions
+	SizeBytes         int64           `yaml:"size_bytes" json:"size_bytes"`
+	ChecksumSHA256    string          `yaml:"checksum_sha256" json:"checksum_sha256"`
+	ControlsSatisfied []string        `yaml:"controls_satisfied,omitempty" json:"controls_satisfied,omitempty"` // CC6.8, AC-01
+	Provenance        *Provenance     `yaml:"provenance,omitempty" json:"provenance,omitempty"`                 // Provenance information
+	SourceFiles       []SourceFileRef `yaml:"source_files,omitempty" json:"source_files,omitempty"`             // Referenced source files
 }
 
 // ValidationError represents a validation failure or warning

@@ -74,6 +74,14 @@ type GenerationConfig struct {
 	DefaultFormat    string `mapstructure:"default_format" yaml:"default_format"` // csv or markdown
 	SummaryCacheDir  string `mapstructure:"summary_cache_dir" yaml:"summary_cache_dir"`
 	MaxSummaryLength int    `mapstructure:"max_summary_length" yaml:"max_summary_length"`
+
+	// Structured evidence folder configuration
+	UseStructuredFolders bool `mapstructure:"use_structured_folders" yaml:"use_structured_folders"` // Enable new folder structure (default: false for backward compat)
+	CaptureProvenance    bool `mapstructure:"capture_provenance" yaml:"capture_provenance"`         // Capture git provenance (default: true)
+	CollectSourceFiles   bool `mapstructure:"collect_source_files" yaml:"collect_source_files"`     // Copy source files to evidence folder (default: true)
+	ExtractSnippets      bool `mapstructure:"extract_snippets" yaml:"extract_snippets"`             // Extract code snippets (default: true)
+	SnippetContextLines  int  `mapstructure:"snippet_context_lines" yaml:"snippet_context_lines"`   // Context lines for snippets (default: 5)
+	EnforceRelativePaths bool `mapstructure:"enforce_relative_paths" yaml:"enforce_relative_paths"` // Reject absolute paths in evidence (default: true)
 }
 
 // ToolsConfig holds configuration for evidence collection tools
@@ -608,6 +616,16 @@ func (c *Config) Validate() error {
 	}
 	if c.Evidence.Generation.DefaultFormat != "csv" && c.Evidence.Generation.DefaultFormat != "markdown" {
 		return fmt.Errorf("evidence.generation.default_format must be 'csv' or 'markdown', got: %s", c.Evidence.Generation.DefaultFormat)
+	}
+
+	// Set defaults for structured evidence folder features
+	// Note: UseStructuredFolders defaults to false for backward compatibility
+	// Users must explicitly opt-in by setting use_structured_folders: true
+	// Other features default to true when structured folders are enabled
+
+	// SnippetContextLines defaults to 5 if not set
+	if c.Evidence.Generation.SnippetContextLines <= 0 {
+		c.Evidence.Generation.SnippetContextLines = 5
 	}
 
 	// Validate Tools configuration
