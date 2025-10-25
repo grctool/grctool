@@ -604,61 +604,125 @@ func TestRequiresEncryption(t *testing.T) {
 
 // TestFilterResultsBySecurityControls tests the FilterResultsBySecurityControls pure function
 func TestFilterResultsBySecurityControls(t *testing.T) {
-	t.Skip("FilterResultsBySecurityControls function not yet implemented")
+	results := []models.TerraformScanResult{
+		{
+			ResourceType:      "aws_s3_bucket",
+			ResourceName:      "bucket1",
+			SecurityRelevance: []string{"CC6.8"},
+		},
+		{
+			ResourceType:      "aws_iam_role",
+			ResourceName:      "role1",
+			SecurityRelevance: []string{"CC6.1", "CC6.3"},
+		},
+		{
+			ResourceType:      "aws_ec2_instance",
+			ResourceName:      "instance1",
+			SecurityRelevance: []string{},
+		},
+		{
+			ResourceType:      "aws_kms_key",
+			ResourceName:      "key1",
+			SecurityRelevance: []string{"CC6.8"},
+		},
+	}
 
-	// TODO: Implement and uncomment when function exists
-	/*
-		results := []models.TerraformScanResult{
-			{
-				ResourceType:      "aws_s3_bucket",
-				ResourceName:      "bucket1",
-				SecurityRelevance: []string{"CC6.8"},
-			},
-			{
-				ResourceType:      "aws_iam_role",
-				ResourceName:      "role1",
-				SecurityRelevance: []string{"CC6.1", "CC6.3"},
-			},
-			{
-				ResourceType:      "aws_ec2_instance",
-				ResourceName:      "instance1",
-				SecurityRelevance: []string{},
-			},
-			{
-				ResourceType:      "aws_kms_key",
-				ResourceName:      "key1",
-				SecurityRelevance: []string{"CC6.8"},
-			},
-		}
+	tests := map[string]struct {
+		controls []string
+		expected []string
+	}{
+		"no filters returns all": {
+			controls: nil,
+			expected: []string{"bucket1", "role1", "instance1", "key1"},
+		},
+		"control code filter": {
+			controls: []string{"CC6.8"},
+			expected: []string{"bucket1", "key1"},
+		},
+		"keyword filter": {
+			controls: []string{"encryption"},
+			expected: []string{"bucket1", "key1"},
+		},
+		"multiple filters": {
+			controls: []string{"CC6.1", "iam"},
+			expected: []string{"role1"},
+		},
+	}
 
-		controls := []string{"encryption", "CC6.8"}
-		// TODO: implement FilterResultsBySecurityControls function
-		filtered := []models.TerraformScanResult{} // results
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			filtered := FilterResultsBySecurityControls(results, tt.controls)
 
-		// Should match: s3_bucket (CC6.8), kms_key (CC6.8 and encryption in name)
-		expectedCount := 2
-		if len(filtered) != expectedCount {
-			t.Errorf("Expected %d filtered results, got %d", expectedCount, len(filtered))
-		}
-
-		// Check that correct resources were included
-		foundBucket := false
-		foundKey := false
-		for _, result := range filtered {
-			if result.ResourceName == "bucket1" {
-				foundBucket = true
+			if len(filtered) != len(tt.expected) {
+				t.Fatalf("expected %d results, got %d", len(tt.expected), len(filtered))
 			}
-			if result.ResourceName == "key1" {
-				foundKey = true
+
+			gotNames := make(map[string]struct{}, len(filtered))
+			for _, result := range filtered {
+				gotNames[result.ResourceName] = struct{}{}
 			}
-		}
 
-		if !foundBucket {
-			t.Error("Expected bucket1 to be included in filtered results")
-		}
+			for _, expectedName := range tt.expected {
+				if _, ok := gotNames[expectedName]; !ok {
+					t.Errorf("expected result for resource %s", expectedName)
+				}
+			}
+		})
+	}
+}
 
-		if !foundKey {
-			t.Error("Expected key1 to be included in filtered results")
-		}
-	*/
+func TestGenerateTerraformSecurityReportCSV(t *testing.T) {
+	analysis := EncryptionAnalysis{
+		EncryptedResources:   []string{"aws_s3_bucket.app_logs"},
+		UnencryptedResources: []string{"aws_s3_bucket.audit"},
+		EncryptionMethods: map[string][]string{
+			"AES256": {"aws_s3_bucket.app_logs"},
+		},
+		TotalResources:  2,
+		EncryptionScore: 0.5,
+	}
+
+	report, err := GenerateTerraformSecurityReport(analysis, "csv")
+	if err != nil {
+		t.Fatalf("unexpected error generating csv report: %v", err)
+	}
+
+	if strings.Contains(report, "not implemented") {
+		t.Fatal("expected concrete csv report, found placeholder content")
+	}
+
+	if !strings.Contains(report, "encryption,security_score,0.50") {
+		t.Errorf("expected csv to include security score, got %q", report)
+	}
+
+	if !strings.Contains(report, "encryption,unencrypted_resources,aws_s3_bucket.audit") {
+		t.Errorf("expected csv to list unencrypted resources, got %q", report)
+	}
+}
+
+func TestGenerateTerraformSecurityReportMarkdown(t *testing.T) {
+	analysis := NetworkSecurityAnalysis{
+		SecurityGroups:        []string{"aws_security_group.public"},
+		OpenToInternet:        []string{"aws_security_group.public"},
+		RestrictedAccess:      []string{"aws_security_group.private"},
+		TotalNetworkResources: 2,
+		SecurityScore:         0.5,
+	}
+
+	report, err := GenerateTerraformSecurityReport(analysis, "markdown")
+	if err != nil {
+		t.Fatalf("unexpected error generating markdown report: %v", err)
+	}
+
+	if strings.Contains(report, "not implemented") {
+		t.Fatal("expected markdown renderer to produce report content, got placeholder")
+	}
+
+	if !strings.Contains(report, "## Network Security") {
+		t.Errorf("expected markdown to contain network section, got %q", report)
+	}
+
+	if !strings.Contains(report, "aws_security_group.public") {
+		t.Errorf("expected markdown to list open security group, got %q", report)
+	}
 }

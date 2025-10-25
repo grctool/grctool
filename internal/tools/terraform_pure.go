@@ -506,6 +506,106 @@ func GenerateTerraformEvidenceReport(results []models.TerraformScanResult, forma
 	}
 }
 
+// FilterResultsBySecurityControls returns only scan results that align with specific control filters
+func FilterResultsBySecurityControls(results []models.TerraformScanResult, controls []string) []models.TerraformScanResult {
+	if len(results) == 0 {
+		return nil
+	}
+
+	var filters []string
+	for _, control := range controls {
+		if normalized := strings.ToLower(strings.TrimSpace(control)); normalized != "" {
+			filters = append(filters, normalized)
+		}
+	}
+
+	if len(filters) == 0 {
+		copied := make([]models.TerraformScanResult, len(results))
+		copy(copied, results)
+		return copied
+	}
+
+	filtered := make([]models.TerraformScanResult, 0, len(results))
+	for _, result := range results {
+		if matchesSecurityFilters(result, filters) {
+			filtered = append(filtered, result)
+		}
+	}
+
+	return filtered
+}
+
+func matchesSecurityFilters(result models.TerraformScanResult, filters []string) bool {
+	resourceTypeLower := strings.ToLower(result.ResourceType)
+	resourceNameLower := strings.ToLower(result.ResourceName)
+
+	relevance := make(map[string]struct{}, len(result.SecurityRelevance))
+	for _, code := range result.SecurityRelevance {
+		relevance[strings.ToLower(code)] = struct{}{}
+	}
+
+	for _, filter := range filters {
+		if _, ok := relevance[filter]; ok {
+			return true
+		}
+
+		if strings.Contains(resourceTypeLower, filter) || strings.Contains(resourceNameLower, filter) {
+			return true
+		}
+
+		if filterMatchesConfiguration(result.Configuration, filter) {
+			return true
+		}
+
+		switch filter {
+		case "encryption", "encrypt":
+			if RequiresEncryption(result.ResourceType) ||
+				strings.Contains(resourceTypeLower, "kms") ||
+				strings.Contains(resourceTypeLower, "encrypt") {
+				return true
+			}
+		case "iam", "identity", "access":
+			if strings.Contains(resourceTypeLower, "iam") ||
+				strings.Contains(resourceTypeLower, "role") ||
+				strings.Contains(resourceTypeLower, "policy") {
+				return true
+			}
+		case "network", "security", "firewall":
+			if strings.Contains(resourceTypeLower, "security_group") ||
+				strings.Contains(resourceTypeLower, "firewall") ||
+				strings.Contains(resourceTypeLower, "nacl") ||
+				strings.Contains(resourceTypeLower, "network") {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func filterMatchesConfiguration(configuration map[string]interface{}, filter string) bool {
+	if len(configuration) == 0 {
+		return false
+	}
+
+	for key, value := range configuration {
+		keyLower := strings.ToLower(key)
+		if keyLower == "_content" {
+			continue
+		}
+
+		if strings.Contains(keyLower, filter) {
+			return true
+		}
+
+		if strings.Contains(strings.ToLower(fmt.Sprint(value)), filter) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Helper functions
 
 // IsResourceTypeOfInterest checks if a resource type matches the types we're looking for
@@ -789,15 +889,129 @@ func generateMarkdownReport(results []models.TerraformScanResult) string {
 }
 
 func generateCSVSecurityReport(analysis SecurityAnalysis) string {
-	// Implementation would depend on the specific SecurityAnalysis interface
-	// This is a placeholder that should be implemented based on the actual interface
-	return "Security analysis CSV report not implemented"
+	var report strings.Builder
+	report.WriteString("category,metric,value\n")
+
+	switch a := analysis.(type) {
+	case EncryptionAnalysis:
+		report.WriteString(fmt.Sprintf("encryption,security_score,%.2f\n", a.EncryptionScore))
+		report.WriteString(fmt.Sprintf("encryption,total_resources,%d\n", a.TotalResources))
+		if len(a.EncryptedResources) > 0 {
+			report.WriteString(fmt.Sprintf("encryption,encrypted_resources,%s\n", escapeCSV(strings.Join(a.EncryptedResources, "; "))))
+		}
+		if len(a.UnencryptedResources) > 0 {
+			report.WriteString(fmt.Sprintf("encryption,unencrypted_resources,%s\n", escapeCSV(strings.Join(a.UnencryptedResources, "; "))))
+		}
+		if len(a.EncryptionMethods) > 0 {
+			var methods []string
+			for method, resources := range a.EncryptionMethods {
+				methods = append(methods, fmt.Sprintf("%s (%d)", method, len(resources)))
+			}
+			sort.Strings(methods)
+			report.WriteString(fmt.Sprintf("encryption,encryption_methods,%s\n", escapeCSV(strings.Join(methods, "; "))))
+		}
+	case IAMAnalysis:
+		report.WriteString(fmt.Sprintf("iam,security_score,%.2f\n", a.SecurityScore))
+		report.WriteString(fmt.Sprintf("iam,total_resources,%d\n", a.TotalIAMResources))
+		if len(a.IAMRoles) > 0 {
+			report.WriteString(fmt.Sprintf("iam,roles,%s\n", escapeCSV(strings.Join(a.IAMRoles, "; "))))
+		}
+		if len(a.IAMPolicies) > 0 {
+			report.WriteString(fmt.Sprintf("iam,policies,%s\n", escapeCSV(strings.Join(a.IAMPolicies, "; "))))
+		}
+		if len(a.OverlyPermissive) > 0 {
+			report.WriteString(fmt.Sprintf("iam,overly_permissive,%s\n", escapeCSV(strings.Join(a.OverlyPermissive, "; "))))
+		}
+	case NetworkSecurityAnalysis:
+		report.WriteString(fmt.Sprintf("network,security_score,%.2f\n", a.SecurityScore))
+		report.WriteString(fmt.Sprintf("network,total_resources,%d\n", a.TotalNetworkResources))
+		if len(a.SecurityGroups) > 0 {
+			report.WriteString(fmt.Sprintf("network,security_groups,%s\n", escapeCSV(strings.Join(a.SecurityGroups, "; "))))
+		}
+		if len(a.OpenToInternet) > 0 {
+			report.WriteString(fmt.Sprintf("network,open_to_internet,%s\n", escapeCSV(strings.Join(a.OpenToInternet, "; "))))
+		}
+		if len(a.RestrictedAccess) > 0 {
+			report.WriteString(fmt.Sprintf("network,restricted_access,%s\n", escapeCSV(strings.Join(a.RestrictedAccess, "; "))))
+		}
+	default:
+		report.WriteString(fmt.Sprintf("unknown,type,%T\n", analysis))
+	}
+
+	return report.String()
 }
 
 func generateMarkdownSecurityReport(analysis SecurityAnalysis) string {
-	// Implementation would depend on the specific SecurityAnalysis interface
-	// This is a placeholder that should be implemented based on the actual interface
-	return "# Security Analysis Report\n\nSecurity analysis markdown report not implemented"
+	var report strings.Builder
+	report.WriteString("# Terraform Security Analysis\n\n")
+	report.WriteString(fmt.Sprintf("_Generated at %s_\n\n", time.Now().Format(time.RFC3339)))
+
+	switch a := analysis.(type) {
+	case EncryptionAnalysis:
+		report.WriteString("## Encryption Controls\n\n")
+		report.WriteString(fmt.Sprintf("- Security score: %.2f\n", a.EncryptionScore))
+		report.WriteString(fmt.Sprintf("- Total resources evaluated: %d\n", a.TotalResources))
+
+		if len(a.EncryptedResources) > 0 {
+			report.WriteString("\n**Encrypted Resources**\n\n")
+			for _, resource := range a.EncryptedResources {
+				report.WriteString(fmt.Sprintf("- %s\n", resource))
+			}
+		}
+
+		if len(a.UnencryptedResources) > 0 {
+			report.WriteString("\n**Unencrypted Resources (Action Needed)**\n\n")
+			for _, resource := range a.UnencryptedResources {
+				report.WriteString(fmt.Sprintf("- %s\n", resource))
+			}
+		}
+
+		if len(a.EncryptionMethods) > 0 {
+			report.WriteString("\n**Encryption Methods**\n\n")
+			var methods []string
+			for method, resources := range a.EncryptionMethods {
+				methods = append(methods, fmt.Sprintf("%s (%d resources)", method, len(resources)))
+			}
+			sort.Strings(methods)
+			for _, methodSummary := range methods {
+				report.WriteString(fmt.Sprintf("- %s\n", methodSummary))
+			}
+		}
+	case IAMAnalysis:
+		report.WriteString("## Identity and Access Management\n\n")
+		report.WriteString(fmt.Sprintf("- Security score: %.2f\n", a.SecurityScore))
+		report.WriteString(fmt.Sprintf("- IAM roles discovered: %d\n", len(a.IAMRoles)))
+		report.WriteString(fmt.Sprintf("- IAM policies discovered: %d\n", len(a.IAMPolicies)))
+
+		if len(a.OverlyPermissive) > 0 {
+			report.WriteString("\n**Overly Permissive Resources (Review Required)**\n\n")
+			for _, resource := range a.OverlyPermissive {
+				report.WriteString(fmt.Sprintf("- %s\n", resource))
+			}
+		}
+	case NetworkSecurityAnalysis:
+		report.WriteString("## Network Security\n\n")
+		report.WriteString(fmt.Sprintf("- Security score: %.2f\n", a.SecurityScore))
+		report.WriteString(fmt.Sprintf("- Security groups analysed: %d\n", len(a.SecurityGroups)))
+
+		if len(a.OpenToInternet) > 0 {
+			report.WriteString("\n**Open to Internet (0.0.0.0/0 or ::/0)**\n\n")
+			for _, resource := range a.OpenToInternet {
+				report.WriteString(fmt.Sprintf("- %s\n", resource))
+			}
+		}
+
+		if len(a.RestrictedAccess) > 0 {
+			report.WriteString("\n**Restricted Access Resources**\n\n")
+			for _, resource := range a.RestrictedAccess {
+				report.WriteString(fmt.Sprintf("- %s\n", resource))
+			}
+		}
+	default:
+		report.WriteString(fmt.Sprintf("No renderer for analysis type %T\n", analysis))
+	}
+
+	return report.String()
 }
 
 func escapeCSV(value string) string {
