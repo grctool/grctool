@@ -1,0 +1,132 @@
+# Status Commands Reference
+
+> Usage guide for status commands and filtering options
+
+---
+
+**Generated**: {{.Timestamp}}
+**GRCTool Version**: {{.Version}}
+**Documentation Version**: {{.Version}}
+
+---
+
+## Overview
+
+The `grctool status` command provides visibility into evidence state across all tasks. Use it to understand what evidence needs to be collected, what's been generated, and what's ready for submission.
+
+---
+
+## Basic Commands
+
+### Dashboard View
+```bash
+grctool status
+```
+
+Shows summary statistics:
+- Evidence state counts (no_evidence, generated, submitted, etc.)
+- Automation level breakdown
+- Recent activity
+- Next steps recommendations
+
+### Task Details
+```bash
+grctool status task ET-0047
+```
+
+Shows detailed information for a specific task:
+- Current state
+- Evidence files (count, size, timestamps)
+- Generation metadata
+- Submission status
+- Applicable tools
+
+### Force Rescan
+```bash
+grctool status scan
+```
+
+Forces a fresh scan of evidence directories, bypassing cache.
+
+---
+
+## Filtering Options
+
+### Filter by State
+```bash
+# Tasks with no evidence
+grctool status --filter state=no_evidence
+
+# Generated but not submitted
+grctool status --filter state=generated
+
+# Submitted tasks
+grctool status --filter state=submitted
+```
+
+### Filter by Automation Level
+```bash
+# Fully automated tasks
+grctool status --filter automation=fully_automated
+
+# Manual tasks
+grctool status --filter automation=manual_only
+```
+
+### Combined Filters
+```bash
+# Fully automated tasks with no evidence (highest priority)
+grctool status \
+  --filter state=no_evidence \
+  --filter automation=fully_automated
+```
+
+---
+
+## Understanding Output
+
+### State Indicators
+| State | Meaning | Action |
+|-------|---------|--------|
+| 🔴 no_evidence | No files | Generate evidence |
+| 🟡 generated | Files exist | Validate |
+| 🟢 validated | Ready | Submit |
+| 📤 submitted | Sent to Tugboat | Wait for review |
+| ✅ accepted | Approved | Done |
+| ❌ rejected | Needs rework | Regenerate |
+
+### Automation Levels
+| Level | Meaning |
+|-------|----------|
+| 🤖 fully_automated | Can be fully automated with tools |
+| ⚙️  partially_automated | Some automation possible |
+| 👤 manual_only | Requires manual collection |
+| ❓ unknown | Automation level not determined |
+
+---
+
+## Common Use Cases
+
+### "What needs to be done?"
+```bash
+grctool status --filter state=no_evidence
+```
+
+### "What can Claude automate?"
+```bash
+grctool status --filter automation=fully_automated --filter state=no_evidence
+```
+
+### "What's ready to submit?"
+```bash
+grctool status --filter state=validated
+```
+
+### "Show me everything for ET-0047"
+```bash
+grctool status task ET-0047
+```
+
+---
+
+**Next Steps**: Use status output to prioritize evidence collection with `evidence-workflow.md` guidance.
