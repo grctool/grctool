@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -189,9 +190,11 @@ func init() {
 
 	// Evidence generate flags
 	evidenceGenerateCmd.Flags().Bool("all", false, "generate evidence for all pending tasks")
-	evidenceGenerateCmd.Flags().StringSlice("tools", []string{"terraform", "github"}, "tools to use for evidence collection")
+	evidenceGenerateCmd.Flags().StringSlice("tools", []string{}, "tools to use for evidence collection (auto-detect if empty)")
 	evidenceGenerateCmd.Flags().String("format", "csv", "output format (csv, markdown)")
 	evidenceGenerateCmd.Flags().String("output-dir", "", "directory to save generated evidence")
+	evidenceGenerateCmd.Flags().String("window", "", "evidence collection window (e.g., 2025-Q4)")
+	evidenceGenerateCmd.Flags().Bool("context-only", false, "only generate context document, don't prompt for generation")
 
 	// Evidence review flags
 	evidenceReviewCmd.Flags().Bool("show-reasoning", true, "show AI reasoning process")
@@ -371,11 +374,82 @@ func processEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, 
 		return fmt.Errorf("task ID is required (or use --all flag)")
 	}
 
-	// For now, just return success - this would need proper implementation
-	// based on the actual evidenceService interface
-	cmd.Printf("Context generation tools are now available! Use:\n")
-	cmd.Printf("  make ai-context - Generate all AI context\n")
-	cmd.Printf("  ./bin/grctool tool context summary - Generate codebase summary\n")
+	taskRef := args[0]
+
+	// Get additional flags
+	window, _ := cmd.Flags().GetString("window")
+	contextOnly, _ := cmd.Flags().GetBool("context-only")
+
+	// Default window to current quarter if not specified
+	if window == "" {
+		window = getCurrentQuarter()
+	}
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize storage
+	storage, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+
+	// Load evidence task
+	cmd.Printf("Loading task %s...\n", taskRef)
+	task, err := storage.GetEvidenceTask(taskRef)
+	if err != nil {
+		return fmt.Errorf("evidence task not found: %s (hint: run 'grctool sync' to fetch latest tasks)", taskRef)
+	}
+
+	// Generate context
+	context, err := generateEvidenceContext(task, window, options.Tools, cfg, storage)
+	if err != nil {
+		return fmt.Errorf("failed to generate context: %w", err)
+	}
+
+	// Create context markdown
+	contextMarkdown := formatContextAsMarkdown(context, task, window)
+
+	// Save context to evidence directory
+	contextPath, err := saveEvidenceContext(task, window, contextMarkdown, cfg.Storage.DataDir)
+	if err != nil {
+		return fmt.Errorf("failed to save context: %w", err)
+	}
+
+	// Output success and next steps
+	cmd.Printf("✅ Context gathered for %s: %s\n\n", task.ReferenceID, task.Name)
+	if len(context.ApplicableTools) > 0 {
+		cmd.Printf("Identified %d applicable tool(s):\n", len(context.ApplicableTools))
+		for _, tool := range context.ApplicableTools {
+			cmd.Printf("  - %s\n", tool)
+		}
+		cmd.Println()
+	}
+	cmd.Printf("📄 Context saved: %s\n\n", contextPath)
+
+	if !contextOnly {
+		cmd.Println("Next steps:")
+		cmd.Println("  1. Review the context file above")
+		cmd.Println("  2. Ask Claude Code to help generate evidence using the context")
+		cmd.Println("  3. Run suggested tools and synthesize results:")
+		cmd.Println()
+
+		// Suggest specific tool commands
+		if len(context.ApplicableTools) > 0 {
+			cmd.Println("     Example commands:")
+			for _, tool := range context.ApplicableTools {
+				cmd.Printf("     grctool tool %s\n", tool)
+			}
+			cmd.Println()
+		}
+
+		cmd.Println("  4. Save generated evidence using:")
+		cmd.Printf("     grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.csv\n", task.ReferenceID, window)
+	}
+
 	return nil
 }
 
@@ -793,4 +867,267 @@ func displayEvidenceMap(cmd *cobra.Command, mapResult *evidence.EvidenceMapResul
 func generateTemplateBasedPrompt(context *models.EvidenceContext, outputFormat string) string {
 	// Delegate to service layer
 	return "Legacy function - use service layer implementation"
+}
+
+// Evidence context generation helpers
+
+// EvidenceGenerationContext holds all context needed for evidence generation
+type EvidenceGenerationContext struct {
+	Task             *domain.EvidenceTask
+	RelatedControls  []domain.Control
+	ApplicableTools  []string
+	ExistingEvidence []string
+	SourceLocations  map[string]string
+	PreviousWindows  []string
+}
+
+func getCurrentQuarter() string {
+	now := time.Now()
+	quarter := (int(now.Month())-1)/3 + 1
+	return fmt.Sprintf("%d-Q%d", now.Year(), quarter)
+}
+
+func generateEvidenceContext(task *domain.EvidenceTask, window string, requestedTools []string, cfg *config.Config, storage *storage.Storage) (*EvidenceGenerationContext, error) {
+	context := &EvidenceGenerationContext{
+		Task:            task,
+		SourceLocations: make(map[string]string),
+	}
+
+	// Identify applicable tools based on task description and name
+	if len(requestedTools) > 0 {
+		context.ApplicableTools = requestedTools
+	} else {
+		context.ApplicableTools = identifyApplicableTools(task)
+	}
+
+	// Scan for existing evidence
+	evidenceDir := filepath.Join(cfg.Storage.DataDir, "evidence")
+	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
+	taskEvidenceDir := filepath.Join(evidenceDir, taskDirName)
+
+	// Check for existing evidence windows
+	if _, err := os.Stat(taskEvidenceDir); err == nil {
+		entries, err := os.ReadDir(taskEvidenceDir)
+		if err == nil {
+			for _, entry := range entries {
+				if entry.IsDir() && entry.Name() != ".context" {
+					context.PreviousWindows = append(context.PreviousWindows, entry.Name())
+
+					// Check for files in this window
+					windowDir := filepath.Join(taskEvidenceDir, entry.Name())
+					files, err := os.ReadDir(windowDir)
+					if err == nil {
+						for _, file := range files {
+							if !file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
+								context.ExistingEvidence = append(context.ExistingEvidence,
+									fmt.Sprintf("%s/%s", entry.Name(), file.Name()))
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Add source locations from config
+	if len(cfg.Evidence.Tools.Terraform.ScanPaths) > 0 {
+		context.SourceLocations["Terraform"] = fmt.Sprintf("%d path(s) configured", len(cfg.Evidence.Tools.Terraform.ScanPaths))
+	} else if cfg.Evidence.Terraform.AtmosPath != "" || cfg.Evidence.Terraform.RepoPath != "" {
+		context.SourceLocations["Terraform"] = "Configured"
+	}
+	if cfg.Evidence.Tools.GitHub.Enabled && cfg.Evidence.Tools.GitHub.Repository != "" {
+		context.SourceLocations["GitHub"] = cfg.Evidence.Tools.GitHub.Repository
+	}
+	if cfg.Evidence.Tools.GoogleDocs.Enabled && cfg.Evidence.Tools.GoogleDocs.CredentialsFile != "" {
+		context.SourceLocations["Google Workspace"] = "Configured"
+	}
+
+	// Load related controls (if available)
+	// This would require extending storage to get controls by task
+	// For now, we'll use the control IDs from the task itself
+	if len(task.Controls) > 0 {
+		for _, controlID := range task.Controls {
+			control, err := storage.GetControl(controlID)
+			if err == nil {
+				context.RelatedControls = append(context.RelatedControls, *control)
+			}
+		}
+	}
+
+	return context, nil
+}
+
+func identifyApplicableTools(task *domain.EvidenceTask) []string {
+	var tools []string
+
+	// Combine task name and description for keyword matching
+	searchText := strings.ToLower(task.Name + " " + task.Description)
+
+	// Tool patterns - map keywords to tool names
+	toolPatterns := map[string][]string{
+		"github-permissions":          {"github", "repository", "access control", "permissions", "team"},
+		"github-repo-analyzer":        {"github", "repository", "branch protection", "security"},
+		"github-workflow-analyzer":    {"github", "ci/cd", "workflow", "pipeline", "actions"},
+		"terraform-security-indexer":  {"terraform", "infrastructure", "iac", "security"},
+		"terraform-security-analyzer": {"terraform", "cloud", "aws", "gcp", "azure"},
+		"google-workspace":            {"google", "drive", "docs", "sheets", "forms", "workspace"},
+		"atmos-stack-analyzer":        {"atmos", "stack", "environment"},
+	}
+
+	// Check each tool pattern
+	for tool, keywords := range toolPatterns {
+		for _, keyword := range keywords {
+			if strings.Contains(searchText, keyword) {
+				tools = append(tools, tool)
+				break
+			}
+		}
+	}
+
+	return tools
+}
+
+func formatContextAsMarkdown(context *EvidenceGenerationContext, task *domain.EvidenceTask, window string) string {
+	var md strings.Builder
+
+	md.WriteString(fmt.Sprintf("# Evidence Generation Context: %s\n\n", task.ReferenceID))
+
+	// Task Details
+	md.WriteString("## Task Details\n\n")
+	md.WriteString(fmt.Sprintf("- **Reference**: %s\n", task.ReferenceID))
+	md.WriteString(fmt.Sprintf("- **Name**: %s\n", task.Name))
+	md.WriteString(fmt.Sprintf("- **Framework**: %s\n", task.Framework))
+	md.WriteString(fmt.Sprintf("- **Priority**: %s\n", task.Priority))
+	md.WriteString(fmt.Sprintf("- **Collection Interval**: %s\n", task.CollectionInterval))
+	if task.NextDue != nil {
+		md.WriteString(fmt.Sprintf("- **Due Date**: %s\n", task.NextDue.Format("2006-01-02")))
+	}
+	md.WriteString("\n")
+
+	// Description
+	if task.Description != "" {
+		md.WriteString("## Description\n\n")
+		md.WriteString(task.Description)
+		md.WriteString("\n\n")
+	}
+
+	// Related Controls
+	if len(context.RelatedControls) > 0 {
+		md.WriteString("## Related Controls\n\n")
+		for _, control := range context.RelatedControls {
+			md.WriteString(fmt.Sprintf("- **%s**: %s\n", control.ReferenceID, control.Name))
+			if control.Description != "" {
+				md.WriteString(fmt.Sprintf("  %s\n", control.Description))
+			}
+		}
+		md.WriteString("\n")
+	} else if len(task.Controls) > 0 {
+		md.WriteString("## Related Controls\n\n")
+		for _, controlID := range task.Controls {
+			md.WriteString(fmt.Sprintf("- %s\n", controlID))
+		}
+		md.WriteString("\n")
+	}
+
+	// Applicable Tools
+	md.WriteString("## Applicable Tools\n\n")
+	if len(context.ApplicableTools) > 0 {
+		for i, tool := range context.ApplicableTools {
+			md.WriteString(fmt.Sprintf("%d. **%s**\n", i+1, tool))
+		}
+	} else {
+		md.WriteString("*No automated tools identified. This may require manual evidence collection.*\n")
+	}
+	md.WriteString("\n")
+
+	// Required Evidence
+	md.WriteString("## Required Evidence\n\n")
+	md.WriteString(fmt.Sprintf("- **Evidence Window**: %s\n", window))
+	md.WriteString("- **Format**: CSV, JSON, PDF, or Markdown\n")
+	md.WriteString("- **Purpose**: Demonstrate compliance with related controls\n")
+	md.WriteString("\n")
+
+	// Available Source Data
+	if len(context.SourceLocations) > 0 {
+		md.WriteString("## Available Source Data\n\n")
+		for source, location := range context.SourceLocations {
+			md.WriteString(fmt.Sprintf("- **%s**: %s\n", source, location))
+		}
+		md.WriteString("\n")
+	}
+
+	// Previous Evidence
+	if len(context.ExistingEvidence) > 0 {
+		md.WriteString("## Previous Evidence\n\n")
+		if len(context.PreviousWindows) > 0 {
+			md.WriteString(fmt.Sprintf("Found evidence in %d window(s):\n\n", len(context.PreviousWindows)))
+		}
+		for _, evidenceFile := range context.ExistingEvidence {
+			md.WriteString(fmt.Sprintf("- %s\n", evidenceFile))
+		}
+		md.WriteString("\n")
+	}
+
+	// Suggested Workflow
+	md.WriteString("## Suggested Workflow\n\n")
+	if len(context.ApplicableTools) > 0 {
+		for i, tool := range context.ApplicableTools {
+			md.WriteString(fmt.Sprintf("%d. Run: `grctool tool %s`\n", i+1, tool))
+		}
+		md.WriteString(fmt.Sprintf("%d. Synthesize results into evidence document\n", len(context.ApplicableTools)+1))
+		md.WriteString(fmt.Sprintf("%d. Save using: `grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.csv`\n",
+			len(context.ApplicableTools)+2, task.ReferenceID, window))
+	} else {
+		md.WriteString("1. Manually collect required evidence\n")
+		md.WriteString("2. Create evidence file (CSV, PDF, etc.)\n")
+		md.WriteString(fmt.Sprintf("3. Save using: `grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.pdf`\n",
+			task.ReferenceID, window))
+	}
+	md.WriteString("\n")
+
+	// Task URL
+	if task.TugboatURL != "" {
+		md.WriteString("## Additional Information\n\n")
+		md.WriteString(fmt.Sprintf("- **Tugboat Task**: %s\n", task.TugboatURL))
+		md.WriteString("\n")
+	}
+
+	return md.String()
+}
+
+func saveEvidenceContext(task *domain.EvidenceTask, window string, contextMarkdown string, dataDir string) (string, error) {
+	// Create evidence directory structure
+	evidenceDir := filepath.Join(dataDir, "evidence")
+	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
+	windowDir := filepath.Join(evidenceDir, taskDirName, window)
+	contextDir := filepath.Join(windowDir, ".context")
+
+	// Create .context directory
+	if err := os.MkdirAll(contextDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create context directory: %w", err)
+	}
+
+	// Write context file
+	contextPath := filepath.Join(contextDir, "generation-context.md")
+	if err := os.WriteFile(contextPath, []byte(contextMarkdown), 0644); err != nil {
+		return "", fmt.Errorf("failed to write context file: %w", err)
+	}
+
+	return contextPath, nil
+}
+
+func sanitizeFilename(name string) string {
+	// Replace problematic characters with underscores
+	replacer := strings.NewReplacer(
+		"/", "_",
+		"\\", "_",
+		":", "_",
+		"*", "_",
+		"?", "_",
+		"\"", "_",
+		"<", "_",
+		">", "_",
+		"|", "_",
+	)
+	return replacer.Replace(name)
 }

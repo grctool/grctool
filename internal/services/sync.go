@@ -18,6 +18,8 @@ package services
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -28,9 +30,11 @@ import (
 	"github.com/grctool/grctool/internal/formatters"
 	"github.com/grctool/grctool/internal/interpolation"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/registry"
 	"github.com/grctool/grctool/internal/storage"
 	"github.com/grctool/grctool/internal/tugboat"
+	tugboatModels "github.com/grctool/grctool/internal/tugboat/models"
 )
 
 // SyncService handles synchronization between Tugboat Logic API and local storage
@@ -85,11 +89,12 @@ func NewSyncService(tugboatClient *tugboat.Client, storage *storage.Storage, cfg
 
 // SyncOptions represents options for synchronization
 type SyncOptions struct {
-	OrgID     string `json:"org_id"`
-	Framework string `json:"framework,omitempty"`
-	Policies  bool   `json:"policies"`
-	Controls  bool   `json:"controls"`
-	Evidence  bool   `json:"evidence"`
+	OrgID       string `json:"org_id"`
+	Framework   string `json:"framework,omitempty"`
+	Policies    bool   `json:"policies"`
+	Controls    bool   `json:"controls"`
+	Evidence    bool   `json:"evidence"`
+	Submissions bool   `json:"submissions"`
 }
 
 // SyncResult represents the result of a synchronization operation
@@ -97,6 +102,7 @@ type SyncResult struct {
 	Policies      SyncStats     `json:"policies"`
 	Controls      SyncStats     `json:"controls"`
 	EvidenceTasks SyncStats     `json:"evidence_tasks"`
+	Submissions   SyncStats     `json:"submissions"`
 	Duration      time.Duration `json:"duration"`
 	Errors        []string      `json:"errors,omitempty"`
 	StartTime     time.Time     `json:"start_time"`
@@ -105,11 +111,12 @@ type SyncResult struct {
 
 // SyncStats represents statistics for a sync operation
 type SyncStats struct {
-	Total    int `json:"total"`
-	Synced   int `json:"synced"`
-	Detailed int `json:"detailed"`
-	Errors   int `json:"errors"`
-	Skipped  int `json:"skipped"`
+	Total       int `json:"total"`
+	Synced      int `json:"synced"`
+	Detailed    int `json:"detailed"`
+	Errors      int `json:"errors"`
+	Skipped     int `json:"skipped"`
+	Downloaded  int `json:"downloaded"`  // For submissions: number of files downloaded
 }
 
 // SyncAll performs a complete synchronization of all data types
@@ -137,6 +144,13 @@ func (s *SyncService) SyncAll(ctx context.Context, opts SyncOptions) (*SyncResul
 	if opts.Evidence {
 		if err := s.syncEvidenceTasks(ctx, opts, &result.EvidenceTasks); err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Evidence task sync failed: %v", err))
+		}
+	}
+
+	// Sync submissions if requested
+	if opts.Submissions {
+		if err := s.syncSubmissions(ctx, opts, &result.Submissions); err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Submission sync failed: %v", err))
 		}
 	}
 
@@ -317,6 +331,177 @@ func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, s
 	// Save the updated registry
 	if err := s.evidenceTaskRegistry.SaveRegistry(); err != nil {
 		s.logger.Warn("Failed to save evidence task registry", logger.Error(err))
+	}
+
+	return nil
+}
+
+func (s *SyncService) syncSubmissions(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
+	// Get all evidence tasks first (we need their IDs to fetch submissions)
+	apiTasks, err := s.tugboatClient.GetAllEvidenceTasks(ctx, opts.OrgID, opts.Framework)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence tasks for submission sync: %w", err)
+	}
+
+	// Track total attachments across all tasks
+	totalAttachments := 0
+
+	// For each evidence task, get its submitted attachments
+	for _, apiTask := range apiTasks {
+		// Get all attachments for this task
+		attachments, err := s.tugboatClient.GetEvidenceAttachmentsByTask(ctx, apiTask.ID)
+		if err != nil {
+			s.logger.Warn("Failed to get attachments for evidence task",
+				logger.Int("task_id", apiTask.ID),
+				logger.Error(err))
+			stats.Errors++
+			continue
+		}
+
+		totalAttachments += len(attachments)
+
+		// Group attachments by collection date (window) and save
+		if err := s.saveAttachmentsForTask(ctx, apiTask.ID, attachments, stats); err != nil {
+			s.logger.Warn("Failed to save attachments for evidence task",
+				logger.Int("task_id", apiTask.ID),
+				logger.Error(err))
+			stats.Errors++
+			continue
+		}
+
+		stats.Synced++
+	}
+
+	stats.Total = totalAttachments
+	stats.Detailed = totalAttachments - stats.Errors
+
+	return nil
+}
+
+// saveAttachmentsForTask groups and saves attachments for a specific task
+// It also downloads the actual files for file-type attachments
+func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, attachments []tugboatModels.EvidenceAttachment, stats *SyncStats) error {
+	if len(attachments) == 0 {
+		return nil // No attachments to save
+	}
+
+	// Get the evidence task to find its reference ID (ET-0001)
+	task, err := s.storage.GetEvidenceTask(strconv.Itoa(taskID))
+	if err != nil {
+		// Task not found in storage - might not have been synced yet
+		s.logger.Warn("Evidence task not found in storage, skipping attachment save",
+			logger.Int("task_id", taskID))
+		return nil
+	}
+
+	if task.ReferenceID == "" {
+		s.logger.Warn("Evidence task has no reference ID, skipping attachment save",
+			logger.Int("task_id", taskID))
+		return nil
+	}
+
+	// Group attachments by collection window
+	// For now, we'll use the collection date to determine the window
+	// TODO: Implement proper window detection based on collection_interval
+	windowMap := make(map[string][]tugboatModels.EvidenceAttachment)
+	for _, attachment := range attachments {
+		// Extract year-quarter from collection date (YYYY-MM-DD -> YYYY-Qn)
+		window := s.getWindowFromDate(attachment.Collected)
+		windowMap[window] = append(windowMap[window], attachment)
+	}
+
+	// Save attachments for each window
+	for window, windowAttachments := range windowMap {
+		// Download actual files for file-type attachments
+		evidenceDir := filepath.Join(s.baseDir, "evidence", task.ReferenceID, window)
+		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
+			s.logger.Warn("Failed to create evidence directory",
+				logger.String("task_ref", task.ReferenceID),
+				logger.String("window", window),
+				logger.Error(err))
+			stats.Errors++
+			continue
+		}
+
+		for _, att := range windowAttachments {
+			if att.Type == "file" && att.AttachmentID != nil && *att.AttachmentID > 0 {
+				// Download the file
+				filename := att.Attachment.OriginalFilename
+				if filename == "" {
+					filename = fmt.Sprintf("attachment_%d", att.ID)
+				}
+				destPath := filepath.Join(evidenceDir, filename)
+
+				s.logger.Debug("Downloading attachment file",
+					logger.Int("attachment_id", att.ID),
+					logger.String("filename", filename),
+					logger.String("dest", destPath))
+
+				if err := s.tugboatClient.DownloadAttachment(ctx, att.ID, destPath); err != nil {
+					s.logger.Warn("Failed to download attachment",
+						logger.Int("attachment_id", att.ID),
+						logger.String("filename", filename),
+						logger.Error(err))
+					stats.Errors++
+					continue
+				}
+
+				stats.Downloaded++
+			} else if att.Type == "url" {
+				// Save URL to a text file
+				filename := fmt.Sprintf("url_reference_%d.txt", att.ID)
+				destPath := filepath.Join(evidenceDir, filename)
+				urlContent := fmt.Sprintf("URL: %s\nNotes: %s\nCollected: %s\n", att.URL, att.Notes, att.Collected)
+				if err := os.WriteFile(destPath, []byte(urlContent), 0644); err != nil {
+					s.logger.Warn("Failed to save URL reference",
+						logger.Int("attachment_id", att.ID),
+						logger.Error(err))
+					stats.Errors++
+				} else {
+					stats.Downloaded++
+				}
+			}
+		}
+
+		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskID, window, windowAttachments)
+		if err := s.storage.SaveSubmission(submission); err != nil {
+			s.logger.Warn("Failed to save submission for window",
+				logger.String("task_ref", task.ReferenceID),
+				logger.String("window", window),
+				logger.Error(err))
+			continue
+		}
+
+		// Also save to submission history
+		history, err := s.storage.LoadSubmissionHistory(task.ReferenceID, window)
+		if err != nil {
+			// History doesn't exist yet, create new one
+			history = &models.SubmissionHistory{
+				TaskRef: task.ReferenceID,
+				Window:  window,
+				Entries: []models.SubmissionHistoryEntry{},
+			}
+		}
+
+		// Add entries from attachments (one per attachment)
+		for _, att := range windowAttachments {
+			entry := models.SubmissionHistoryEntry{
+				SubmissionID: strconv.Itoa(att.ID),
+				SubmittedAt:  s.parseTime(att.Created),
+				SubmittedBy:  s.getDisplayName(att.Owner),
+				Status:       "accepted", // Tugboat attachments are already accepted
+				FileCount:    1,
+				Notes:        att.Notes,
+			}
+			history.Entries = append(history.Entries, entry)
+		}
+
+		if err := s.storage.SaveSubmissionHistory(history); err != nil {
+			s.logger.Warn("Failed to save submission history",
+				logger.String("task_ref", task.ReferenceID),
+				logger.String("window", window),
+				logger.Error(err))
+		}
 	}
 
 	return nil
@@ -713,4 +898,102 @@ func (s *SyncService) generateEvidenceTaskDocument(task *domain.EvidenceTask) er
 
 	// Use document service to write the file
 	return s.documentService.GenerateDocument(EvidenceTaskDocument, filename, documentContent)
+}
+
+// Helper methods for submission sync
+
+// getWindowFromDate converts a date string (YYYY-MM-DD) to a window identifier (YYYY-Qn)
+func (s *SyncService) getWindowFromDate(dateStr string) string {
+	// Parse date
+	t, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		// Default to current quarter if parsing fails
+		t = time.Now()
+	}
+
+	year := t.Year()
+	month := t.Month()
+
+	// Determine quarter based on month
+	var quarter int
+	switch {
+	case month >= 1 && month <= 3:
+		quarter = 1
+	case month >= 4 && month <= 6:
+		quarter = 2
+	case month >= 7 && month <= 9:
+		quarter = 3
+	default:
+		quarter = 4
+	}
+
+	return fmt.Sprintf("%d-Q%d", year, quarter)
+}
+
+// convertAttachmentsToSubmission converts Tugboat attachments to EvidenceSubmission model
+func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskID int, window string, attachments []tugboatModels.EvidenceAttachment) *models.EvidenceSubmission {
+	now := time.Now()
+	submission := &models.EvidenceSubmission{
+		TaskID:             taskID,
+		TaskRef:            taskRef,
+		Window:             window,
+		Status:             "accepted", // Tugboat attachments are already accepted
+		CreatedAt:          now,
+		SubmittedAt:        &now,
+		AcceptedAt:         &now,
+		EvidenceFiles:      []models.EvidenceFileRef{},
+		TotalFileCount:     len(attachments),
+		ValidationStatus:   "passed",
+		CompletenessScore:  1.0,
+	}
+
+	// Convert attachments to evidence file refs
+	for _, att := range attachments {
+		fileRef := models.EvidenceFileRef{
+			Title:  att.Notes,
+			Source: att.IntegrationType,
+		}
+
+		// Handle different attachment types
+		if att.Type == "file" && att.Attachment != nil {
+			fileRef.Filename = att.Attachment.OriginalFilename
+			fileRef.RelativePath = fmt.Sprintf("evidence/%s/%s/%s", taskRef, window, att.Attachment.OriginalFilename)
+		} else if att.Type == "url" {
+			fileRef.Filename = "url_reference.txt"
+			fileRef.Title = att.URL
+			fileRef.RelativePath = fmt.Sprintf("evidence/%s/%s/url_%d.txt", taskRef, window, att.ID)
+		}
+
+		submission.EvidenceFiles = append(submission.EvidenceFiles, fileRef)
+	}
+
+	// Set submitted by from first attachment owner
+	if len(attachments) > 0 && attachments[0].Owner != nil {
+		submission.SubmittedBy = s.getDisplayName(attachments[0].Owner)
+	}
+
+	return submission
+}
+
+// parseTime parses ISO 8601 timestamp
+func (s *SyncService) parseTime(timeStr string) time.Time {
+	t, err := time.Parse(time.RFC3339, timeStr)
+	if err != nil {
+		return time.Now()
+	}
+	return t
+}
+
+// getDisplayName extracts display name from organization member
+func (s *SyncService) getDisplayName(member *tugboatModels.OrganizationMember) string {
+	if member == nil {
+		return "Unknown"
+	}
+	if member.DisplayName != "" {
+		return member.DisplayName
+	}
+	if member.Email != "" {
+		return member.Email
+	}
+	return fmt.Sprintf("%s %s", member.FirstName, member.LastName)
 }

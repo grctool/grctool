@@ -170,11 +170,12 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	// Prepare sync options
 	syncOptions := services.SyncOptions{
-		OrgID:     cfg.Tugboat.OrgID,
-		Framework: "", // Sync all frameworks
-		Policies:  syncAll || policies,
-		Controls:  syncAll || controls,
-		Evidence:  syncAll || evidence,
+		OrgID:       cfg.Tugboat.OrgID,
+		Framework:   "", // Sync all frameworks
+		Policies:    syncAll || policies,
+		Controls:    syncAll || controls,
+		Evidence:    syncAll || evidence,
+		Submissions: syncAll, // Always sync submissions when doing a full sync
 	}
 
 	if dryRun {
@@ -187,6 +188,9 @@ func runSync(cmd *cobra.Command, args []string) error {
 		}
 		if syncOptions.Evidence {
 			cmd.Println("  ✓ Evidence tasks")
+		}
+		if syncOptions.Submissions {
+			cmd.Println("  ✓ Submissions")
 		}
 		if procedures {
 			cmd.Println("  ⚠️  Procedures (not yet implemented)")
@@ -218,6 +222,11 @@ func runSync(cmd *cobra.Command, args []string) error {
 	if syncOptions.Evidence {
 		cmd.Printf("  📝 Evidence Tasks: %d total, %d synced, %d detailed, %d errors\n",
 			result.EvidenceTasks.Total, result.EvidenceTasks.Synced, result.EvidenceTasks.Detailed, result.EvidenceTasks.Errors)
+	}
+
+	if syncOptions.Submissions {
+		cmd.Printf("  📎 Submissions: %d total, %d tasks synced, %d files downloaded, %d errors\n",
+			result.Submissions.Total, result.Submissions.Synced, result.Submissions.Downloaded, result.Submissions.Errors)
 	}
 
 	if len(result.Errors) > 0 {

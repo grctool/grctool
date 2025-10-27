@@ -18,6 +18,8 @@
 package tools
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -413,4 +415,130 @@ func TestSanitizeTaskName(t *testing.T) {
 			assert.NotEqual(t, "_", got, "Sanitized name should not be just underscores")
 		})
 	}
+}
+
+func TestCalculateFileChecksum(t *testing.T) {
+	tests := map[string]struct {
+		content  string
+		expected string // Expected checksum (sha256: + hex)
+	}{
+		"hello world": {
+			content:  "Hello, World!",
+			expected: "sha256:dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f",
+		},
+		"empty file": {
+			content:  "",
+			expected: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		},
+		"single line": {
+			content:  "test",
+			expected: "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+		},
+		"multiline": {
+			content:  "line1\nline2\nline3",
+			expected: "sha256:6bb6a5ad9b9c43a7cb535e636578716b64ac42edea814a4cad102ba404946837",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create a temporary test file
+			tempDir := t.TempDir()
+			testFile := filepath.Join(tempDir, "test.txt")
+
+			err := os.WriteFile(testFile, []byte(tt.content), 0644)
+			if err != nil {
+				t.Fatalf("Failed to create test file: %v", err)
+			}
+
+			// Calculate checksum
+			checksum, err := calculateFileChecksum(testFile)
+			if err != nil {
+				t.Fatalf("calculateFileChecksum failed: %v", err)
+			}
+
+			// Verify checksum matches expected value
+			assert.Equal(t, tt.expected, checksum)
+
+			// Verify checksum format
+			assert.NotEmpty(t, checksum, "Checksum should not be empty")
+			assert.True(t, len(checksum) > 7, "Checksum should have content after prefix")
+			assert.Equal(t, "sha256:", checksum[:7], "Checksum should start with 'sha256:'")
+
+			// Verify checksum length (sha256: + 64 hex chars)
+			expectedLength := len("sha256:") + 64
+			assert.Equal(t, expectedLength, len(checksum), "Checksum should be exactly 71 characters")
+		})
+	}
+}
+
+func TestCalculateFileChecksumConsistency(t *testing.T) {
+	// Create a temporary test file
+	tempDir := t.TempDir()
+	testFile := filepath.Join(tempDir, "test.txt")
+
+	testContent := "Consistency test content"
+	err := os.WriteFile(testFile, []byte(testContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Calculate checksum multiple times
+	checksum1, err := calculateFileChecksum(testFile)
+	if err != nil {
+		t.Fatalf("calculateFileChecksum failed on first call: %v", err)
+	}
+
+	checksum2, err := calculateFileChecksum(testFile)
+	if err != nil {
+		t.Fatalf("calculateFileChecksum failed on second call: %v", err)
+	}
+
+	checksum3, err := calculateFileChecksum(testFile)
+	if err != nil {
+		t.Fatalf("calculateFileChecksum failed on third call: %v", err)
+	}
+
+	// Verify all checksums are identical
+	assert.Equal(t, checksum1, checksum2, "Checksums should match for same file")
+	assert.Equal(t, checksum2, checksum3, "Checksums should match for same file")
+	assert.Equal(t, checksum1, checksum3, "Checksums should match for same file")
+}
+
+func TestCalculateFileChecksumNonexistentFile(t *testing.T) {
+	// Test with a nonexistent file
+	_, err := calculateFileChecksum("/nonexistent/file/path/that/does/not/exist.txt")
+	assert.Error(t, err, "Expected error for nonexistent file")
+	assert.Contains(t, err.Error(), "reading file for checksum", "Error should mention reading file")
+}
+
+func TestCalculateFileChecksumUniqueness(t *testing.T) {
+	// Create two temporary files with different content
+	tempDir := t.TempDir()
+	testFile1 := filepath.Join(tempDir, "test1.txt")
+	testFile2 := filepath.Join(tempDir, "test2.txt")
+
+	err := os.WriteFile(testFile1, []byte("content1"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file 1: %v", err)
+	}
+
+	err = os.WriteFile(testFile2, []byte("content2"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file 2: %v", err)
+	}
+
+	// Calculate checksums
+	checksum1, err := calculateFileChecksum(testFile1)
+	if err != nil {
+		t.Fatalf("calculateFileChecksum failed for file 1: %v", err)
+	}
+
+	checksum2, err := calculateFileChecksum(testFile2)
+	if err != nil {
+		t.Fatalf("calculateFileChecksum failed for file 2: %v", err)
+	}
+
+	// Verify checksums are different
+	assert.NotEqual(t, checksum1, checksum2, "Different file contents should produce different checksums")
 }
