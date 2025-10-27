@@ -18,12 +18,14 @@ package config
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents the application configuration
@@ -369,9 +371,86 @@ func (ic *InterpolationConfig) flattenVariables(prefix string, variables map[str
 	}
 }
 
+// validateConfigStructure checks for unknown or misplaced configuration keys
+func validateConfigStructure() {
+	configFile := viper.ConfigFileUsed()
+	if configFile == "" {
+		return // No config file, nothing to validate
+	}
+
+	// Read the raw YAML to detect unknown keys
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		return // Can't read file, skip validation
+	}
+
+	var rawConfig map[string]interface{}
+	if err := yaml.Unmarshal(data, &rawConfig); err != nil {
+		return // Invalid YAML, will be caught by viper
+	}
+
+	// Known top-level keys
+	knownKeys := map[string]bool{
+		"tugboat":       true,
+		"evidence":      true,
+		"storage":       true,
+		"logging":       true,
+		"interpolation": true,
+		"auth":          true,
+	}
+
+	// Check top-level keys
+	for key := range rawConfig {
+		if !knownKeys[key] {
+			fmt.Fprintf(os.Stderr, "⚠️  Warning: Unknown config key '%s' in %s\n", key, configFile)
+		}
+	}
+
+	// Check evidence structure for common mistakes
+	if evidence, ok := rawConfig["evidence"].(map[string]interface{}); ok {
+		// Check if user put terraform directly under evidence instead of evidence.tools.terraform
+		if _, hasTerraform := evidence["terraform"]; hasTerraform {
+			if _, hasTools := evidence["tools"]; !hasTools {
+				fmt.Fprintf(os.Stderr, "⚠️  Warning: Found 'evidence.terraform' but expected 'evidence.tools.terraform'\n")
+				fmt.Fprintf(os.Stderr, "   The Terraform tool configuration should be under 'evidence.tools.terraform'\n")
+				fmt.Fprintf(os.Stderr, "   See .grctool.example.yaml for correct structure\n")
+			}
+		}
+
+		// Check if tools section exists and validate its structure
+		if tools, ok := evidence["tools"].(map[string]interface{}); ok {
+			knownTools := map[string]bool{
+				"terraform":   true,
+				"github":      true,
+				"google_docs": true,
+			}
+			for tool := range tools {
+				if !knownTools[tool] {
+					fmt.Fprintf(os.Stderr, "⚠️  Warning: Unknown tool '%s' under evidence.tools\n", tool)
+				}
+			}
+
+			// Validate terraform tool config
+			if terraform, ok := tools["terraform"].(map[string]interface{}); ok {
+				if _, hasEnabled := terraform["enabled"]; !hasEnabled {
+					fmt.Fprintf(os.Stderr, "⚠️  Warning: Terraform tool is missing 'enabled' field\n")
+					fmt.Fprintf(os.Stderr, "   Add 'evidence.tools.terraform.enabled: true' to use Terraform tools\n")
+				}
+				if _, hasScanPaths := terraform["scan_paths"]; !hasScanPaths {
+					fmt.Fprintf(os.Stderr, "⚠️  Warning: Terraform tool is missing 'scan_paths'\n")
+					fmt.Fprintf(os.Stderr, "   Add paths to scan, e.g. 'scan_paths: [\"terraform/**/*.tf\"]'\n")
+				}
+			}
+		}
+	}
+}
+
 // Load loads the configuration from viper
 func Load() (*Config, error) {
 	var config Config
+
+	// Validate structure before unmarshaling
+	validateConfigStructure()
 
 	if err := viper.Unmarshal(&config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
@@ -439,6 +518,16 @@ func processEnvVars(config *Config) error {
 		}
 	}
 
+	// Populate GitHub token from gh CLI if not configured
+	// This ensures all GitHub tools have access to the token
+	if config.Auth.GitHub.Token == "" && config.Evidence.Tools.GitHub.APIToken == "" {
+		if token := getGitHubTokenFromCLI(); token != "" {
+			// Populate both locations for backwards compatibility
+			config.Auth.GitHub.Token = token
+			config.Evidence.Tools.GitHub.APIToken = token
+		}
+	}
+
 	// Process Google Docs credentials file (optional)
 	if strings.HasPrefix(config.Evidence.Tools.GoogleDocs.CredentialsFile, "${") && strings.HasSuffix(config.Evidence.Tools.GoogleDocs.CredentialsFile, "}") {
 		envVar := strings.TrimSuffix(strings.TrimPrefix(config.Evidence.Tools.GoogleDocs.CredentialsFile, "${"), "}")
@@ -486,6 +575,18 @@ func processEnvVars(config *Config) error {
 	}
 
 	return nil
+}
+
+// getGitHubTokenFromCLI attempts to retrieve a GitHub token from the gh CLI
+// Returns an empty string if gh CLI is not available or not authenticated
+// This is a helper function to centralize GitHub authentication
+func getGitHubTokenFromCLI() string {
+	cmd := exec.Command("gh", "auth", "token")
+	output, err := cmd.Output()
+	if err != nil {
+		return "" // gh CLI not available or not authenticated
+	}
+	return strings.TrimSpace(string(output))
 }
 
 // resolveConfigPaths resolves relative paths in config relative to config file location
@@ -631,14 +732,13 @@ func (c *Config) Validate() error {
 
 	// GitHub tool validation
 	if c.Evidence.Tools.GitHub.Enabled {
-		if c.Evidence.Tools.GitHub.APIToken == "" {
-			return fmt.Errorf("evidence.tools.github.api_token is required when GitHub tool is enabled")
-		}
-		if c.Evidence.Tools.GitHub.Repository == "" {
-			return fmt.Errorf("evidence.tools.github.repository is required when GitHub tool is enabled")
-		}
+		// API token is no longer required - gh CLI can provide it
+		// Just validate repository is set (can be empty if provided via --repository flag)
 		if c.Evidence.Tools.GitHub.MaxIssues <= 0 {
 			c.Evidence.Tools.GitHub.MaxIssues = 100 // default
+		}
+		if c.Evidence.Tools.GitHub.RateLimit <= 0 {
+			c.Evidence.Tools.GitHub.RateLimit = 30 // default - GitHub Search API limit
 		}
 	}
 

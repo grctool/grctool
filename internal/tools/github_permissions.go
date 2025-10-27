@@ -42,7 +42,7 @@ func NewGitHubPermissionsTool(cfg *config.Config, log logger.Logger) Tool {
 	// Set up cache directory
 	cacheDir := filepath.Join(cfg.Storage.DataDir, ".cache", "github_permissions")
 
-	// Create auth provider - use GitHub token from auth config, fallback to tool config
+	// Create auth provider - token is populated by config.Load() from multiple sources
 	githubToken := cfg.Auth.GitHub.Token
 	if githubToken == "" {
 		githubToken = cfg.Evidence.Tools.GitHub.APIToken

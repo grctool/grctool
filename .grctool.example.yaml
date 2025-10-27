@@ -90,11 +90,18 @@ evidence:
     
     github:
       enabled: false  # Set to true and configure if using GitHub integration
-      # api_token: "${GITHUB_TOKEN}"
-      # repository: "your-org/your-repo"
+      # Authentication options (in order of precedence):
+      # 1. api_token in config: "${GITHUB_TOKEN}"
+      # 2. gh CLI authentication (automatic fallback): Run 'gh auth login' first
+      # 3. GITHUB_TOKEN environment variable
+      #
+      # No token is required in config if you have gh CLI authenticated!
+      # api_token: "${GITHUB_TOKEN}"  # Optional if using gh CLI
+      # repository: "your-org/your-repo"  # Can also be provided via --repository flag
       include_workflows: true
       include_issues: false
       max_issues: 100
+      rate_limit: 30  # GitHub Search API requests per minute (default: 30)
     
     google_docs:
       enabled: false  # Set to true and configure if using Google Docs integration

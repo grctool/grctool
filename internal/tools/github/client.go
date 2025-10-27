@@ -72,7 +72,10 @@ func NewGitHubClient(cfg *config.Config, log logger.Logger) *GitHubClient {
 	// Set up cache directory
 	cacheDir := filepath.Join(cfg.Storage.DataDir, "github_cache")
 
-	// Create auth provider
+	// Create auth provider - token is populated by config.Load() from multiple sources:
+	// 1. cfg.Auth.GitHub.Token
+	// 2. cfg.Evidence.Tools.GitHub.APIToken
+	// 3. gh CLI (automatically via config loading)
 	githubToken := cfg.Auth.GitHub.Token
 	if githubToken == "" {
 		githubToken = cfg.Evidence.Tools.GitHub.APIToken
@@ -81,8 +84,10 @@ func NewGitHubClient(cfg *config.Config, log logger.Logger) *GitHubClient {
 	var authProvider auth.AuthProvider
 	if githubToken != "" {
 		authProvider = auth.NewGitHubAuthProvider(githubToken, cfg.Auth.CacheDir, log)
+		log.Debug("GitHub auth provider initialized with token")
 	} else {
 		authProvider = auth.NewGitHubAuthProvider("", cfg.Auth.CacheDir, log)
+		log.Debug("GitHub auth provider initialized without token - gh CLI may be needed")
 	}
 
 	client := &GitHubClient{
