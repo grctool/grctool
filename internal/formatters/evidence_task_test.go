@@ -307,10 +307,6 @@ func TestEvidenceTaskFormatter_ToDocumentMarkdown(t *testing.T) {
 				if !strings.Contains(markdown, "| **Task ID** | 327992 |") {
 					t.Error("Missing task ID in metadata")
 				}
-				// Check footer
-				if !strings.Contains(markdown, "*Document generated on") {
-					t.Error("Missing document footer")
-				}
 			},
 		},
 		{

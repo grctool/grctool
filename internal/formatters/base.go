@@ -258,8 +258,9 @@ func (bf *BaseFormatter) SanitizeFilename(name string) string {
 }
 
 // GenerateDocumentFooter creates a standard document footer
+// Returns empty string to avoid git noise from timestamps
 func (bf *BaseFormatter) GenerateDocumentFooter() string {
-	return fmt.Sprintf("\n---\n\n*Document generated on %s by GRC Tool*\n", time.Now().Format("2006-01-02 15:04:05 MST"))
+	return ""
 }
 
 // FormatMetadataTable creates a markdown table for metadata
