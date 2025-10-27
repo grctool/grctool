@@ -21,7 +21,9 @@ import (
 	"os"
 	"strings"
 
+	internalConfig "github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/services/config"
 	"github.com/spf13/cobra"
 )
@@ -104,6 +106,25 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 		} else {
 			cmd.Printf("CLAUDE.md created at: %s\n", claudeMdOutput)
 		}
+
+		// Generate agent documentation
+		cfg, err := internalConfig.Load()
+		if err != nil {
+			// If config load fails, use a minimal default config for doc generation
+			cmd.Printf("Warning: failed to load config: %v\n", err)
+			cmd.Printf("Generating docs with default configuration...\n")
+			cfg = &internalConfig.Config{
+				Storage: internalConfig.StorageConfig{
+					DataDir: "./data",
+				},
+			}
+		}
+
+		if err := services.GenerateAgentDocs(cfg, version); err != nil {
+			cmd.Printf("Warning: failed to generate agent documentation: %v\n", err)
+		} else {
+			cmd.Printf("Agent documentation generated at: .grctool/docs/\n")
+		}
 	}
 
 	// Print next steps
@@ -114,6 +135,7 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 	cmd.Println("4. Run 'grctool config validate' to verify your configuration")
 	if !skipClaudeMd {
 		cmd.Println("\nCLAUDE.md has been generated with AI assistant instructions.")
+		cmd.Println("Agent documentation generated in .grctool/docs/ (use 'grctool agent-context' to view)")
 		cmd.Println("Run 'grctool init' anytime to regenerate with updated configuration.")
 	}
 
