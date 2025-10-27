@@ -1,0 +1,291 @@
+# Evidence Directory Structure
+
+> Complete reference for evidence directory layout and file organization
+
+---
+
+**Generated**: 2025-10-27 16:56:21 EDT  
+**GRCTool Version**: dev  
+**Documentation Version**: dev  
+
+---
+
+## Overview
+
+GRCTool organizes all data in a structured directory hierarchy. Understanding this layout is critical for autonomous evidence generation and navigation.
+
+## Root Data Directory
+
+**Base Path**: `/Users/erik/Projects/grctool` (configurable in `.grctool.yaml`)
+
+```
+/Users/erik/Projects/grctool/
+├── docs/                  # Synced data from Tugboat Logic
+│   ├── policies/          # Policy documents and metadata
+│   ├── controls/          # Security controls and requirements
+│   └── evidence_tasks/    # Evidence collection task definitions
+├── evidence/              # Generated evidence files
+│   └── ET-XXXX_TaskName/  # One directory per evidence task
+│       └── {window}/      # One directory per collection window
+└── .cache/                # Performance cache (safe to delete)
+```
+
+## Evidence Task Directory Structure
+
+Each evidence task has its own directory under `evidence/`, organized by collection windows.
+
+### Directory Naming
+
+Evidence task directories follow this pattern:
+```
+ET-{ref}_{TaskName}/
+```
+
+Examples:
+- `ET-0001_GitHub_Access_Controls/`
+- `ET-0047_Repository_Permissions/`
+- `ET-0104_Infrastructure_Security/`
+
+### Window-Based Organization
+
+Evidence is organized into collection windows based on the task's collection interval:
+
+| Interval | Window Format | Examples |
+|----------|---------------|----------|
+| Annual | `YYYY` | `2025`, `2026` |
+| Quarterly | `YYYY-QN` | `2025-Q4`, `2026-Q1` |
+| Monthly | `YYYY-MM` | `2025-10`, `2025-11` |
+| Semi-annual | `YYYY-HN` | `2025-H2`, `2026-H1` |
+
+### Complete Evidence Task Directory Layout
+
+```
+evidence/ET-0001_GitHub_Access/
+├── 2025-Q4/                           # Current collection window
+│   ├── 01_github_permissions.csv      # Evidence file 1
+│   ├── 02_team_memberships.json       # Evidence file 2
+│   ├── 03_access_summary.md           # Evidence file 3
+│   │
+│   ├── .context/                      # Generation context (created by 'grctool evidence generate')
+│   │   └── generation-context.md      # Task details, applicable tools, existing evidence
+│   │
+│   ├── .generation/                   # Generation metadata (created by 'grctool tool evidence-writer')
+│   │   └── metadata.yaml              # How evidence was generated, checksums, timestamps
+│   │
+│   └── .submission/                   # Submission tracking (created by 'grctool evidence submit')
+│       └── submission.yaml            # Submission status, Tugboat IDs, timestamps
+│
+├── 2025-Q3/                           # Previous window (reference)
+│   ├── 01_github_permissions.csv
+│   ├── .generation/
+│   │   └── metadata.yaml
+│   └── .submission/
+│       └── submission.yaml
+│
+└── collection_plan.md                 # Overall collection plan (deprecated)
+```
+
+## Special Directories
+
+### `.context/` Directory
+
+**Purpose**: Contains context for Claude Code assisted evidence generation
+
+**Created by**: `grctool evidence generate ET-XXXX --window {window}`
+
+**Contents**:
+- `generation-context.md` - Comprehensive context document including:
+  - Task details and requirements
+  - Applicable tools auto-detected from task description
+  - Related controls and policies
+  - Existing evidence from previous windows
+  - Source locations from config
+  - Next steps for evidence generation
+
+### `.generation/` Directory
+
+**Purpose**: Tracks how evidence was generated
+
+**Created by**: `grctool tool evidence-writer` (automatic)
+
+**Contents**:
+- `metadata.yaml` - Generation metadata:
+  ```yaml
+  generated_at: 2025-10-27T10:30:00Z
+  generated_by: claude-code-assisted
+  generation_method: tool_coordination
+  task_id: 327992
+  task_ref: ET-0001
+  window: 2025-Q4
+  tools_used: [github-permissions]
+  files_generated:
+    - path: 01_github_permissions.csv
+      checksum: sha256:abc123...
+      size_bytes: 15420
+      generated_at: 2025-10-27T10:30:00Z
+  status: generated
+  ```
+
+**Generation Methods**:
+- `claude-code-assisted` - Generated with Claude Code assistance
+- `tool_coordination` - Multiple tools orchestrated together
+- `grctool-cli` - Direct CLI tool execution
+- `manual` - Manually created/uploaded file
+
+### `.submission/` Directory
+
+**Purpose**: Tracks submission to Tugboat Logic
+
+**Created by**: `grctool evidence submit ET-XXXX --window {window}`
+
+**Contents**:
+- `submission.yaml` - Submission tracking:
+  ```yaml
+  submitted_at: 2025-10-27T14:00:00Z
+  submission_id: sub_abc123
+  submission_status: submitted
+  files_submitted:
+    - 01_github_permissions.csv
+    - 02_team_memberships.json
+  tugboat_response:
+    status: accepted
+    message: Evidence received successfully
+  ```
+
+**Submission Statuses**:
+- `draft` - Evidence prepared but not submitted
+- `validated` - Evidence validated and ready
+- `submitted` - Sent to Tugboat Logic
+- `accepted` - Accepted by auditors
+- `rejected` - Rejected, needs rework
+
+## File Naming Conventions
+
+### Evidence Files
+
+Evidence files are automatically numbered with zero-padded prefixes:
+
+```
+01_descriptive_name.csv
+02_another_file.json
+03_summary_report.md
+```
+
+**Naming Guidelines**:
+- Use lowercase with underscores
+- Be descriptive but concise
+- Include the tool name or data type
+- Use appropriate file extensions
+
+**Supported File Types**:
+- **Data**: `.csv`, `.json`, `.yaml`, `.txt`
+- **Documents**: `.md`, `.pdf`, `.doc`, `.docx`
+- **Spreadsheets**: `.xls`, `.xlsx`, `.ods`
+- **Images**: `.png`, `.jpg`, `.jpeg`, `.gif`
+
+## Synced Data Structure
+
+### `docs/policies/`
+
+Contains policy documents synced from Tugboat Logic:
+```
+docs/policies/
+├── POL-0001_Information_Security_Policy.json
+├── POL-0001_Information_Security_Policy.md
+├── POL-0002_Access_Control_Policy.json
+└── POL-0002_Access_Control_Policy.md
+```
+
+**File Formats**:
+- `.json` - Structured metadata (ID, status, frameworks)
+- `.md` - Human-readable policy content
+
+### `docs/controls/`
+
+Contains security controls synced from Tugboat Logic:
+```
+docs/controls/
+├── AC-01_Access_Control.json
+├── AC-01_Access_Control.md
+├── CC6.8_Logical_Access.json
+└── CC6.8_Logical_Access.md
+```
+
+**File Formats**:
+- `.json` - Structured metadata (control family, requirements)
+- `.md` - Human-readable control description
+
+### `docs/evidence_tasks/`
+
+Contains evidence task definitions synced from Tugboat Logic:
+```
+docs/evidence_tasks/
+├── ET-0001-327992_github_access.json
+├── ET-0047-328456_repository_permissions.json
+└── ET-0104-329123_infrastructure_security.json
+```
+
+**Filename Pattern**: `ET-{ref}-{id}_{name}.json`
+
+**Contains**:
+- Task reference (ET-XXXX)
+- Numeric ID
+- Task name and description
+- Collection interval
+- Related controls
+- Assignee information
+- Tugboat status
+
+## Navigation Tips for Claude Code
+
+### Finding Evidence Tasks
+```bash
+# List all evidence tasks
+ls /Users/erik/Projects/grctool/docs/evidence_tasks/
+
+# Find a specific task by reference
+ls /Users/erik/Projects/grctool/docs/evidence_tasks/ET-0047-*
+```
+
+### Checking Existing Evidence
+```bash
+# List evidence for a task
+ls /Users/erik/Projects/grctool/evidence/ET-0047_*/
+
+# List windows for a task
+ls /Users/erik/Projects/grctool/evidence/ET-0047_*/*/
+
+# Check if generation context exists
+ls /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.context/
+```
+
+### Reading Context Files
+```bash
+# Read generation context
+cat /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.context/generation-context.md
+
+# Check generation metadata
+cat /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.generation/metadata.yaml
+
+# Check submission status
+cat /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.submission/submission.yaml
+```
+
+## State Tracking
+
+Evidence state is tracked through the presence and content of metadata files:
+
+| State | Indicators |
+|-------|------------|
+| **No Evidence** | No window directory exists |
+| **Generated** | Evidence files exist, `.generation/metadata.yaml` present |
+| **Validated** | `.generation/metadata.yaml` has `status: validated` |
+| **Submitted** | `.submission/submission.yaml` exists with `status: submitted` |
+| **Accepted** | `.submission/submission.yaml` has `status: accepted` |
+| **Rejected** | `.submission/submission.yaml` has `status: rejected` |
+
+Use `grctool status` to see aggregated state across all tasks.
+
+---
+
+**Next Steps**: Consult `evidence-workflow.md` for the complete evidence generation workflow.

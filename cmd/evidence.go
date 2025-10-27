@@ -17,6 +17,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,6 +35,7 @@ import (
 	"github.com/grctool/grctool/internal/services/evidence"
 	"github.com/grctool/grctool/internal/services/submission"
 	"github.com/grctool/grctool/internal/storage"
+	"github.com/grctool/grctool/internal/tools"
 	"github.com/grctool/grctool/internal/tugboat"
 	"github.com/spf13/cobra"
 )
@@ -195,6 +197,7 @@ func init() {
 	evidenceGenerateCmd.Flags().String("output-dir", "", "directory to save generated evidence")
 	evidenceGenerateCmd.Flags().String("window", "", "evidence collection window (e.g., 2025-Q4)")
 	evidenceGenerateCmd.Flags().Bool("context-only", false, "only generate context document, don't prompt for generation")
+	evidenceGenerateCmd.Flags().Bool("with-tool-data", false, "execute applicable tools and collect data during context generation")
 
 	// Evidence review flags
 	evidenceReviewCmd.Flags().Bool("show-reasoning", true, "show AI reasoning process")
@@ -387,6 +390,77 @@ func processEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, 
 	return processSingleTaskGeneration(cmd, taskRef, window, contextOnly, options)
 }
 
+// executeApplicableTools executes applicable tools and saves their output
+func executeApplicableTools(task *domain.EvidenceTask, toolNames []string, outputDir string, cfg *config.Config) error {
+	if len(toolNames) == 0 {
+		return nil // No tools to execute
+	}
+
+	for _, toolName := range toolNames {
+		tool, err := tools.GetTool(toolName)
+		if err != nil {
+			// Skip unknown tools - don't fail the entire operation
+			continue
+		}
+
+		// Execute tool
+		ctx := context.Background()
+		request := createToolRequestForEvidence(task, toolName, cfg)
+
+		result, _, err := tool.Execute(ctx, request)
+		if err != nil {
+			// Log error but continue with other tools
+			// Don't fail the entire operation for one tool failure
+			continue
+		}
+
+		// Save tool output as JSON
+		outputFile := filepath.Join(outputDir, fmt.Sprintf("%s.json", toolName))
+		data := []byte(result)
+
+		if err := os.WriteFile(outputFile, data, 0644); err != nil {
+			continue
+		}
+	}
+
+	return nil
+}
+
+// createToolRequestForEvidence creates a tool request based on task and tool type
+func createToolRequestForEvidence(task *domain.EvidenceTask, toolName string, cfg *config.Config) map[string]interface{} {
+	// Create a basic request structure for the tool
+	// Different tools may need different request structures
+	// This creates a generic request that most tools can accept
+
+	baseRequest := map[string]interface{}{
+		"task_ref":    task.ReferenceID,
+		"task_name":   task.Name,
+		"description": task.Description,
+	}
+
+	// Tool-specific request customization
+	switch toolName {
+	case "terraform-security-indexer":
+		baseRequest["query_type"] = "control_mapping"
+	case "terraform-security-analyzer":
+		baseRequest["security_domain"] = "all"
+	case "github-permissions":
+		if cfg.Evidence.Tools.GitHub.Repository != "" {
+			baseRequest["repository"] = cfg.Evidence.Tools.GitHub.Repository
+		}
+	case "github-security-features":
+		if cfg.Evidence.Tools.GitHub.Repository != "" {
+			baseRequest["repository"] = cfg.Evidence.Tools.GitHub.Repository
+		}
+	case "github-workflow-analyzer":
+		if cfg.Evidence.Tools.GitHub.Repository != "" {
+			baseRequest["repository"] = cfg.Evidence.Tools.GitHub.Repository
+		}
+	}
+
+	return baseRequest
+}
+
 func processSingleTaskGeneration(cmd *cobra.Command, taskRef string, window string, contextOnly bool, options evidence.BulkGenerationOptions) error {
 	// Load configuration
 	cfg, err := config.Load()
@@ -407,50 +481,43 @@ func processSingleTaskGeneration(cmd *cobra.Command, taskRef string, window stri
 		return fmt.Errorf("evidence task not found: %s", taskRef)
 	}
 
-	// Generate context
-	context, err := generateEvidenceContext(task, window, options.Tools, cfg, storage)
+	// NEW: Generate comprehensive assembly context
+	assemblyContext, err := generateAssemblyContext(task, window, options.Tools, cfg, storage)
 	if err != nil {
-		return fmt.Errorf("failed to generate context: %w", err)
+		return fmt.Errorf("failed to generate assembly context: %w", err)
 	}
 
-	// Create context markdown
-	contextMarkdown := formatContextAsMarkdown(context, task, window)
-
-	// Save context to evidence directory
-	contextPath, err := saveEvidenceContext(task, window, contextMarkdown, cfg.Storage.DataDir)
+	// Save comprehensive assembly materials
+	assemblyPaths, err := saveAssemblyContext(task, window, assemblyContext, cfg.Storage.DataDir)
 	if err != nil {
-		return fmt.Errorf("failed to save context: %w", err)
+		return fmt.Errorf("failed to save assembly context: %w", err)
 	}
 
-	// Output success and next steps
-	cmd.Printf("✅ Context gathered for %s: %s\n\n", task.ReferenceID, task.Name)
-	if len(context.ApplicableTools) > 0 {
-		cmd.Printf("Identified %d applicable tool(s):\n", len(context.ApplicableTools))
-		for _, tool := range context.ApplicableTools {
-			cmd.Printf("  - %s\n", tool)
+	// Execute tools if requested
+	withToolData, _ := cmd.Flags().GetBool("with-tool-data")
+	if withToolData && len(assemblyContext.ApplicableTools) > 0 {
+		cmd.Printf("🔧 Executing %d applicable tool(s)...\n", len(assemblyContext.ApplicableTools))
+		if err := executeApplicableTools(task, assemblyContext.ApplicableTools, assemblyPaths.ToolDataDir, cfg); err != nil {
+			// Log warning but continue
+			cmd.Printf("⚠️  Warning: Some tools failed to execute: %v\n", err)
+		} else {
+			cmd.Printf("✅ Tool data collected in: %s\n", assemblyPaths.ToolDataDir)
 		}
-		cmd.Println()
 	}
-	cmd.Printf("📄 Context saved: %s\n\n", contextPath)
+
+	// Output success with new structure
+	cmd.Printf("✅ Assembly context created for %s: %s\n\n", task.ReferenceID, task.Name)
+	cmd.Printf("📄 Assembly prompt: %s\n", assemblyPaths.PromptFile)
+	cmd.Printf("📋 Claude instructions: %s\n", assemblyPaths.InstructionsFile)
+	cmd.Printf("📝 Evidence template: %s\n", assemblyPaths.TemplateFile)
 
 	if !contextOnly {
-		cmd.Println("Next steps:")
-		cmd.Println("  1. Review the context file above")
-		cmd.Println("  2. Ask Claude Code to help generate evidence using the context")
-		cmd.Println("  3. Run suggested tools and synthesize results:")
-		cmd.Println()
-
-		// Suggest specific tool commands
-		if len(context.ApplicableTools) > 0 {
-			cmd.Println("     Example commands:")
-			for _, tool := range context.ApplicableTools {
-				cmd.Printf("     grctool tool %s\n", tool)
-			}
-			cmd.Println()
-		}
-
-		cmd.Println("  4. Save generated evidence using:")
-		cmd.Printf("     grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.csv\n", task.ReferenceID, window)
+		cmd.Println("\nNext steps:")
+		cmd.Println("  1. Ask Claude: 'Help me generate evidence for " + task.ReferenceID + "'")
+		cmd.Println("  2. Claude will read the assembly prompt and guide you through:")
+		cmd.Println("     - Running applicable tools")
+		cmd.Println("     - Using evidence-generator for synthesis")
+		cmd.Println("     - Creating comprehensive report")
 	}
 
 	return nil
@@ -506,19 +573,19 @@ func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface
 	}
 
 	cmd.Printf("Found %d pending task(s)\n\n", len(pendingTasks))
-	cmd.Println("Generating evidence contexts:")
+	cmd.Println("Generating comprehensive assembly contexts:")
 
 	// Track results
 	var successCount, failureCount int
 	var failedTasks []string
 
-	// Process each task
+	// Process each task with assembly context
 	for i, task := range pendingTasks {
 		taskNum := i + 1
 		cmd.Printf("  [%d/%d] %s - %s", taskNum, len(pendingTasks), task.ReferenceID, task.Name)
 
-		// Generate context for this task
-		context, err := generateEvidenceContext(&task, window, options.Tools, cfg, storage)
+		// Generate COMPREHENSIVE assembly context (not minimal)
+		assemblyContext, err := generateAssemblyContext(&task, window, options.Tools, cfg, storage)
 		if err != nil {
 			cmd.Printf(" ⚠️  Failed: %v\n", err)
 			failureCount++
@@ -526,11 +593,8 @@ func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface
 			continue
 		}
 
-		// Create context markdown
-		contextMarkdown := formatContextAsMarkdown(context, &task, window)
-
-		// Save context to evidence directory
-		_, err = saveEvidenceContext(&task, window, contextMarkdown, cfg.Storage.DataDir)
+		// Save assembly materials
+		_, err = saveAssemblyContext(&task, window, assemblyContext, cfg.Storage.DataDir)
 		if err != nil {
 			cmd.Printf(" ⚠️  Failed to save: %v\n", err)
 			failureCount++
@@ -543,27 +607,25 @@ func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface
 	}
 
 	// Display summary
-	cmd.Printf("\nSummary:\n")
-	cmd.Printf("  Total: %d task(s)\n", len(pendingTasks))
-	cmd.Printf("  Success: %d task(s)\n", successCount)
-	cmd.Printf("  Failed: %d task(s)\n", failureCount)
-	cmd.Printf("  Context files saved to: data/evidence/*/[task]/%s/.context/\n\n", window)
-
-	// Show failed tasks if any
+	cmd.Printf("\n" + strings.Repeat("=", 60) + "\n")
+	cmd.Printf("Assembly Context Generation Complete\n")
+	cmd.Printf("  ✅ Successful: %d tasks\n", successCount)
 	if failureCount > 0 {
-		cmd.Println("Failed tasks:")
-		for _, failedTask := range failedTasks {
-			cmd.Printf("  ❌ %s\n", failedTask)
+		cmd.Printf("  ⚠️  Failed: %d tasks\n", failureCount)
+		cmd.Println("\nFailed tasks:")
+		for _, task := range failedTasks {
+			cmd.Printf("    - %s\n", task)
 		}
-		cmd.Println()
 	}
 
 	if !contextOnly {
-		cmd.Println("Next steps:")
-		cmd.Println("  1. Review context files for each task")
-		cmd.Println("  2. Ask Claude Code to help generate evidence using the contexts")
-		cmd.Println("  3. Run suggested tools for each task")
-		cmd.Println("  4. Use 'grctool evidence review <task-id>' to validate generated evidence")
+		cmd.Println("\nNext steps:")
+		cmd.Println("  1. Ask Claude Code to help with evidence generation")
+		cmd.Println("  2. Claude will read assembly prompts and guide you through:")
+		cmd.Println("     - Running applicable tools")
+		cmd.Println("     - Using evidence-generator for synthesis")
+		cmd.Println("     - Creating comprehensive reports")
+		cmd.Println("\n  Example: 'Help me generate all pending evidence'")
 	}
 
 	return nil
@@ -996,6 +1058,31 @@ type EvidenceGenerationContext struct {
 	PreviousWindows  []string
 }
 
+// AssemblyContext holds all materials for evidence assembly
+type AssemblyContext struct {
+	Task                *domain.EvidenceTask
+	Window              string
+	ComprehensivePrompt string                 // From prompt-assembler
+	ClaudeInstructions  string                 // How to use materials
+	EvidenceTemplate    string                 // Structure guide
+	ApplicableTools     []string
+	ToolData            map[string]interface{} // If --with-tool-data
+}
+
+// AssemblyPaths holds file paths for saved assembly materials
+type AssemblyPaths struct {
+	PromptFile       string
+	InstructionsFile string
+	TemplateFile     string
+	ToolDataDir      string
+}
+
+// PromptAssemblerOutput holds the result from prompt-assembler tool
+type PromptAssemblerOutput struct {
+	Prompt string
+	Data   map[string]interface{}
+}
+
 func getCurrentQuarter() string {
 	now := time.Now()
 	quarter := (int(now.Month())-1)/3 + 1
@@ -1231,6 +1318,92 @@ func saveEvidenceContext(task *domain.EvidenceTask, window string, contextMarkdo
 	return contextPath, nil
 }
 
+func generateClaudeInstructions(task *domain.EvidenceTask, window string) string {
+	return fmt.Sprintf(`# Claude Code Instructions: %s
+
+## Your Mission
+
+Help the user generate comprehensive evidence for **%s** (%s).
+
+## What You Have
+
+1. **Assembly Prompt** (assembly-prompt.md)
+   - Comprehensive context from prompt-assembler
+   - Related controls and policies
+   - Example evidence structure
+   - All requirements for this task
+
+2. **Evidence Template** (evidence-template.md)
+   - Pre-structured report outline
+   - Section headers and prompts
+   - Based on proven evidence patterns
+
+3. **Tool Data** (tool_outputs/ directory, if available)
+   - Pre-collected data from automated tools
+   - Ready for synthesis into report
+
+## Workflow
+
+### Step 1: Review Assembly Prompt
+Read assembly-prompt.md to understand:
+- What evidence is needed
+- Which controls it satisfies
+- What policies are relevant
+- What tools can help
+
+### Step 2: Collect Tool Data (if not already collected)
+Run applicable tools identified in the prompt:
+`+"```bash\n"+`
+grctool tool <tool-name> --repository <repo> > tool_outputs/<tool-name>.json
+`+"```\n"+`
+
+### Step 3: Use Evidence Generator
+Synthesize tool outputs into comprehensive report:
+`+"```bash\n"+`
+grctool tool evidence-generator \
+  --task-ref %s \
+  --prompt-file .context/assembly-prompt.md \
+  --tools terraform,github,docs \
+  --format markdown \
+  --output-dir .
+`+"```\n"+`
+
+### Step 4: Refine Report
+- Review generated evidence
+- Fill in analysis sections
+- Add executive summary
+- Ensure all requirements met
+
+### Step 5: Save Evidence
+`+"```bash\n"+`
+grctool tool evidence-writer \
+  --task-ref %s \
+  --window %s \
+  --title "Comprehensive Evidence Report" \
+  --file evidence-report.md
+`+"```\n"+`
+
+## Expected Output
+
+A comprehensive evidence document (500+ lines) with:
+- Executive summary
+- Control mapping
+- Policy foundations
+- Technical evidence/data
+- Compliance review/analysis
+- Auditor notes
+- Quality assurance section
+
+## Example
+
+See ET-0008 Workstation Firewall evidence for reference structure.
+
+---
+
+**Need help?** Ask the user questions to understand what data they have available!
+`, task.ReferenceID, task.ReferenceID, task.Name, task.ReferenceID, task.ReferenceID, window)
+}
+
 func sanitizeFilename(name string) string {
 	// Replace problematic characters with underscores
 	replacer := strings.NewReplacer(
@@ -1245,4 +1418,1178 @@ func sanitizeFilename(name string) string {
 		"|", "_",
 	)
 	return replacer.Replace(name)
+}
+
+// generateAssemblyContext generates a comprehensive assembly context for evidence collection
+func generateAssemblyContext(task *domain.EvidenceTask, window string, tools []string, cfg *config.Config, storage *storage.Storage) (*AssemblyContext, error) {
+	// 1. Call prompt-assembler tool to get comprehensive prompt
+	promptOutput, err := executePromptAssembler(task, cfg, storage)
+	if err != nil {
+		return nil, fmt.Errorf("prompt-assembler failed: %w", err)
+	}
+
+	// 2. Generate Claude-specific instructions
+	claudeInstructions := generateClaudeInstructions(task, window)
+
+	// 3. Select/generate evidence template based on task category
+	evidenceTemplate := selectEvidenceTemplate(task)
+
+	// 4. Identify applicable tools (from prompt or config)
+	applicableTools := identifyApplicableToolsForAssembly(task, tools)
+
+	return &AssemblyContext{
+		Task:                task,
+		Window:              window,
+		ComprehensivePrompt: promptOutput.Prompt,
+		ClaudeInstructions:  claudeInstructions,
+		EvidenceTemplate:    evidenceTemplate,
+		ApplicableTools:     applicableTools,
+		ToolData:            make(map[string]interface{}),
+	}, nil
+}
+
+// executePromptAssembler calls the prompt-assembler tool to generate a comprehensive prompt
+func executePromptAssembler(task *domain.EvidenceTask, cfg *config.Config, storage *storage.Storage) (*PromptAssemblerOutput, error) {
+	// Get prompt-assembler tool from registry
+	tool, err := tools.GetTool("prompt-assembler")
+	if err != nil {
+		return nil, fmt.Errorf("prompt-assembler tool not found: %w", err)
+	}
+
+	// Prepare request parameters
+	params := map[string]interface{}{
+		"task_ref":         task.ReferenceID,
+		"context_level":    "comprehensive", // Always comprehensive
+		"include_examples": true,
+		"output_format":    "markdown",
+		"save_to_file":     true,
+	}
+
+	// Execute tool
+	ctx := context.Background()
+	result, _, err := tool.Execute(ctx, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute prompt-assembler: %w", err)
+	}
+
+	// Parse the JSON result
+	var responseData struct {
+		Success      bool   `json:"success"`
+		PromptText   string `json:"prompt_text"`
+		FilePath     string `json:"file_path"`
+		PromptMetadata map[string]interface{} `json:"prompt_metadata"`
+	}
+
+	// Try to parse as JSON first
+	if err := parseJSONResult(result, &responseData); err == nil && responseData.Success {
+		// Extract prompt from parsed response
+		output := &PromptAssemblerOutput{
+			Prompt: responseData.PromptText,
+			Data: map[string]interface{}{
+				"file_path": responseData.FilePath,
+				"metadata":  responseData.PromptMetadata,
+			},
+		}
+		return output, nil
+	}
+
+	// Fallback: treat the entire result as the prompt text
+	output := &PromptAssemblerOutput{
+		Prompt: result,
+		Data:   make(map[string]interface{}),
+	}
+
+	return output, nil
+}
+
+// identifyApplicableToolsForAssembly identifies applicable tools for evidence assembly
+func identifyApplicableToolsForAssembly(task *domain.EvidenceTask, tools []string) []string {
+	// If tools explicitly specified, use those
+	if len(tools) > 0 {
+		return tools
+	}
+
+	// Otherwise, infer from task metadata or description
+	applicableTools := []string{}
+
+	// Check task name and description for tool hints
+	taskText := strings.ToLower(task.Name + " " + task.Description)
+
+	// Infrastructure tools
+	if strings.Contains(taskText, "terraform") || strings.Contains(taskText, "infrastructure") {
+		applicableTools = append(applicableTools, "terraform-security-indexer", "terraform-security-analyzer")
+	}
+
+	// GitHub tools
+	if strings.Contains(taskText, "github") || strings.Contains(taskText, "repository") || strings.Contains(taskText, "code review") {
+		applicableTools = append(applicableTools, "github-permissions", "github-security-features", "github-workflow-analyzer")
+	}
+
+	// Google Workspace tools
+	if strings.Contains(taskText, "google") || strings.Contains(taskText, "workspace") || strings.Contains(taskText, "drive") {
+		applicableTools = append(applicableTools, "google-workspace")
+	}
+
+	// Documentation tools
+	if strings.Contains(taskText, "documentation") || strings.Contains(taskText, "policy") {
+		applicableTools = append(applicableTools, "docs-reader")
+	}
+
+	return applicableTools
+}
+
+// selectEvidenceTemplate selects an appropriate evidence template based on task category
+func selectEvidenceTemplate(task *domain.EvidenceTask) string {
+	// Get task category
+	category := task.GetCategory()
+
+	// Select template based on category
+	switch category {
+	case "Infrastructure":
+		return generateInfrastructureTemplate()
+	case "Personnel":
+		return generatePersonnelTemplate()
+	case "Process":
+		return generateProcessTemplate()
+	case "Compliance":
+		return generateComplianceTemplate()
+	case "Monitoring":
+		return generateMonitoringTemplate()
+	case "Data":
+		return generateDataTemplate()
+	default:
+		return generateGenericTemplate()
+	}
+}
+
+// Template generation functions (these provide structure guides for evidence)
+
+func generateGenericTemplate() string {
+	return `# Evidence Report Template
+
+## Executive Summary
+[Brief overview of compliance status and key findings]
+
+## Control Mapping
+[List of controls this evidence satisfies]
+
+## Policy Foundations
+[Related policies and governance documents]
+
+## Technical Evidence
+[Specific configurations, settings, and technical implementations]
+
+## Compliance Analysis
+[Analysis of how the evidence demonstrates compliance]
+
+## Auditor Notes
+[Additional context for auditors]
+
+## Quality Assurance
+[Verification steps and validation]
+`
+}
+
+func generateInfrastructureTemplate() string {
+	return `# Infrastructure Evidence Report
+
+## Executive Summary
+[Brief overview of infrastructure security posture]
+
+## Control Mapping
+[Controls satisfied by this infrastructure evidence]
+
+## Policy Foundations
+[Infrastructure security policies and standards]
+
+## Infrastructure Configuration
+### Cloud Resources
+[Cloud infrastructure details]
+
+### Network Security
+[Network configurations and security controls]
+
+### Access Controls
+[IAM policies, roles, and permissions]
+
+### Monitoring & Logging
+[CloudTrail, logging configurations]
+
+## Security Analysis
+[Security posture assessment]
+
+## Compliance Review
+[Compliance status against requirements]
+
+## Auditor Notes
+[Additional context for infrastructure audit]
+`
+}
+
+func generatePersonnelTemplate() string {
+	return `# Personnel Evidence Report
+
+## Executive Summary
+[Overview of personnel security controls]
+
+## Control Mapping
+[Personnel-related controls]
+
+## Policy Foundations
+[HR policies, acceptable use policies]
+
+## Personnel Security Controls
+### Access Management
+[User provisioning and deprovisioning]
+
+### Training & Awareness
+[Security training programs]
+
+### Background Checks
+[Background verification processes]
+
+## Compliance Analysis
+[Personnel control effectiveness]
+
+## Auditor Notes
+[Additional personnel security context]
+`
+}
+
+func generateProcessTemplate() string {
+	return `# Process Evidence Report
+
+## Executive Summary
+[Overview of process controls]
+
+## Control Mapping
+[Process-related controls]
+
+## Policy Foundations
+[Process policies and procedures]
+
+## Process Documentation
+### Standard Operating Procedures
+[SOPs and process documentation]
+
+### Change Management
+[Change control processes]
+
+### Incident Response
+[Incident handling procedures]
+
+## Compliance Analysis
+[Process control effectiveness]
+
+## Auditor Notes
+[Additional process context]
+`
+}
+
+func generateComplianceTemplate() string {
+	return `# Compliance Evidence Report
+
+## Executive Summary
+[Overview of compliance program]
+
+## Control Mapping
+[Compliance controls]
+
+## Policy Foundations
+[Compliance policies and frameworks]
+
+## Compliance Program
+### Framework Alignment
+[Framework mappings (SOC2, ISO27001, etc.)]
+
+### Risk Management
+[Risk assessment and treatment]
+
+### Audit & Review
+[Audit processes and findings]
+
+## Compliance Analysis
+[Compliance posture assessment]
+
+## Auditor Notes
+[Additional compliance context]
+`
+}
+
+func generateMonitoringTemplate() string {
+	return `# Monitoring Evidence Report
+
+## Executive Summary
+[Overview of monitoring capabilities]
+
+## Control Mapping
+[Monitoring-related controls]
+
+## Policy Foundations
+[Monitoring policies and standards]
+
+## Monitoring Infrastructure
+### Log Collection
+[Logging systems and aggregation]
+
+### Alerting & Detection
+[Alert rules and detection mechanisms]
+
+### Incident Detection
+[Security monitoring and SIEM]
+
+## Compliance Analysis
+[Monitoring effectiveness]
+
+## Auditor Notes
+[Additional monitoring context]
+`
+}
+
+func generateDataTemplate() string {
+	return `# Data Security Evidence Report
+
+## Executive Summary
+[Overview of data security controls]
+
+## Control Mapping
+[Data security controls]
+
+## Policy Foundations
+[Data protection and privacy policies]
+
+## Data Security Controls
+### Data Classification
+[Data classification scheme]
+
+### Encryption
+[Encryption at rest and in transit]
+
+### Access Controls
+[Data access restrictions]
+
+### Data Lifecycle
+[Data retention and disposal]
+
+## Compliance Analysis
+[Data security effectiveness]
+
+## Auditor Notes
+[Additional data security context]
+`
+}
+
+// parseJSONResult attempts to parse a JSON string into the provided struct
+func parseJSONResult(jsonStr string, target interface{}) error {
+	return json.Unmarshal([]byte(jsonStr), target)
+}
+
+// ============================================================================
+// Comprehensive Evidence Template System
+// ============================================================================
+// These comprehensive templates provide detailed, auditor-ready structure for
+// evidence documents. They include all necessary sections for compliance review.
+
+// getDefaultTemplate returns a comprehensive evidence template suitable for all evidence types
+func getDefaultTemplate() string {
+	return `# Evidence Report: {{TASK_REF}} - {{TASK_NAME}}
+
+**Evidence Reference:** {{TASK_REF}}
+**Tugboat ID:** {{TUGBOAT_ID}}
+**Collection Window:** {{WINDOW}}
+**Collection Date:** {{DATE}}
+**Period Covered:** {{PERIOD}}
+
+---
+
+## Executive Summary
+
+[Provide 3-5 paragraph summary of evidence, key findings, and compliance status]
+
+---
+
+## Control Mapping
+
+This evidence supports the following controls:
+
+| Control ID | Control Name | Framework | Compliance Status |
+|------------|--------------|-----------|-------------------|
+| {{CONTROL_ID}} | {{CONTROL_NAME}} | {{FRAMEWORK}} | ✅ Compliant |
+
+---
+
+## Policy Foundation
+
+### Primary Policy: {{POLICY_REF}} - {{POLICY_NAME}}
+
+**Relevant Policy Sections:**
+
+[Include key policy excerpts that establish requirements]
+
+---
+
+## Evidence Collection Method
+
+[Describe how evidence was collected - automated tools, manual review, etc.]
+
+### Tools Used:
+- {{TOOL_NAME}}: {{TOOL_PURPOSE}}
+
+---
+
+## Technical Evidence
+
+[Present data/findings from tools and manual collection]
+
+### {{SECTION_NAME}}
+
+[Data, screenshots, configurations, etc.]
+
+---
+
+## Compliance Analysis
+
+[Interpret the evidence in context of control requirements]
+
+### Control Objective
+
+[What the control requires]
+
+### How This Evidence Addresses the Control
+
+[Map evidence to requirements]
+
+---
+
+## Quality Assurance
+
+**Review Checklist:**
+- [ ] All required evidence collected
+- [ ] Evidence dated within collection window
+- [ ] Control mappings verified
+- [ ] Technical accuracy confirmed
+- [ ] Auditor-ready formatting
+
+---
+
+## Auditor Notes
+
+### Control Operating Effectiveness
+
+**Design:** [Effective/Ineffective + justification]
+**Operating Effectiveness:** [Effective/Ineffective + justification]
+
+---
+
+**Evidence Collection:** {{COLLECTION_TYPE}}
+**Next Collection Date:** {{NEXT_DATE}}
+**Control Status:** ✅ Operating Effectively
+`
+}
+
+// getInfrastructureTemplate returns a specialized template for infrastructure evidence
+func getInfrastructureTemplate() string {
+	return `# Infrastructure Evidence Report: {{TASK_REF}} - {{TASK_NAME}}
+
+**Evidence Reference:** {{TASK_REF}}
+**Tugboat ID:** {{TUGBOAT_ID}}
+**Collection Window:** {{WINDOW}}
+**Collection Date:** {{DATE}}
+**Period Covered:** {{PERIOD}}
+
+---
+
+## Executive Summary
+
+[Summary of infrastructure configuration and security controls found during this evidence collection period]
+
+### Key Findings
+- [Finding 1: Summary of main infrastructure security control]
+- [Finding 2: Summary of configuration state]
+- [Finding 3: Summary of compliance posture]
+
+---
+
+## Infrastructure Overview
+
+### Architecture
+[High-level architecture description of the infrastructure being evidenced]
+
+### Components Analyzed
+[List of infrastructure components reviewed during this collection period]
+
+- Component 1: [Description]
+- Component 2: [Description]
+- Component 3: [Description]
+
+---
+
+## Control Mapping
+
+This evidence supports the following infrastructure security controls:
+
+| Control ID | Control Name | Framework | Compliance Status |
+|------------|--------------|-----------|-------------------|
+| {{CONTROL_ID}} | {{CONTROL_NAME}} | {{FRAMEWORK}} | ✅ Compliant |
+
+---
+
+## Policy Foundation
+
+### Primary Policy: {{POLICY_REF}} - {{POLICY_NAME}}
+
+**Relevant Policy Requirements:**
+
+[Include key policy excerpts that establish infrastructure security requirements]
+
+---
+
+## Configuration Evidence
+
+### Security Controls
+
+**Firewall Configurations:**
+[Firewall rules, network segmentation, zone configurations]
+
+**Encryption Settings:**
+[Encryption at rest, in transit, key management]
+
+**Authentication & Authorization:**
+[IAM configurations, role assignments, permission boundaries]
+
+### Access Controls
+
+**Network Access:**
+[VPN, bastion hosts, security groups, NACLs]
+
+**Administrative Access:**
+[Privileged access management, MFA requirements, session recordings]
+
+### Monitoring & Logging
+
+**Log Collection:**
+[Centralized logging, retention policies, log sources]
+
+**Alerting:**
+[Alert configurations, incident response triggers, escalation paths]
+
+**Audit Trails:**
+[Configuration change tracking, access logs, API activity]
+
+---
+
+## Terraform Analysis
+
+### Resources Analyzed
+[List of Terraform resources reviewed, organized by service/component]
+
+### Security Findings
+
+**Resource Type:** [e.g., aws_s3_bucket]
+- **Total Count:** [Number of resources]
+- **Security Configuration:** [Details of security settings]
+- **Compliance Status:** [Assessment against requirements]
+
+**Resource Type:** [e.g., aws_security_group]
+- **Total Count:** [Number of resources]
+- **Security Configuration:** [Details of security settings]
+- **Compliance Status:** [Assessment against requirements]
+
+---
+
+## Infrastructure as Code
+
+### Terraform Modules Used
+[List of modules and their security configurations]
+
+### Version Control
+[Git repository, branch protection, code review process]
+
+### Deployment Controls
+[CI/CD pipeline security, approval processes, rollback procedures]
+
+---
+
+## Compliance Assessment
+
+### Control Objective
+[What the infrastructure control requires]
+
+### Evidence Analysis
+[How the infrastructure configuration meets the control requirements]
+
+### Gaps Identified
+[Any gaps or areas needing remediation]
+
+### Remediation Status
+[Status of any identified gaps]
+
+---
+
+## Quality Assurance
+
+**Technical Review Checklist:**
+- [ ] Infrastructure configurations reviewed
+- [ ] Security controls verified operational
+- [ ] Terraform state validated
+- [ ] Access controls audited
+- [ ] Monitoring/logging confirmed active
+- [ ] Documentation complete
+
+---
+
+## Auditor Notes
+
+### Infrastructure Security Assessment
+
+**Design Effectiveness:** [Effective/Ineffective + justification]
+- Security controls are [properly/improperly] designed to meet requirements
+- Infrastructure architecture [does/does not] implement defense in depth
+- Configurations [align/do not align] with industry best practices
+
+**Operating Effectiveness:** [Effective/Ineffective + justification]
+- Security controls are [consistently/inconsistently] applied
+- Monitoring and logging [are/are not] capturing required events
+- Access controls [are/are not] functioning as designed
+
+---
+
+**Evidence Collection:** {{COLLECTION_TYPE}}
+**Next Collection Date:** {{NEXT_DATE}}
+**Infrastructure Status:** ✅ Operating Effectively
+`
+}
+
+// getPersonnelTemplate returns a specialized template for personnel/HR evidence
+func getPersonnelTemplate() string {
+	return `# Personnel Evidence Report: {{TASK_REF}} - {{TASK_NAME}}
+
+**Evidence Reference:** {{TASK_REF}}
+**Tugboat ID:** {{TUGBOAT_ID}}
+**Collection Window:** {{WINDOW}}
+**Collection Date:** {{DATE}}
+**Period Covered:** {{PERIOD}}
+
+---
+
+## Executive Summary
+
+[Summary of personnel-related evidence collected during this period]
+
+### Key Findings
+- [Finding 1: Personnel count and role distribution]
+- [Finding 2: Training completion status]
+- [Finding 3: Access management compliance]
+
+---
+
+## Personnel Scope
+
+### Roles Covered
+[List of roles/positions analyzed during this collection period]
+
+- **Role 1:** [Count] employees
+- **Role 2:** [Count] employees
+- **Role 3:** [Count] contractors
+
+### Time Period
+**Collection Window:** {{WINDOW}}
+**Personnel Count:** [Total number of personnel in scope]
+
+---
+
+## Control Mapping
+
+This evidence supports the following personnel security controls:
+
+| Control ID | Control Name | Framework | Compliance Status |
+|------------|--------------|-----------|-------------------|
+| {{CONTROL_ID}} | {{CONTROL_NAME}} | {{FRAMEWORK}} | ✅ Compliant |
+
+---
+
+## Policy Foundation
+
+### Primary Policy: {{POLICY_REF}} - {{POLICY_NAME}}
+
+**Relevant Policy Requirements:**
+
+[Include key policy excerpts that establish personnel security requirements]
+
+---
+
+## Onboarding Evidence
+
+### New Hires
+**Period:** {{WINDOW}}
+**Total New Hires:** [Count]
+
+**Onboarding Process Completion:**
+- Background checks: [Count] completed
+- Security training: [Count] completed
+- Access provisioning: [Count] completed
+- Policy acknowledgments: [Count] signed
+
+### Documentation
+[List of onboarding documentation reviewed]
+
+---
+
+## Training Evidence
+
+### Security Awareness Training
+
+**Training Programs:**
+- **Program 1:** [Name and description]
+  - Assigned: [Count] personnel
+  - Completed: [Count] personnel
+  - Completion Rate: [Percentage]
+
+- **Program 2:** [Name and description]
+  - Assigned: [Count] personnel
+  - Completed: [Count] personnel
+  - Completion Rate: [Percentage]
+
+### Completion Records
+[Summary of training completion data for the period]
+
+### Role-Specific Training
+[Specialized training for specific roles]
+
+---
+
+## Access Control Evidence
+
+### User Access
+
+**Active Users:**
+- **Production Access:** [Count] users
+- **Administrative Access:** [Count] users
+- **Read-Only Access:** [Count] users
+
+**Access Reviews:**
+- **Review Date:** [Date]
+- **Accounts Reviewed:** [Count]
+- **Accounts Modified:** [Count]
+- **Accounts Terminated:** [Count]
+
+### Permissions
+
+**Permission Assignments:**
+[Summary of permission grants and role assignments]
+
+**Privileged Access:**
+[List of users with privileged access and justification]
+
+**Multi-Factor Authentication:**
+- Users with MFA enabled: [Count/Percentage]
+- Users pending MFA: [Count]
+
+---
+
+## Offboarding Evidence
+
+### Terminated Personnel
+**Period:** {{WINDOW}}
+**Total Terminations:** [Count]
+
+**Offboarding Process Completion:**
+- Access revocation: [Count] completed
+- Asset return: [Count] completed
+- Exit interviews: [Count] completed
+- Final acknowledgments: [Count] signed
+
+### Access Termination Timeline
+[Summary of access termination timing relative to last day of employment]
+
+---
+
+## Background Checks
+
+### Background Screening Results
+**Period:** {{WINDOW}}
+**Total Screenings:** [Count]
+
+**Screening Components:**
+- Criminal history checks: [Count]
+- Employment verification: [Count]
+- Education verification: [Count]
+- Reference checks: [Count]
+
+**Results:** [Summary of findings]
+
+---
+
+## Compliance Assessment
+
+### Control Objective
+[What the personnel control requires]
+
+### Evidence Analysis
+[How personnel processes meet the control requirements]
+
+### Compliance Metrics
+- Onboarding compliance rate: [Percentage]
+- Training completion rate: [Percentage]
+- Access review completion: [Percentage]
+- Offboarding compliance rate: [Percentage]
+
+---
+
+## Quality Assurance
+
+**Personnel Review Checklist:**
+- [ ] All new hires properly onboarded
+- [ ] Training requirements met
+- [ ] Access controls reviewed and validated
+- [ ] Terminations processed completely
+- [ ] Background checks completed
+- [ ] Documentation complete and signed
+
+---
+
+## Auditor Notes
+
+### Personnel Security Assessment
+
+**Design Effectiveness:** [Effective/Ineffective + justification]
+- Personnel security processes are [properly/improperly] designed
+- Onboarding/offboarding procedures [are/are not] comprehensive
+- Training programs [do/do not] address security awareness
+
+**Operating Effectiveness:** [Effective/Ineffective + justification]
+- Personnel processes [are/are not] consistently followed
+- Access controls [are/are not] properly maintained
+- Documentation [is/is not] complete and timely
+
+---
+
+**Evidence Collection:** {{COLLECTION_TYPE}}
+**Next Collection Date:** {{NEXT_DATE}}
+**Personnel Security Status:** ✅ Operating Effectively
+`
+}
+
+// getProcessTemplate returns a specialized template for process/procedure evidence
+func getProcessTemplate() string {
+	return `# Process Evidence Report: {{TASK_REF}} - {{TASK_NAME}}
+
+**Evidence Reference:** {{TASK_REF}}
+**Tugboat ID:** {{TUGBOAT_ID}}
+**Collection Window:** {{WINDOW}}
+**Collection Date:** {{DATE}}
+**Period Covered:** {{PERIOD}}
+
+---
+
+## Executive Summary
+
+[Summary of process evidence collected during this period]
+
+### Key Findings
+- [Finding 1: Process execution status]
+- [Finding 2: Compliance with documented procedures]
+- [Finding 3: Process effectiveness assessment]
+
+---
+
+## Process Overview
+
+### Process Description
+[Detailed description of the process being evidenced]
+
+**Process Owner:** [Name/Role]
+**Process Stakeholders:** [List of stakeholders]
+
+### Frequency
+**Execution Schedule:** [How often process executes]
+**Collection Window:** {{WINDOW}}
+**Total Executions This Period:** [Count]
+
+---
+
+## Control Mapping
+
+This evidence supports the following process controls:
+
+| Control ID | Control Name | Framework | Compliance Status |
+|------------|--------------|-----------|-------------------|
+| {{CONTROL_ID}} | {{CONTROL_NAME}} | {{FRAMEWORK}} | ✅ Compliant |
+
+---
+
+## Policy Foundation
+
+### Primary Policy: {{POLICY_REF}} - {{POLICY_NAME}}
+
+**Relevant Policy Requirements:**
+
+[Include key policy excerpts that establish process requirements]
+
+---
+
+## Process Documentation
+
+### Procedures
+[Links to procedures/documentation that define this process]
+
+- **Procedure 1:** [Name and location]
+  - Version: [Version number]
+  - Last Updated: [Date]
+  - Approved By: [Name]
+
+- **Procedure 2:** [Name and location]
+  - Version: [Version number]
+  - Last Updated: [Date]
+  - Approved By: [Name]
+
+### Workflow
+[Process workflow description with key steps]
+
+1. **Step 1:** [Description]
+   - Responsible: [Role]
+   - Inputs: [Required inputs]
+   - Outputs: [Expected outputs]
+
+2. **Step 2:** [Description]
+   - Responsible: [Role]
+   - Inputs: [Required inputs]
+   - Outputs: [Expected outputs]
+
+3. **Step 3:** [Description]
+   - Responsible: [Role]
+   - Inputs: [Required inputs]
+   - Outputs: [Expected outputs]
+
+---
+
+## Process Execution Evidence
+
+### Execution Records
+[Evidence of process execution during the collection period]
+
+**Period:** {{WINDOW}}
+**Total Executions:** [Count]
+**Successful Executions:** [Count]
+**Failed/Incomplete Executions:** [Count]
+
+### Sample Executions
+
+**Execution 1:**
+- Date: [Date]
+- Executor: [Name]
+- Result: [Success/Failure]
+- Notes: [Any relevant notes]
+
+**Execution 2:**
+- Date: [Date]
+- Executor: [Name]
+- Result: [Success/Failure]
+- Notes: [Any relevant notes]
+
+**Execution 3:**
+- Date: [Date]
+- Executor: [Name]
+- Result: [Success/Failure]
+- Notes: [Any relevant notes]
+
+---
+
+## Process Artifacts
+
+### Input Documentation
+[Documentation/data used as inputs to the process]
+
+### Output Documentation
+[Documentation/data produced by the process]
+
+### Supporting Evidence
+[Additional artifacts that support process execution]
+
+- Meeting minutes
+- Approval emails
+- Decision logs
+- Change records
+- Incident tickets
+
+---
+
+## Process Metrics
+
+### Performance Indicators
+[Metrics that demonstrate process effectiveness]
+
+**Metric 1:** [Name]
+- Target: [Target value]
+- Actual: [Actual value]
+- Status: [Met/Not Met]
+
+**Metric 2:** [Name]
+- Target: [Target value]
+- Actual: [Actual value]
+- Status: [Met/Not Met]
+
+### Trend Analysis
+[Analysis of process performance over time]
+
+---
+
+## Change Management
+
+### Process Changes
+[Any changes to the process during this period]
+
+**Change 1:**
+- Date: [Date]
+- Description: [Change description]
+- Reason: [Justification]
+- Approved By: [Name]
+
+---
+
+## Compliance Assessment
+
+### Control Objective
+[What the process control requires]
+
+### Evidence Analysis
+[How process execution meets the control requirements]
+
+**Process Adherence:**
+[Assessment of adherence to documented procedures]
+
+**Exception Handling:**
+[How exceptions were identified and handled]
+
+**Continuous Improvement:**
+[Evidence of process improvement activities]
+
+---
+
+## Quality Assurance
+
+**Process Review Checklist:**
+- [ ] Process documentation current and approved
+- [ ] Process executed per documented procedures
+- [ ] Required approvals obtained
+- [ ] Artifacts collected and retained
+- [ ] Metrics tracked and reviewed
+- [ ] Exceptions properly documented and resolved
+
+---
+
+## Auditor Notes
+
+### Process Control Assessment
+
+**Design Effectiveness:** [Effective/Ineffective + justification]
+- Process design [is/is not] adequate to meet control objectives
+- Procedures [are/are not] comprehensive and clear
+- Roles and responsibilities [are/are not] properly defined
+
+**Operating Effectiveness:** [Effective/Ineffective + justification]
+- Process [is/is not] consistently executed as documented
+- Required approvals [are/are not] obtained
+- Documentation [is/is not] complete and timely
+- Metrics [are/are not] tracked and reviewed
+
+---
+
+**Evidence Collection:** {{COLLECTION_TYPE}}
+**Next Collection Date:** {{NEXT_DATE}}
+**Process Status:** ✅ Operating Effectively
+`
+}
+
+// getComplianceTemplate returns a template for compliance-specific evidence
+func getComplianceTemplate() string {
+	// For now, use the default template
+	// Can be customized later with compliance-specific sections
+	return getDefaultTemplate()
+}
+
+// getMonitoringTemplate returns a template for monitoring/logging evidence
+func getMonitoringTemplate() string {
+	// For now, use the default template
+	// Can be customized later with monitoring-specific sections
+	return getDefaultTemplate()
+}
+
+// getDataTemplate returns a template for data management evidence
+func getDataTemplate() string {
+	// For now, use the default template
+	// Can be customized later with data-specific sections
+	return getDefaultTemplate()
+}
+
+// applyTemplateVariables replaces template placeholders with actual values
+func applyTemplateVariables(template string, task *domain.EvidenceTask, window string) string {
+	replacements := map[string]string{
+		"{{TASK_REF}}":   task.ReferenceID,
+		"{{TASK_NAME}}":  task.Name,
+		"{{TUGBOAT_ID}}": fmt.Sprintf("%d", task.ID),
+		"{{WINDOW}}":     window,
+		"{{DATE}}":       time.Now().Format("2006-01-02"),
+		"{{PERIOD}}":     calculatePeriod(window),
+	}
+
+	result := template
+	for key, value := range replacements {
+		result = strings.ReplaceAll(result, key, value)
+	}
+
+	return result
+}
+
+// calculatePeriod converts a window identifier into a human-readable period description
+func calculatePeriod(window string) string {
+	// Parse window like "2025-Q4" and return period description
+	if strings.Contains(window, "Q") {
+		return fmt.Sprintf("Quarterly period %s", window)
+	}
+	return window
+}
+
+// saveAssemblyContext persists all assembly materials to disk
+func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *AssemblyContext, dataDir string) (*AssemblyPaths, error) {
+	// Determine evidence directory path
+	evidenceDir := filepath.Join(dataDir, "evidence")
+	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
+	windowDir := filepath.Join(evidenceDir, taskDirName, window)
+	contextDir := filepath.Join(windowDir, ".context")
+
+	// Create context directory
+	if err := os.MkdirAll(contextDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create context directory: %w", err)
+	}
+
+	assemblyPaths := &AssemblyPaths{
+		PromptFile:       filepath.Join(contextDir, "assembly-prompt.md"),
+		InstructionsFile: filepath.Join(contextDir, "claude-instructions.md"),
+		TemplateFile:     filepath.Join(contextDir, "evidence-template.md"),
+		ToolDataDir:      filepath.Join(contextDir, "tool_outputs"),
+	}
+
+	// Save assembly prompt
+	if err := os.WriteFile(assemblyPaths.PromptFile, []byte(ctx.ComprehensivePrompt), 0644); err != nil {
+		return nil, fmt.Errorf("failed to save assembly prompt: %w", err)
+	}
+
+	// Save Claude instructions
+	if err := os.WriteFile(assemblyPaths.InstructionsFile, []byte(ctx.ClaudeInstructions), 0644); err != nil {
+		return nil, fmt.Errorf("failed to save instructions: %w", err)
+	}
+
+	// Save evidence template (with variables applied)
+	templateContent := applyTemplateVariables(ctx.EvidenceTemplate, task, window)
+	if err := os.WriteFile(assemblyPaths.TemplateFile, []byte(templateContent), 0644); err != nil {
+		return nil, fmt.Errorf("failed to save template: %w", err)
+	}
+
+	// Create tool outputs directory
+	if err := os.MkdirAll(assemblyPaths.ToolDataDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create tool outputs directory: %w", err)
+	}
+
+	return assemblyPaths, nil
 }

@@ -1,0 +1,404 @@
+# Evidence Generation Workflow
+
+> Complete workflow for generating and managing evidence with Claude Code
+
+---
+
+**Generated**: 2025-10-27 16:56:21 EDT  
+**GRCTool Version**: dev  
+**Documentation Version**: dev  
+
+---
+
+## Overview
+
+This document describes the complete end-to-end workflow for evidence generation using GRCTool with Claude Code assistance.
+
+### Workflow Philosophy
+
+GRCTool follows a **Claude Code Assisted** approach:
+1. GRCTool generates comprehensive context
+2. Claude Code reads the context and helps you interactively
+3. You run tools together with Claude's guidance
+4. Evidence is saved with automatic metadata tracking
+5. State is tracked throughout the lifecycle
+
+---
+
+## Complete Evidence Lifecycle
+
+```
+┌─────────────────┐
+│ grctool status  │  (1) Check what evidence is needed
+└────────┬────────┘
+         │
+         v
+┌──────────────────────┐
+│ grctool evidence     │  (2) Generate context for task
+│   generate ET-XXXX   │
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│  Claude Code reads   │  (3) Claude reads .context/generation-context.md
+│     context file     │
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│  Run tools together  │  (4) Execute grctool tools with guidance
+│  with Claude's help  │
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│ grctool tool         │  (5) Save evidence with metadata
+│   evidence-writer    │
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│ grctool evidence     │  (6) Validate before submission
+│   validate ET-XXXX   │
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│ grctool evidence     │  (7) Submit to Tugboat
+│   submit ET-XXXX     │
+└──────────────────────┘
+```
+
+---
+
+## Step-by-Step Workflow
+
+### Step 1: Check Evidence Status
+
+**Purpose**: See what evidence needs to be collected  
+**Command**: `grctool status`  
+
+```bash
+# See dashboard
+grctool status
+
+# Check specific task
+grctool status task ET-0047
+
+# Filter by state
+grctool status --filter state=no_evidence
+```
+
+**What You See**:
+- Overall progress summary
+- Tasks grouped by state (no_evidence, generated, submitted, etc.)
+- Automation level for each task
+- Next steps recommendations
+
+### Step 2: Generate Assembly Context
+
+**Purpose**: Create comprehensive assembly context with prompts and templates
+
+**Command**:
+```bash
+grctool evidence generate ET-XXXX --window {window}
+```
+
+**What Happens**:
+- Calls `prompt-assembler` tool to generate comprehensive prompt (200+ lines)
+- Creates Claude-specific workflow instructions
+- Selects appropriate evidence template based on task category
+- Identifies applicable tools for evidence collection
+- Creates `.context/` directory structure with three key files
+
+**Files Created:**
+1. **assembly-prompt.md** - Comprehensive prompt with:
+   - Task requirements and objectives
+   - Related controls and their requirements
+   - Relevant policy sections
+   - Example evidence structures
+   - Applicable tools and their usage
+
+2. **claude-instructions.md** - Workflow guidance with:
+   - Step-by-step evidence generation process
+   - Tool execution commands
+   - Evidence-generator usage
+   - Expected output structure
+
+3. **evidence-template.md** - Pre-structured report template with:
+   - Task-specific metadata pre-filled
+   - Section headers based on task category
+   - Placeholder prompts for each section
+   - Compliance mapping structure
+
+**Directory Structure:**
+```
+evidence/ET-XXXX_{task_name}/{window}/
+└── .context/
+    ├── assembly-prompt.md        # Comprehensive context
+    ├── claude-instructions.md    # Workflow guide
+    ├── evidence-template.md      # Report structure
+    └── tool_outputs/             # For optional tool data
+```
+
+**Optional: Execute Tools During Context Generation**
+
+To automatically collect tool data during context generation:
+
+```bash
+grctool evidence generate ET-XXXX --window {window} --with-tool-data
+```
+
+This will:
+- Generate assembly context as normal
+- Execute applicable tools identified by prompt-assembler
+- Save tool outputs to `.context/tool_outputs/` as JSON files
+- Provide ready-to-use data for evidence synthesis
+
+### Step 3: Work with Claude Code
+
+**Purpose**: Use Claude Code to help collect evidence  
+
+**Start Claude Code**:
+```bash
+# In your terminal
+claude
+```
+
+**Tell Claude**:
+> "Please read the evidence context at data/evidence/ET-0047_*/2025-Q4/.context/assembly-prompt.md and help me collect the evidence"
+
+**Claude Will**:
+1. Read the context file
+2. Understand the requirements
+3. Suggest which tools to run
+4. Help you execute the commands
+5. Guide you through saving evidence
+
+### Step 4: Execute Tools
+
+**Purpose**: Collect evidence using automated tools  
+
+**With Claude's Guidance**:
+```bash
+# Claude will help you run commands like:
+grctool tool github-permissions \
+  --repository org/repo \
+  --output-format csv > /tmp/permissions.csv
+
+grctool tool github-security-features \
+  --repository org/repo > /tmp/security.json
+```
+
+**Claude Can Help With**:
+- Selecting the right tool parameters
+- Finding repository names from config
+- Formatting output appropriately
+- Troubleshooting errors
+
+### Step 5: Save Evidence
+
+**Purpose**: Save collected evidence with metadata tracking
+**Command**: `grctool tool evidence-writer`  
+
+```bash
+# Save each evidence file
+grctool tool evidence-writer \
+  --task-ref ET-0047 \
+  --title "GitHub Permissions" \
+  --file /tmp/permissions.csv
+
+grctool tool evidence-writer \
+  --task-ref ET-0047 \
+  --title "Security Features" \
+  --file /tmp/security.json
+```
+
+**What Happens**:
+- Evidence saved to `data/evidence/ET-0047_*/2025-Q4/`
+- Files automatically numbered (01_, 02_, etc.)
+- `.generation/metadata.yaml` created with:
+  - SHA256 checksums
+  - Timestamps
+  - Tools used
+  - Generation method (claude-code-assisted)
+
+### Step 6: Validate Evidence
+
+**Purpose**: Ensure evidence is complete and correctly formatted
+**Command**: `grctool evidence validate ET-XXXX`  
+
+```bash
+# Validate specific task
+grctool evidence validate ET-0047 --window 2025-Q4
+```
+
+**Validation Checks**:
+- Files exist and are readable
+- Checksums match metadata
+- Required file types present
+- File sizes within limits
+
+### Step 7: Submit to Tugboat
+
+**Purpose**: Upload evidence to Tugboat Logic for auditor review
+**Command**: `grctool evidence submit ET-XXXX`  
+
+```bash
+# Submit evidence
+grctool evidence submit ET-0047 \
+  --window 2025-Q4 \
+  --notes "Q4 quarterly review"
+```
+
+**What Happens**:
+- Files uploaded via Tugboat Custom Evidence API
+- `.submission/submission.yaml` created with:
+  - Submission ID
+  - Timestamp
+  - Files submitted
+  - Tugboat response status
+
+---
+
+## Evidence State Transitions
+
+Evidence moves through these states:
+
+```
+no_evidence → generated → validated → submitted → accepted
+                                          ↓
+                                      rejected
+                                          ↓
+                                      generated (rework)
+```
+
+### State Descriptions
+
+| State | Description | Next Action |
+|-------|-------------|-------------|
+| **no_evidence** | No evidence files exist | Run `grctool evidence generate` |
+| **generated** | Evidence created, not validated | Run `grctool evidence validate` |
+| **validated** | Evidence validated, ready to submit | Run `grctool evidence submit` |
+| **submitted** | Evidence sent to Tugboat | Wait for auditor review |
+| **accepted** | Evidence approved by auditors | Done! |
+| **rejected** | Evidence needs rework | Review feedback, regenerate |
+
+---
+
+## Common Patterns
+
+### Pattern 1: Single Evidence Task
+
+When you need to collect evidence for one task:
+
+```bash
+# 1. Generate context
+grctool evidence generate ET-0047 --window 2025-Q4
+
+# 2. Start Claude Code
+claude
+
+# 3. Tell Claude
+# "Read the context and help me collect evidence for ET-0047"
+
+# 4. Work interactively with Claude
+# Claude will guide you through running tools and saving evidence
+
+# 5. Validate and submit
+grctool evidence validate ET-0047
+grctool evidence submit ET-0047 --window 2025-Q4
+```
+
+### Pattern 2: Multiple Related Tasks
+
+When collecting evidence for multiple related tasks:
+
+```bash
+# 1. Generate context for all tasks
+grctool evidence generate ET-0047 --window 2025-Q4  # GitHub access
+grctool evidence generate ET-0048 --window 2025-Q4  # GitHub workflows
+grctool evidence generate ET-0049 --window 2025-Q4  # GitHub security
+
+# 2. Start Claude Code
+claude
+
+# 3. Tell Claude
+# "I need to collect GitHub evidence for ET-0047, ET-0048, and ET-0049.
+# Please help me efficiently collect all the evidence."
+
+# Claude will help you:
+# - Run tools once and reuse output
+# - Save evidence to multiple tasks
+# - Avoid duplicate work
+```
+
+### Pattern 3: Regenerating Rejected Evidence
+
+When evidence is rejected and needs rework:
+
+```bash
+# 1. Check what was rejected
+grctool status task ET-0047
+
+# 2. Review feedback
+cat data/evidence/ET-0047_*/2025-Q4/.submission/submission.yaml
+
+# 3. Generate fresh context
+grctool evidence generate ET-0047 --window 2025-Q4
+
+# 4. Work with Claude to address feedback
+claude
+# "The evidence for ET-0047 was rejected. Please help me regenerate it
+# addressing the auditor feedback."
+```
+
+---
+
+## Troubleshooting
+
+### Issue: Context file not found
+
+**Problem**: `grctool evidence generate` didn't create context
+**Solution**:
+```bash
+# Check if task exists
+grctool tool evidence-task-details --task-ref ET-0047
+
+# Try again with explicit window
+grctool evidence generate ET-0047 --window 2025-Q4
+```
+
+### Issue: Tool execution fails
+
+**Problem**: Tool returns errors when collecting evidence  
+**Solution**:
+```bash
+# Check tool help for required parameters
+grctool tool <tool-name> --help
+
+# Verify configuration
+cat .grctool.yaml
+
+# Test with --dry-run
+grctool tool <tool-name> --dry-run
+```
+
+### Issue: Evidence writer fails
+
+**Problem**: Cannot save evidence files  
+**Solution**:
+```bash
+# Check file exists
+ls -lh /tmp/evidence.csv
+
+# Verify task reference is correct
+grctool tool evidence-task-list | grep ET-0047
+
+# Check permissions on data directory
+ls -ld data/evidence/
+```
+
+---
+
+**Next Steps**: Consult `bulk-operations.md` for autonomous multi-task workflows.
