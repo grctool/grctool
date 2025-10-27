@@ -366,7 +366,7 @@ func must[T any](val T, err error) T {
 func processEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, options evidence.BulkGenerationOptions, args []string, ctx context.Context) error {
 	// Check if --all flag is set for bulk generation
 	if options.All {
-		return fmt.Errorf("bulk generation not yet implemented")
+		return processBulkEvidenceGeneration(cmd, evidenceService, options, ctx)
 	}
 
 	// Require task ID if not using --all
@@ -375,8 +375,6 @@ func processEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, 
 	}
 
 	taskRef := args[0]
-
-	// Get additional flags
 	window, _ := cmd.Flags().GetString("window")
 	contextOnly, _ := cmd.Flags().GetBool("context-only")
 
@@ -385,6 +383,11 @@ func processEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, 
 		window = getCurrentQuarter()
 	}
 
+	// Process single task
+	return processSingleTaskGeneration(cmd, taskRef, window, contextOnly, options)
+}
+
+func processSingleTaskGeneration(cmd *cobra.Command, taskRef string, window string, contextOnly bool, options evidence.BulkGenerationOptions) error {
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -448,6 +451,120 @@ func processEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, 
 
 		cmd.Println("  4. Save generated evidence using:")
 		cmd.Printf("     grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.csv\n", task.ReferenceID, window)
+	}
+
+	return nil
+}
+
+func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface{}, options evidence.BulkGenerationOptions, ctx context.Context) error {
+	window, _ := cmd.Flags().GetString("window")
+	contextOnly, _ := cmd.Flags().GetBool("context-only")
+
+	// Default window to current quarter if not specified
+	if window == "" {
+		window = getCurrentQuarter()
+	}
+
+	// Load configuration
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	// Initialize storage
+	storage, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+
+	// Type assert evidenceService to get the correct interface
+	svc, ok := evidenceService.(evidence.Service)
+	if !ok {
+		return fmt.Errorf("invalid evidence service type")
+	}
+
+	cmd.Println("Loading pending evidence tasks...")
+
+	// Get all pending tasks (not completed)
+	filter := domain.EvidenceFilter{}
+	allTasks, err := svc.ListEvidenceTasks(ctx, filter)
+	if err != nil {
+		return fmt.Errorf("failed to list evidence tasks: %w", err)
+	}
+
+	// Filter for non-completed tasks
+	var pendingTasks []domain.EvidenceTask
+	for _, task := range allTasks {
+		if !task.Completed && strings.ToLower(task.Status) != "completed" {
+			pendingTasks = append(pendingTasks, task)
+		}
+	}
+
+	if len(pendingTasks) == 0 {
+		cmd.Println("No pending evidence tasks found.")
+		cmd.Println("Hint: Run 'grctool sync' to fetch latest tasks")
+		return nil
+	}
+
+	cmd.Printf("Found %d pending task(s)\n\n", len(pendingTasks))
+	cmd.Println("Generating evidence contexts:")
+
+	// Track results
+	var successCount, failureCount int
+	var failedTasks []string
+
+	// Process each task
+	for i, task := range pendingTasks {
+		taskNum := i + 1
+		cmd.Printf("  [%d/%d] %s - %s", taskNum, len(pendingTasks), task.ReferenceID, task.Name)
+
+		// Generate context for this task
+		context, err := generateEvidenceContext(&task, window, options.Tools, cfg, storage)
+		if err != nil {
+			cmd.Printf(" ⚠️  Failed: %v\n", err)
+			failureCount++
+			failedTasks = append(failedTasks, fmt.Sprintf("%s (%s)", task.ReferenceID, err.Error()))
+			continue
+		}
+
+		// Create context markdown
+		contextMarkdown := formatContextAsMarkdown(context, &task, window)
+
+		// Save context to evidence directory
+		_, err = saveEvidenceContext(&task, window, contextMarkdown, cfg.Storage.DataDir)
+		if err != nil {
+			cmd.Printf(" ⚠️  Failed to save: %v\n", err)
+			failureCount++
+			failedTasks = append(failedTasks, fmt.Sprintf("%s (%s)", task.ReferenceID, err.Error()))
+			continue
+		}
+
+		cmd.Printf(" ✅\n")
+		successCount++
+	}
+
+	// Display summary
+	cmd.Printf("\nSummary:\n")
+	cmd.Printf("  Total: %d task(s)\n", len(pendingTasks))
+	cmd.Printf("  Success: %d task(s)\n", successCount)
+	cmd.Printf("  Failed: %d task(s)\n", failureCount)
+	cmd.Printf("  Context files saved to: data/evidence/*/[task]/%s/.context/\n\n", window)
+
+	// Show failed tasks if any
+	if failureCount > 0 {
+		cmd.Println("Failed tasks:")
+		for _, failedTask := range failedTasks {
+			cmd.Printf("  ❌ %s\n", failedTask)
+		}
+		cmd.Println()
+	}
+
+	if !contextOnly {
+		cmd.Println("Next steps:")
+		cmd.Println("  1. Review context files for each task")
+		cmd.Println("  2. Ask Claude Code to help generate evidence using the contexts")
+		cmd.Println("  3. Run suggested tools for each task")
+		cmd.Println("  4. Use 'grctool evidence review <task-id>' to validate generated evidence")
 	}
 
 	return nil

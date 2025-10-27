@@ -24,6 +24,7 @@ import (
 
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/tools"
 	"gopkg.in/yaml.v3"
 )
 
@@ -401,6 +402,13 @@ func (s *ServiceImpl) GenerateClaudeMd(outputPath string, force bool) error {
 	cfg, err := config.LoadWithoutValidation()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	// Initialize tool registry so we can list tools
+	// This is safe to call multiple times - it will only register tools once
+	if err := tools.InitializeToolRegistry(cfg, s.logger); err != nil {
+		s.logger.Warn("Failed to initialize tool registry for CLAUDE.md generation", logger.Field{Key: "error", Value: err})
+		// Continue anyway - we'll just have empty tool listings
 	}
 
 	// Render template with config values

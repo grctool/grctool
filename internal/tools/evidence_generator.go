@@ -64,7 +64,7 @@ func NewEvidenceGeneratorTool(cfg *config.Config, log logger.Logger) (*EvidenceG
 func (e *EvidenceGeneratorTool) GetClaudeToolDefinition() models.ClaudeTool {
 	return models.ClaudeTool{
 		Name:        "evidence-generator",
-		Description: "Generate compliance evidence using AI coordination with sub-tools (terraform, github, docs). Outputs evidence in multiple formats with source tracking and metadata.",
+		Description: "Generate compliance evidence using AI coordination with sub-tools (terraform, github, docs-reader). Outputs evidence in multiple formats with source tracking and metadata.",
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
@@ -81,9 +81,9 @@ func (e *EvidenceGeneratorTool) GetClaudeToolDefinition() models.ClaudeTool {
 					"description": "Sub-tools to coordinate during evidence generation",
 					"items": map[string]interface{}{
 						"type": "string",
-						"enum": []string{"terraform", "github", "docs", "manual"},
+						"enum": []string{"terraform", "github", "docs-reader", "manual"},
 					},
-					"default": []string{"terraform", "github", "docs"},
+					"default": []string{"terraform", "github", "docs-reader"},
 				},
 				"format": map[string]interface{}{
 					"type":        "string",
@@ -132,7 +132,7 @@ func (e *EvidenceGeneratorTool) Execute(ctx context.Context, params map[string]i
 	} else if tools, ok := params["tools"].([]string); ok {
 		toolsList = tools
 	} else {
-		toolsList = []string{"terraform", "github", "docs"}
+		toolsList = []string{"terraform", "github", "docs-reader"}
 	}
 
 	// Validate required parameters
