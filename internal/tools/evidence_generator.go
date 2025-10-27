@@ -430,12 +430,43 @@ func (e *EvidenceGeneratorTool) coordinateSubTools(ctx context.Context, taskID i
 	return sources, synthesisBuilder.String(), nil
 }
 
+// resolveToolName maps generic tool categories to actual registered tool names
+func (e *EvidenceGeneratorTool) resolveToolName(genericName string) (string, error) {
+	// Map generic categories to specific tool implementations
+	toolMapping := map[string]string{
+		"terraform":   "terraform-evidence-query", // Best tool for evidence queries
+		"github":      "github-enhanced",          // Comprehensive GitHub search
+		"docs-reader": "docs-reader",              // Already correct
+		"manual":      "",                         // Manual evidence collection (no tool)
+	}
+
+	if resolvedName, ok := toolMapping[genericName]; ok {
+		if resolvedName == "" {
+			return "", fmt.Errorf("manual evidence collection not yet implemented")
+		}
+		return resolvedName, nil
+	}
+
+	// If not a generic name, assume it's already a specific tool name
+	return genericName, nil
+}
+
 // executeTool executes a specific sub-tool
 func (e *EvidenceGeneratorTool) executeTool(ctx context.Context, toolName string, taskID int, prompt string, terraformGitHash string) (models.EvidenceSource, error) {
-	// Get tool from registry
-	tool, err := GetTool(toolName)
+	// Resolve generic tool name to actual registered tool name
+	resolvedToolName, err := e.resolveToolName(toolName)
 	if err != nil {
-		return models.EvidenceSource{}, fmt.Errorf("tool %s not found: %w", toolName, err)
+		return models.EvidenceSource{}, fmt.Errorf("tool %s not available: %w", toolName, err)
+	}
+
+	e.logger.Debug("Resolving tool name",
+		logger.Field{Key: "requested", Value: toolName},
+		logger.Field{Key: "resolved", Value: resolvedToolName})
+
+	// Get tool from registry
+	tool, err := GetTool(resolvedToolName)
+	if err != nil {
+		return models.EvidenceSource{}, fmt.Errorf("tool %s not found: %w", resolvedToolName, err)
 	}
 
 	// Build parameters for the tool
