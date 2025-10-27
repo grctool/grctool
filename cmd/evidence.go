@@ -251,7 +251,7 @@ func runEvidenceView(cmd *cobra.Command, args []string) error {
 	// Get evidence task - try by reference ID first, then by numeric ID
 	task, err := storage.GetEvidenceTask(taskIDOrRef)
 	if err != nil {
-		return fmt.Errorf("evidence task not found: %s (hint: run 'grctool sync --evidence' to fetch latest tasks)", taskIDOrRef)
+		return fmt.Errorf("evidence task not found: %s", taskIDOrRef)
 	}
 
 	// Initialize formatter with interpolation if enabled
@@ -404,7 +404,7 @@ func processSingleTaskGeneration(cmd *cobra.Command, taskRef string, window stri
 	cmd.Printf("Loading task %s...\n", taskRef)
 	task, err := storage.GetEvidenceTask(taskRef)
 	if err != nil {
-		return fmt.Errorf("evidence task not found: %s (hint: run 'grctool sync' to fetch latest tasks)", taskRef)
+		return fmt.Errorf("evidence task not found: %s", taskRef)
 	}
 
 	// Generate context
@@ -502,7 +502,6 @@ func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface
 
 	if len(pendingTasks) == 0 {
 		cmd.Println("No pending evidence tasks found.")
-		cmd.Println("Hint: Run 'grctool sync' to fetch latest tasks")
 		return nil
 	}
 
@@ -795,7 +794,6 @@ func buildEvidenceFilterFromFlags(cmd *cobra.Command) domain.EvidenceFilter {
 func displayEvidenceTasks(cmd *cobra.Command, tasks []domain.EvidenceTask, evidenceService evidence.Service, ctx context.Context) error {
 	if len(tasks) == 0 {
 		cmd.Println("No evidence tasks found matching the specified criteria.")
-		cmd.Println("Run 'grctool sync --evidence' to fetch latest data")
 		return nil
 	}
 
@@ -926,7 +924,7 @@ func displayEvidenceMap(cmd *cobra.Command, mapResult *evidence.EvidenceMapResul
 	cmd.Println("Mapping Evidence Task Relationships")
 
 	if len(mapResult.Tasks) == 0 {
-		cmd.Println("No evidence tasks found. Run 'grctool sync --evidence' first.")
+		cmd.Println("No evidence tasks found.")
 		return nil
 	}
 

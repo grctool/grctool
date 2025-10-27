@@ -238,8 +238,6 @@ grctool tool github-permissions --help
 ## ✅ CHECKLIST FOR AI ASSISTANTS
 
 When helping users:
-- [ ] Confirm data is synced (`grctool sync`)
-- [ ] Verify authentication is valid (`grctool auth status`)
 - [ ] Read evidence task files to understand requirements
 - [ ] Suggest appropriate tools for evidence collection
 - [ ] Help interpret tool output for compliance purposes
