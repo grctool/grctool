@@ -1204,13 +1204,13 @@ func formatContextAsMarkdown(context *EvidenceGenerationContext, task *domain.Ev
 			md.WriteString(fmt.Sprintf("%d. Run: `grctool tool %s`\n", i+1, tool))
 		}
 		md.WriteString(fmt.Sprintf("%d. Synthesize results into evidence document\n", len(context.ApplicableTools)+1))
-		md.WriteString(fmt.Sprintf("%d. Save using: `grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.csv`\n",
-			len(context.ApplicableTools)+2, task.ReferenceID, window))
+		md.WriteString(fmt.Sprintf("%d. Save using: `grctool tool evidence-writer --task-ref %s --title \"Evidence Report\" --file evidence.csv`\n",
+			len(context.ApplicableTools)+2, task.ReferenceID))
 	} else {
 		md.WriteString("1. Manually collect required evidence\n")
 		md.WriteString("2. Create evidence file (CSV, PDF, etc.)\n")
-		md.WriteString(fmt.Sprintf("3. Save using: `grctool tool evidence-writer --task-ref %s --window %s --content-file evidence.pdf`\n",
-			task.ReferenceID, window))
+		md.WriteString(fmt.Sprintf("3. Save using: `grctool tool evidence-writer --task-ref %s --title \"Evidence Report\" --file evidence.pdf`\n",
+			task.ReferenceID))
 	}
 	md.WriteString("\n")
 
@@ -1305,10 +1305,10 @@ grctool tool evidence-generator \
 `+"```bash\n"+`
 grctool tool evidence-writer \
   --task-ref %s \
-  --window %s \
-  --title "Comprehensive Evidence Report" \
+  --title "%s" \
   --file evidence-report.md
-`+"```\n"+`
+`+"```\n\n"+`
+**Note**: The output filename is auto-generated from the title. Use --file to read content from an existing file.
 
 ## Expected Output
 
@@ -1328,7 +1328,7 @@ See ET-0008 Workstation Firewall evidence for reference structure.
 ---
 
 **Need help?** Ask the user questions to understand what data they have available!
-`, task.ReferenceID, task.ReferenceID, task.Name, task.ReferenceID, task.ReferenceID, window)
+`, task.ReferenceID, task.Name, task.ReferenceID, task.ReferenceID, task.ReferenceID, task.Name)
 }
 
 func sanitizeFilename(name string) string {
