@@ -607,8 +607,8 @@ func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface
 	}
 
 	// Display summary
-	cmd.Printf("\n" + strings.Repeat("=", 60) + "\n")
-	cmd.Printf("Assembly Context Generation Complete\n")
+	cmd.Print("\n" + strings.Repeat("=", 60) + "\n")
+	cmd.Print("Assembly Context Generation Complete\n")
 	cmd.Printf("  ✅ Successful: %d tasks\n", successCount)
 	if failureCount > 0 {
 		cmd.Printf("  ⚠️  Failed: %d tasks\n", failureCount)
