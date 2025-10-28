@@ -91,7 +91,8 @@ func runEvidenceMigrate(cmd *cobra.Command, args []string) error {
 	var records []migrationRecord
 	var oldFormatCount int
 
-	cmd.Println("Scanning for directories using old naming format...\n")
+	cmd.Println("Scanning for directories using old naming format...")
+	cmd.Println()
 
 	for _, entry := range entries {
 		if !entry.IsDir() {
