@@ -128,7 +128,8 @@ func init() {
 	grctoolRunCmd.MarkFlagRequired("command")
 }
 
-// Helper function to initialize config, logger, and tool registry
+// Helper function to initialize config and logger
+// Tool registry is already initialized globally in root command OnInitialize
 func initializeToolManagement() (*config.Config, logger.Logger, error) {
 	cfg, err := config.Load()
 	if err != nil {
@@ -139,11 +140,6 @@ func initializeToolManagement() (*config.Config, logger.Logger, error) {
 	log, err := logger.New((&consoleLoggerCfg).ToLoggerConfig())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to initialize logger: %w", err)
-	}
-
-	// Initialize tool registry
-	if err := tools.InitializeToolRegistry(cfg, log); err != nil {
-		log.Warn("Failed to initialize tool registry", logger.Field{Key: "error", Value: err})
 	}
 
 	return cfg, log, nil

@@ -113,12 +113,7 @@ func NewToolContext(cmd *cobra.Command, ctx context.Context) (*ToolContext, erro
 		return nil, fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
-	// Initialize tool registry (only once)
-	if tools.GlobalRegistry.Count() == 0 {
-		if err := tools.InitializeToolRegistry(cfg, log); err != nil {
-			log.Warn("Failed to initialize tool registry", logger.Field{Key: "error", Value: err})
-		}
-	}
+	// Tool registry is already initialized globally in root command OnInitialize
 
 	// Get task reference from flags
 	taskRef, _ := cmd.Flags().GetString("task-ref")

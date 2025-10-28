@@ -21,6 +21,7 @@ import (
 
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/tools"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,7 +46,7 @@ func Execute() error {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, initToolRegistry)
 
 	// Global flags
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default searches $PWD then $HOME for .grctool.yaml)")
@@ -252,4 +253,21 @@ func initLogging() {
 	multiLogger.Info("logging system initialized",
 		logger.String("loggers", fmt.Sprintf("%v", loggerInfo)),
 	)
+}
+
+// initToolRegistry initializes the global tool registry after config and logging are ready
+func initToolRegistry() {
+	// Config and logger are already initialized by initConfig()
+	cfg, err := config.Load()
+	if err != nil {
+		// If config failed, tools won't work anyway - just return silently
+		return
+	}
+
+	log := logger.WithComponent("tools") // Get the global logger with tools component
+
+	// Initialize once globally - registry will be empty on first call
+	if err := tools.InitializeToolRegistry(cfg, log); err != nil {
+		log.Warn("Failed to initialize tool registry", logger.Error(err))
+	}
 }
