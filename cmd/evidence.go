@@ -134,6 +134,8 @@ func init() {
 	evidenceCmd.AddCommand(evidenceGenerateCmd)
 	evidenceCmd.AddCommand(evidenceReviewCmd)
 	evidenceCmd.AddCommand(evidenceSubmitCmd)
+	evidenceCmd.AddCommand(evidenceCleanupCmd)
+	evidenceCmd.AddCommand(evidenceEvaluateCmd)
 
 	// Register completion functions for task ID arguments
 	evidenceAnalyzeCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -155,6 +157,18 @@ func init() {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	evidenceSubmitCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 0 {
+			return completeTaskRefs(cmd, args, toComplete)
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	evidenceCleanupCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 0 {
+			return completeTaskRefs(cmd, args, toComplete)
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	evidenceEvaluateCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
 			return completeTaskRefs(cmd, args, toComplete)
 		}

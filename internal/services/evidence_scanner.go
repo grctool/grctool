@@ -257,15 +257,171 @@ func (s *evidenceScannerImpl) ScanWindow(ctx context.Context, taskRef string, wi
 }
 
 // scanWindowDirectory scans a single window directory and builds WindowState
+// Supports both old (flat) and new (subfolder) structures
 func (s *evidenceScannerImpl) scanWindowDirectory(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {
+	// Check if this uses the new subfolder structure (wip/, ready/, submitted/)
+	subfolders := []string{"wip", "ready", "submitted"}
+	hasSubfolders := false
+	for _, subfolder := range subfolders {
+		subfolderPath := filepath.Join(windowDir, subfolder)
+		if _, err := os.Stat(subfolderPath); err == nil {
+			hasSubfolders = true
+			break
+		}
+	}
+
+	if hasSubfolders {
+		// New structure: scan each subfolder
+		return s.scanSubfolderStructure(ctx, taskRef, window, windowDir)
+	}
+
+	// Old structure: scan window directory directly (for backward compatibility)
+	return s.scanFlatStructure(ctx, taskRef, window, windowDir)
+}
+
+// scanSubfolderStructure scans the new subfolder-based structure
+func (s *evidenceScannerImpl) scanSubfolderStructure(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {
 	windowState := &models.WindowState{
 		Window: window,
 	}
 
-	// List all files in the window directory
-	entries, err := os.ReadDir(windowDir)
+	var allFiles []models.FileState
+	var totalBytes int64
+	var oldestFile, newestFile *time.Time
+
+	// Scan ready/ subfolder (highest priority - determines submission status)
+	readyDir := filepath.Join(windowDir, "ready")
+	if stat, err := os.Stat(readyDir); err == nil && stat.IsDir() {
+		files, bytes, oldest, newest := s.scanFilesInDir(ctx, readyDir)
+		allFiles = append(allFiles, files...)
+		totalBytes += bytes
+		updateTimestamps(&oldestFile, &newestFile, oldest, newest)
+
+		// Check for validation metadata in ready/.validation/
+		if validationMeta := s.readValidationMetadata(readyDir); validationMeta != nil {
+			windowState.SubmissionStatus = "validated"
+		}
+
+		// Check for submission metadata in ready/.submission/ (submitted from ready/)
+		if subMeta, err := s.readSubmissionMetadata(readyDir); err == nil && subMeta != nil {
+			windowState.HasSubmissionMeta = true
+			windowState.SubmissionStatus = subMeta.Status
+			windowState.SubmittedAt = subMeta.SubmittedAt
+			windowState.SubmissionID = subMeta.SubmissionID
+		}
+
+		// Check for generation metadata in ready/.generation/ (moved from wip/)
+		if genMeta, err := s.readGenerationMetadata(readyDir); err == nil && genMeta != nil {
+			windowState.HasGenerationMeta = true
+			windowState.GenerationMethod = genMeta.GenerationMethod
+			windowState.GeneratedAt = &genMeta.GeneratedAt
+			windowState.GeneratedBy = genMeta.GeneratedBy
+			windowState.ToolsUsed = genMeta.ToolsUsed
+		}
+	}
+
+	// Scan submitted/ subfolder (downloaded from Tugboat)
+	submittedDir := filepath.Join(windowDir, "submitted")
+	if stat, err := os.Stat(submittedDir); err == nil && stat.IsDir() {
+		files, bytes, oldest, newest := s.scanFilesInDir(ctx, submittedDir)
+		allFiles = append(allFiles, files...)
+		totalBytes += bytes
+		updateTimestamps(&oldestFile, &newestFile, oldest, newest)
+
+		// Check for submission metadata in submitted/.submission/ (synced from Tugboat)
+		if subMeta, err := s.readSubmissionMetadata(submittedDir); err == nil && subMeta != nil {
+			// Only override if we don't already have submission info from ready/
+			if !windowState.HasSubmissionMeta {
+				windowState.HasSubmissionMeta = true
+				windowState.SubmissionStatus = subMeta.Status
+				windowState.SubmittedAt = subMeta.SubmittedAt
+				windowState.SubmissionID = subMeta.SubmissionID
+			}
+		}
+	}
+
+	// Scan wip/ subfolder (work in progress)
+	wipDir := filepath.Join(windowDir, "wip")
+	if stat, err := os.Stat(wipDir); err == nil && stat.IsDir() {
+		files, bytes, oldest, newest := s.scanFilesInDir(ctx, wipDir)
+		allFiles = append(allFiles, files...)
+		totalBytes += bytes
+		updateTimestamps(&oldestFile, &newestFile, oldest, newest)
+
+		// Check for generation metadata in wip/.generation/
+		if genMeta, err := s.readGenerationMetadata(wipDir); err == nil && genMeta != nil {
+			// Only use wip generation metadata if we don't have it from ready/
+			if !windowState.HasGenerationMeta {
+				windowState.HasGenerationMeta = true
+				windowState.GenerationMethod = genMeta.GenerationMethod
+				windowState.GeneratedAt = &genMeta.GeneratedAt
+				windowState.GeneratedBy = genMeta.GeneratedBy
+				windowState.ToolsUsed = genMeta.ToolsUsed
+			}
+		}
+	}
+
+	windowState.FileCount = len(allFiles)
+	windowState.TotalBytes = totalBytes
+	windowState.OldestFile = oldestFile
+	windowState.NewestFile = newestFile
+	windowState.Files = allFiles
+
+	return windowState, nil
+}
+
+// scanFlatStructure scans the old flat structure (backward compatibility)
+func (s *evidenceScannerImpl) scanFlatStructure(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {
+	windowState := &models.WindowState{
+		Window: window,
+	}
+
+	files, totalBytes, oldestFile, newestFile := s.scanFilesInDir(ctx, windowDir)
+	windowState.FileCount = len(files)
+	windowState.TotalBytes = totalBytes
+	windowState.OldestFile = oldestFile
+	windowState.NewestFile = newestFile
+	windowState.Files = files
+
+	// Read generation metadata if exists
+	genMetadata, err := s.readGenerationMetadata(windowDir)
+	if err == nil && genMetadata != nil {
+		windowState.HasGenerationMeta = true
+		windowState.GenerationMethod = genMetadata.GenerationMethod
+		windowState.GeneratedAt = &genMetadata.GeneratedAt
+		windowState.GeneratedBy = genMetadata.GeneratedBy
+		windowState.ToolsUsed = genMetadata.ToolsUsed
+
+		// Mark files as generated if they appear in generation metadata
+		for i := range files {
+			for _, genFile := range genMetadata.FilesGenerated {
+				if files[i].Filename == filepath.Base(genFile.Path) {
+					files[i].IsGenerated = true
+					files[i].Checksum = genFile.Checksum
+					break
+				}
+			}
+		}
+		windowState.Files = files
+	}
+
+	// Read submission metadata if exists
+	subMetadata, err := s.readSubmissionMetadata(windowDir)
+	if err == nil && subMetadata != nil {
+		windowState.HasSubmissionMeta = true
+		windowState.SubmissionStatus = subMetadata.Status
+		windowState.SubmittedAt = subMetadata.SubmittedAt
+		windowState.SubmissionID = subMetadata.SubmissionID
+	}
+
+	return windowState, nil
+}
+
+// scanFilesInDir scans files in a directory and returns file states and statistics
+func (s *evidenceScannerImpl) scanFilesInDir(ctx context.Context, dir string) ([]models.FileState, int64, *time.Time, *time.Time) {
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read window directory: %w", err)
+		return nil, 0, nil, nil
 	}
 
 	var files []models.FileState
@@ -275,10 +431,10 @@ func (s *evidenceScannerImpl) scanWindowDirectory(ctx context.Context, taskRef s
 	for _, entry := range entries {
 		// Check context cancellation
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return files, totalBytes, oldestFile, newestFile
 		}
 
-		// Skip directories (including .generation, .submission, .context)
+		// Skip directories (including .generation, .submission, .context, .validation)
 		if entry.IsDir() {
 			continue
 		}
@@ -286,9 +442,6 @@ func (s *evidenceScannerImpl) scanWindowDirectory(ctx context.Context, taskRef s
 		// Get file info
 		info, err := entry.Info()
 		if err != nil {
-			s.logger.Warn("Failed to get file info",
-				logger.Field{Key: "file", Value: entry.Name()},
-				logger.Field{Key: "error", Value: err})
 			continue
 		}
 
@@ -315,54 +468,17 @@ func (s *evidenceScannerImpl) scanWindowDirectory(ctx context.Context, taskRef s
 		files = append(files, fileState)
 	}
 
-	windowState.FileCount = len(files)
-	windowState.TotalBytes = totalBytes
-	windowState.OldestFile = oldestFile
-	windowState.NewestFile = newestFile
-	windowState.Files = files
+	return files, totalBytes, oldestFile, newestFile
+}
 
-	// Read generation metadata if exists
-	genMetadata, err := s.readGenerationMetadata(windowDir)
-	if err != nil {
-		s.logger.Warn("Failed to read generation metadata",
-			logger.Field{Key: "task_ref", Value: taskRef},
-			logger.Field{Key: "window", Value: window},
-			logger.Field{Key: "error", Value: err})
-	} else if genMetadata != nil {
-		windowState.HasGenerationMeta = true
-		windowState.GenerationMethod = genMetadata.GenerationMethod
-		windowState.GeneratedAt = &genMetadata.GeneratedAt
-		windowState.GeneratedBy = genMetadata.GeneratedBy
-		windowState.ToolsUsed = genMetadata.ToolsUsed
-
-		// Mark files as generated if they appear in generation metadata
-		for i := range files {
-			for _, genFile := range genMetadata.FilesGenerated {
-				if files[i].Filename == filepath.Base(genFile.Path) {
-					files[i].IsGenerated = true
-					files[i].Checksum = genFile.Checksum
-					break
-				}
-			}
-		}
-		windowState.Files = files
+// updateTimestamps helper to update oldest and newest timestamps
+func updateTimestamps(oldestFile, newestFile **time.Time, oldest, newest *time.Time) {
+	if oldest != nil && (*oldestFile == nil || oldest.Before(**oldestFile)) {
+		*oldestFile = oldest
 	}
-
-	// Read submission metadata if exists
-	subMetadata, err := s.readSubmissionMetadata(windowDir)
-	if err != nil {
-		s.logger.Warn("Failed to read submission metadata",
-			logger.Field{Key: "task_ref", Value: taskRef},
-			logger.Field{Key: "window", Value: window},
-			logger.Field{Key: "error", Value: err})
-	} else if subMetadata != nil {
-		windowState.HasSubmissionMeta = true
-		windowState.SubmissionStatus = subMetadata.Status
-		windowState.SubmittedAt = subMetadata.SubmittedAt
-		windowState.SubmissionID = subMetadata.SubmissionID
+	if newest != nil && (*newestFile == nil || newest.After(**newestFile)) {
+		*newestFile = newest
 	}
-
-	return windowState, nil
 }
 
 // readGenerationMetadata reads .generation/metadata.yaml
@@ -409,6 +525,29 @@ func (s *evidenceScannerImpl) readSubmissionMetadata(windowDir string) (*models.
 	}
 
 	return &metadata, nil
+}
+
+// readValidationMetadata reads .validation/validation.yaml
+func (s *evidenceScannerImpl) readValidationMetadata(windowDir string) *models.ValidationResult {
+	metadataPath := filepath.Join(windowDir, ".validation", "validation.yaml")
+
+	// Check if file exists
+	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
+		return nil // Not an error, just no metadata
+	}
+
+	// Read and unmarshal YAML
+	data, err := os.ReadFile(metadataPath)
+	if err != nil {
+		return nil
+	}
+
+	var metadata models.ValidationResult
+	if err := yaml.Unmarshal(data, &metadata); err != nil {
+		return nil
+	}
+
+	return &metadata
 }
 
 // findTaskDirectory finds the directory for a given task reference
