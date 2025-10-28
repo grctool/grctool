@@ -25,7 +25,7 @@ GRCTool organizes all data in a structured directory hierarchy. Understanding th
 │   ├── controls/          # Security controls and requirements
 │   └── evidence_tasks/    # Evidence collection task definitions
 ├── evidence/              # Generated evidence files
-│   └── ET-XXXX_TaskName/  # One directory per evidence task
+│   └── TaskName_ET-XXXX_TugboatID/  # One directory per evidence task
 │       └── {window}/      # One directory per collection window
 └── .cache/                # Performance cache (safe to delete)
 ```
@@ -38,13 +38,15 @@ Each evidence task has its own directory under `evidence/`, organized by collect
 
 Evidence task directories follow this pattern:
 ```
-ET-{ref}_{TaskName}/
+{TaskName}_ET-{ref}_{TugboatID}/
 ```
 
 Examples:
-- `ET-0001_GitHub_Access_Controls/`
-- `ET-0047_Repository_Permissions/`
-- `ET-0104_Infrastructure_Security/`
+- `GitHub_Access_Controls_ET-0001_328031/`
+- `Repository_Permissions_ET-0047_328047/`
+- `Infrastructure_Security_ET-0104_328104/`
+
+**Format**: The directory name starts with a human-readable task name, followed by the ET reference (for easy lookup), and ends with the Tugboat ID (the canonical identifier).
 
 ### Window-Based Organization
 
@@ -60,7 +62,7 @@ Evidence is organized into collection windows based on the task's collection int
 ### Complete Evidence Task Directory Layout
 
 ```
-evidence/ET-0001_GitHub_Access/
+evidence/GitHub_Access_ET-0001_328001/
 ├── 2025-Q4/                           # Current collection window
 │   │
 │   ├── 01_github_permissions_analysis.md  # Working evidence (root = working area)
@@ -314,34 +316,34 @@ ls /Users/erik/Projects/7thsense-ops/isms/docs/evidence_tasks/ET-0047-*
 ### Checking Existing Evidence
 ```bash
 # List evidence for a task
-ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/
 
 # List windows for a task
-ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/*/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/*/
 
 # Check working evidence files (root directory)
-ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/
 
 # Check submitted evidence (hidden folder)
-ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.submitted/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/.submitted/
 
 # Check synced evidence from Tugboat
-ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/archive/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/archive/
 ```
 
 ### Reading Metadata Files
 ```bash
 # Check generation metadata
-cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.generation/metadata.yaml
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/.generation/metadata.yaml
 
 # Check validation results
-cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.validation/validation.yaml
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/.validation/validation.yaml
 
 # Check submission status
-cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
 
 # Check Tugboat sync metadata
-cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/archive/.submission/submission.yaml
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/*_ET-0047_*/2025-Q4/archive/.submission/submission.yaml
 ```
 
 ## State Tracking

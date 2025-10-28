@@ -9,11 +9,12 @@ import (
 
 const (
 	// TaskDirNameFormat is the format string for evidence task directory names.
-	// Format: {ReferenceID}_{SanitizedTaskName}
-	TaskDirNameFormat = "%s_%s"
+	// Format: {SanitizedTaskName}_{ReferenceID}_{TugboatID}
+	TaskDirNameFormat = "%s_%s_%s"
 
 	// TaskDirNamePattern is the regex pattern for parsing evidence task directory names.
-	TaskDirNamePattern = `^(ET-\d{4})_(.+)$`
+	// Matches: TaskName_ET-XXXX_TugboatID
+	TaskDirNamePattern = `^(.+)_(ET-\d{4})_(\d+)$`
 
 	// MaxTaskNameLength is the maximum length for sanitized task names.
 	MaxTaskNameLength = 100
@@ -37,27 +38,28 @@ var (
 )
 
 // GetEvidenceTaskDirName generates a standardized directory name for an evidence task.
-// The format is: {ReferenceID}_{SanitizedTaskName}
-// Example: "ET-0001_GitHub_Access_Controls"
-func GetEvidenceTaskDirName(taskRef, taskName string) string {
+// The format is: {SanitizedTaskName}_{ReferenceID}_{TugboatID}
+// Example: "GitHub Access Controls_ET-0001_328031"
+func GetEvidenceTaskDirName(taskName, taskRef, tugboatID string) string {
 	sanitized := SanitizeTaskName(taskName)
-	return fmt.Sprintf(TaskDirNameFormat, taskRef, sanitized)
+	return fmt.Sprintf(TaskDirNameFormat, sanitized, taskRef, tugboatID)
 }
 
 // ParseEvidenceTaskDirName parses a directory name back into its components.
-// Returns the task reference ID and the sanitized task name.
+// Returns the task name, task reference ID, and Tugboat ID.
 // If the directory name doesn't match the expected pattern, returns empty strings.
-func ParseEvidenceTaskDirName(dirName string) (ref string, name string) {
+func ParseEvidenceTaskDirName(dirName string) (name string, ref string, tugboatID string) {
 	matches := taskDirRegex.FindStringSubmatch(dirName)
-	if len(matches) < 3 {
-		return "", ""
+	if len(matches) < 4 {
+		return "", "", ""
 	}
 
-	ref = matches[1]
 	// Convert underscores back to spaces for the name
-	name = strings.ReplaceAll(matches[2], "_", " ")
+	name = strings.ReplaceAll(matches[1], "_", " ")
+	ref = matches[2]
+	tugboatID = matches[3]
 
-	return ref, name
+	return name, ref, tugboatID
 }
 
 // SanitizeTaskName converts a task name into a filesystem-safe format.
@@ -90,25 +92,26 @@ func SanitizeTaskName(name string) string {
 	return safe
 }
 
-// MatchesTaskRef checks if a directory name matches or starts with the given task reference.
+// MatchesTaskRef checks if a directory name contains the given task reference.
 // This is useful for finding directories when you only have the reference ID.
 // Returns true if:
 // - The directory name exactly matches the task reference (e.g., "ET-0001")
-// - The directory name starts with the task reference followed by underscore (e.g., "ET-0001_TaskName")
+// - The directory name contains the task reference in the expected position (e.g., "TaskName_ET-0001_328031")
 func MatchesTaskRef(dirName, taskRef string) bool {
 	if dirName == taskRef {
 		return true
 	}
-	prefix := taskRef + "_"
-	return strings.HasPrefix(dirName, prefix)
+	// Try parsing to see if the reference matches
+	_, ref, _ := ParseEvidenceTaskDirName(dirName)
+	return ref == taskRef
 }
 
 // ExtractTaskRef extracts the task reference ID from a directory name.
 // Returns empty string if no valid reference is found.
 func ExtractTaskRef(dirName string) string {
 	matches := taskDirRegex.FindStringSubmatch(dirName)
-	if len(matches) < 2 {
-		// Try to match just the reference ID if directory uses old format
+	if len(matches) < 3 {
+		// Try to match just the reference ID if directory is exactly the ref
 		refPattern := regexp.MustCompile(`^(ET-\d{4})$`)
 		refMatches := refPattern.FindStringSubmatch(dirName)
 		if len(refMatches) >= 2 {
@@ -116,5 +119,6 @@ func ExtractTaskRef(dirName string) string {
 		}
 		return ""
 	}
-	return matches[1]
+	// Reference is now in position 2 (TaskName_ET-XXXX_TugboatID)
+	return matches[2]
 }

@@ -1073,7 +1073,7 @@ func generateEvidenceContext(task *domain.EvidenceTask, window string, requested
 
 	// Scan for existing evidence
 	evidenceDir := filepath.Join(cfg.Storage.DataDir, "evidence")
-	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
 	taskEvidenceDir := filepath.Join(evidenceDir, taskDirName)
 
 	// Check for existing evidence windows
@@ -1269,7 +1269,7 @@ func formatContextAsMarkdown(context *EvidenceGenerationContext, task *domain.Ev
 func saveEvidenceContext(task *domain.EvidenceTask, window string, contextMarkdown string, dataDir string) (string, error) {
 	// Create evidence directory structure
 	evidenceDir := filepath.Join(dataDir, "evidence")
-	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 
@@ -2659,7 +2659,7 @@ func calculatePeriod(window string) string {
 func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *AssemblyContext, dataDir string) (*AssemblyPaths, error) {
 	// Determine evidence directory path
 	evidenceDir := filepath.Join(dataDir, "evidence")
-	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 

@@ -282,7 +282,7 @@ func (ewt *EvidenceWriterTool) Execute(ctx context.Context, params map[string]in
 	}
 
 	// Create evidence directory structure (hybrid approach - working files at root)
-	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, strconv.Itoa(task.ID))
 	windowDir := filepath.Join(ewt.config.Storage.DataDir, "evidence", taskDirName, window)
 	evidenceDir := windowDir // Write directly to root
 

@@ -617,7 +617,7 @@ func (us *Storage) CheckAlreadySubmitted(taskRef, window string) (bool, error) {
 
 // getEvidenceWindowDir returns the evidence directory path for a task/window
 func (us *Storage) getEvidenceWindowDir(taskRef, window string) string {
-	// Evidence directory pattern: evidence/ET-{num}_{name}/{window}/
+	// Evidence directory pattern: evidence/{name}_ET-{num}_{tugboat_id}/{window}/
 	evidenceBase := filepath.Join(us.localDataStore.GetBaseDir(), "evidence")
 
 	// Find the task directory

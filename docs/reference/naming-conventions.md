@@ -229,18 +229,23 @@ grctool/                          # Project root (kebab-case)
 
 ### Evidence Storage Structure
 
+**Current Format (as of 2025-10-28)**:
 ```
-evidence/                        # Evidence root
-├── ET-0001/                    # By evidence task (uppercase reference)
-│   ├── evidence-ET-0001-20250910T143000Z-v1.json
-│   ├── terraform-scanner-ET-0001-20250910T143000Z.json
-│   └── github-permissions-ET-0001-20250910T143000Z.json
-├── ET-0002/
-└── summaries/                  # Aggregated summaries (lowercase)
-    ├── daily/                  # Daily summaries (lowercase)
-    ├── weekly/                 # Weekly summaries (lowercase)
-    └── audit-ready/            # Audit packages (kebab-case)
+evidence/                                           # Evidence root
+├── TaskName_ET-0001_328001/                       # {Name}_{ET-Ref}_{TugboatID}
+│   └── 2025-Q4/                                   # Collection window
+│       ├── 01_evidence.md                         # Working evidence files
+│       ├── .generation/                           # Generation metadata
+│       ├── .submitted/                            # Submitted files
+│       └── archive/                               # Synced from Tugboat
+├── Another_Task_ET-0002_328002/
+└── summaries/                                     # Aggregated summaries (lowercase)
+    ├── daily/                                     # Daily summaries (lowercase)
+    ├── weekly/                                    # Weekly summaries (lowercase)
+    └── audit-ready/                               # Audit packages (kebab-case)
 ```
+
+**Directory Naming**: Evidence task directories are named with the task name first (human-readable), followed by the ET reference (for quick lookup), and the Tugboat ID (canonical identifier).
 
 ### Tool-Specific Directories
 

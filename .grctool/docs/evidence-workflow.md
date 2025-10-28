@@ -270,7 +270,7 @@ grctool tool evidence-writer \
 ```
 
 **Where Files Go**:
-- Evidence saved to root directory: `evidence/ET-0047_*/2025-Q4/01_evidence.md`
+- Evidence saved to root directory: `evidence/*_ET-0047_*/2025-Q4/01_evidence.md`
 - Files automatically numbered (01_, 02_, etc.)
 - `.generation/metadata.yaml` created with checksums and timestamps
 
@@ -466,10 +466,10 @@ When evidence is rejected and needs rework:
 grctool status task ET-0047
 
 # 2. Review feedback
-cat data/evidence/ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
+cat data/evidence/*_ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
 
 # 3. Move rejected files back to root directory
-mv data/evidence/ET-0047_*/2025-Q4/.submitted/*.md data/evidence/ET-0047_*/2025-Q4/
+mv data/evidence/*_ET-0047_*/2025-Q4/.submitted/*.md data/evidence/*_ET-0047_*/2025-Q4/
 
 # 4. Regenerate addressing feedback
 grctool evidence generate ET-0047 --window 2025-Q4

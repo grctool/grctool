@@ -195,7 +195,7 @@ func (s *evidenceScannerImpl) ScanTask(ctx context.Context, taskRef string) (*mo
 	}
 
 	// Build task state
-	_, taskName := naming.ParseEvidenceTaskDirName(filepath.Base(taskDir))
+	taskName, _, _ := naming.ParseEvidenceTaskDirName(filepath.Base(taskDir))
 	taskState := &models.EvidenceTaskState{
 		TaskRef:       taskRef,
 		TaskID:        taskID,

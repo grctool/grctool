@@ -444,7 +444,7 @@ func TestProcessBulkEvidenceGeneration_WithContextDirectory(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify context directory was created
-	expectedDir := filepath.Join(tempDir, "evidence", "ET-0001_Test_Task", "2025-Q1", ".context")
+	expectedDir := filepath.Join(tempDir, "evidence", "Test_Task_ET-0001_1", "2025-Q1", ".context")
 	_, err = os.Stat(expectedDir)
 	assert.NoError(t, err, "Context directory should be created")
 

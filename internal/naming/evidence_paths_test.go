@@ -7,58 +7,66 @@ import (
 
 func TestGetEvidenceTaskDirName(t *testing.T) {
 	tests := []struct {
-		name     string
-		taskRef  string
-		taskName string
-		want     string
+		name       string
+		taskName   string
+		taskRef    string
+		tugboatID  string
+		want       string
 	}{
 		{
-			name:     "simple task name",
-			taskRef:  "ET-0001",
-			taskName: "GitHub Access Controls",
-			want:     "ET-0001_GitHub_Access_Controls",
+			name:      "simple task name",
+			taskName:  "GitHub Access Controls",
+			taskRef:   "ET-0001",
+			tugboatID: "328031",
+			want:      "GitHub_Access_Controls_ET-0001_328031",
 		},
 		{
-			name:     "task name with special characters",
-			taskRef:  "ET-0042",
-			taskName: "Test/Report: Access & Permissions",
-			want:     "ET-0042_Test_Report_Access_Permissions",
+			name:      "task name with special characters",
+			taskName:  "Test/Report: Access & Permissions",
+			taskRef:   "ET-0042",
+			tugboatID: "328042",
+			want:      "Test_Report_Access_Permissions_ET-0042_328042",
 		},
 		{
-			name:     "task name with multiple spaces",
-			taskRef:  "ET-0100",
-			taskName: "User   Access   Review",
-			want:     "ET-0100_User_Access_Review",
+			name:      "task name with multiple spaces",
+			taskName:  "User   Access   Review",
+			taskRef:   "ET-0100",
+			tugboatID: "328100",
+			want:      "User_Access_Review_ET-0100_328100",
 		},
 		{
-			name:     "task name with parentheses and brackets",
-			taskRef:  "ET-0005",
-			taskName: "Policy Review (Q1) [Draft]",
-			want:     "ET-0005_Policy_Review_(Q1)_[Draft]",
+			name:      "task name with parentheses and brackets",
+			taskName:  "Policy Review (Q1) [Draft]",
+			taskRef:   "ET-0005",
+			tugboatID: "328005",
+			want:      "Policy_Review_(Q1)_[Draft]_ET-0005_328005",
 		},
 		{
-			name:     "very long task name",
-			taskRef:  "ET-0200",
-			taskName: "This is a very long task name that should be truncated to fit within the maximum allowed length for filesystem compatibility and readability purposes",
-			want:     "ET-0200_This_is_a_very_long_task_name_that_should_be_truncated_to_fit_within_the_maximum_allowed_length_for",
+			name:      "very long task name",
+			taskName:  "This is a very long task name that should be truncated to fit within the maximum allowed length for filesystem compatibility and readability purposes",
+			taskRef:   "ET-0200",
+			tugboatID: "328200",
+			want:      "This_is_a_very_long_task_name_that_should_be_truncated_to_fit_within_the_maximum_allowed_length_for_ET-0200_328200",
 		},
 		{
-			name:     "task name with leading and trailing spaces",
-			taskRef:  "ET-0003",
-			taskName: "  Trimmed Task  ",
-			want:     "ET-0003_Trimmed_Task",
+			name:      "task name with leading and trailing spaces",
+			taskName:  "  Trimmed Task  ",
+			taskRef:   "ET-0003",
+			tugboatID: "328003",
+			want:      "Trimmed_Task_ET-0003_328003",
 		},
 		{
-			name:     "empty task name",
-			taskRef:  "ET-0099",
-			taskName: "",
-			want:     "ET-0099_",
+			name:      "empty task name",
+			taskName:  "",
+			taskRef:   "ET-0099",
+			tugboatID: "328099",
+			want:      "_ET-0099_328099",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := GetEvidenceTaskDirName(tt.taskRef, tt.taskName)
+			got := GetEvidenceTaskDirName(tt.taskName, tt.taskRef, tt.tugboatID)
 			if got != tt.want {
 				t.Errorf("GetEvidenceTaskDirName() = %v, want %v", got, tt.want)
 			}
@@ -68,51 +76,60 @@ func TestGetEvidenceTaskDirName(t *testing.T) {
 
 func TestParseEvidenceTaskDirName(t *testing.T) {
 	tests := []struct {
-		name     string
-		dirName  string
-		wantRef  string
-		wantName string
+		name          string
+		dirName       string
+		wantName      string
+		wantRef       string
+		wantTugboatID string
 	}{
 		{
-			name:     "valid directory name",
-			dirName:  "ET-0001_GitHub_Access_Controls",
-			wantRef:  "ET-0001",
-			wantName: "GitHub Access Controls",
+			name:          "valid directory name",
+			dirName:       "GitHub_Access_Controls_ET-0001_328031",
+			wantName:      "GitHub Access Controls",
+			wantRef:       "ET-0001",
+			wantTugboatID: "328031",
 		},
 		{
-			name:     "directory with parentheses",
-			dirName:  "ET-0005_Policy_Review_(Q1)_[Draft]",
-			wantRef:  "ET-0005",
-			wantName: "Policy Review (Q1) [Draft]",
+			name:          "directory with parentheses",
+			dirName:       "Policy_Review_(Q1)_[Draft]_ET-0005_328005",
+			wantName:      "Policy Review (Q1) [Draft]",
+			wantRef:       "ET-0005",
+			wantTugboatID: "328005",
 		},
 		{
-			name:     "invalid format - no underscore",
-			dirName:  "ET-0001",
-			wantRef:  "",
-			wantName: "",
+			name:          "invalid format - old format",
+			dirName:       "ET-0001_GitHub_Access_Controls",
+			wantName:      "",
+			wantRef:       "",
+			wantTugboatID: "",
 		},
 		{
-			name:     "invalid format - wrong reference pattern",
-			dirName:  "INVALID_Task_Name",
-			wantRef:  "",
-			wantName: "",
+			name:          "invalid format - wrong reference pattern",
+			dirName:       "INVALID_Task_Name",
+			wantName:      "",
+			wantRef:       "",
+			wantTugboatID: "",
 		},
 		{
-			name:     "directory with hyphenated name",
-			dirName:  "ET-0042_Test-Task-Name",
-			wantRef:  "ET-0042",
-			wantName: "Test-Task-Name",
+			name:          "directory with hyphenated name",
+			dirName:       "Test-Task-Name_ET-0042_328042",
+			wantName:      "Test-Task-Name",
+			wantRef:       "ET-0042",
+			wantTugboatID: "328042",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRef, gotName := ParseEvidenceTaskDirName(tt.dirName)
+			gotName, gotRef, gotTugboatID := ParseEvidenceTaskDirName(tt.dirName)
+			if gotName != tt.wantName {
+				t.Errorf("ParseEvidenceTaskDirName() name = %v, want %v", gotName, tt.wantName)
+			}
 			if gotRef != tt.wantRef {
 				t.Errorf("ParseEvidenceTaskDirName() ref = %v, want %v", gotRef, tt.wantRef)
 			}
-			if gotName != tt.wantName {
-				t.Errorf("ParseEvidenceTaskDirName() name = %v, want %v", gotName, tt.wantName)
+			if gotTugboatID != tt.wantTugboatID {
+				t.Errorf("ParseEvidenceTaskDirName() tugboatID = %v, want %v", gotTugboatID, tt.wantTugboatID)
 			}
 		})
 	}
@@ -225,26 +242,26 @@ func TestMatchesTaskRef(t *testing.T) {
 			want:    true,
 		},
 		{
-			name:    "prefix match with underscore",
-			dirName: "ET-0001_GitHub_Access_Controls",
+			name:    "new format match",
+			dirName: "GitHub_Access_Controls_ET-0001_328031",
 			taskRef: "ET-0001",
 			want:    true,
 		},
 		{
 			name:    "no match",
-			dirName: "ET-0002_Task_Name",
+			dirName: "Task_Name_ET-0002_328002",
 			taskRef: "ET-0001",
 			want:    false,
 		},
 		{
-			name:    "partial reference match without underscore",
+			name:    "partial reference match without proper format",
 			dirName: "ET-0001234",
 			taskRef: "ET-0001",
 			want:    false,
 		},
 		{
 			name:    "different reference",
-			dirName: "ET-0100_Something",
+			dirName: "Something_ET-0100_328100",
 			taskRef: "ET-0001",
 			want:    false,
 		},
@@ -268,7 +285,7 @@ func TestExtractTaskRef(t *testing.T) {
 	}{
 		{
 			name:    "extract from full directory name",
-			dirName: "ET-0001_GitHub_Access_Controls",
+			dirName: "GitHub_Access_Controls_ET-0001_328031",
 			want:    "ET-0001",
 		},
 		{
@@ -278,7 +295,7 @@ func TestExtractTaskRef(t *testing.T) {
 		},
 		{
 			name:    "extract with parentheses",
-			dirName: "ET-0042_Policy_(Q1)",
+			dirName: "Policy_(Q1)_ET-0042_328042",
 			want:    "ET-0042",
 		},
 		{
@@ -292,13 +309,13 @@ func TestExtractTaskRef(t *testing.T) {
 			want:    "",
 		},
 		{
-			name:    "wrong reference pattern",
-			dirName: "ET-999_Task",
+			name:    "wrong reference pattern - three digits",
+			dirName: "Task_ET-999_328999",
 			want:    "",
 		},
 		{
 			name:    "four digit reference",
-			dirName: "ET-9999_Final_Task",
+			dirName: "Final_Task_ET-9999_329999",
 			want:    "ET-9999",
 		},
 	}
@@ -316,24 +333,29 @@ func TestExtractTaskRef(t *testing.T) {
 func TestRoundTrip(t *testing.T) {
 	// Test that we can create a directory name and parse it back
 	tests := []struct {
-		taskRef  string
-		taskName string
+		taskName  string
+		taskRef   string
+		tugboatID string
 	}{
-		{"ET-0001", "GitHub Access Controls"},
-		{"ET-0042", "Policy Review (Q1)"},
-		{"ET-0100", "Test Task with Special Characters!@#"},
+		{"GitHub Access Controls", "ET-0001", "328031"},
+		{"Policy Review (Q1)", "ET-0042", "328042"},
+		{"Test Task with Special Characters!@#", "ET-0100", "328100"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.taskRef, func(t *testing.T) {
 			// Create directory name
-			dirName := GetEvidenceTaskDirName(tt.taskRef, tt.taskName)
+			dirName := GetEvidenceTaskDirName(tt.taskName, tt.taskRef, tt.tugboatID)
 
 			// Parse it back
-			gotRef, gotName := ParseEvidenceTaskDirName(dirName)
+			gotName, gotRef, gotTugboatID := ParseEvidenceTaskDirName(dirName)
 
 			if gotRef != tt.taskRef {
 				t.Errorf("Round trip failed: ref = %v, want %v", gotRef, tt.taskRef)
+			}
+
+			if gotTugboatID != tt.tugboatID {
+				t.Errorf("Round trip failed: tugboatID = %v, want %v", gotTugboatID, tt.tugboatID)
 			}
 
 			// The parsed name should match the sanitized version

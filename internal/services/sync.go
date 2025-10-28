@@ -414,7 +414,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 	// Save attachments for each window
 	for window, windowAttachments := range windowMap {
 		// Download actual files to archive/ subfolder for file-type attachments
-		taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
+		taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, strconv.Itoa(task.ID))
 		evidenceDir := filepath.Join(s.baseDir, "evidence", taskDirName, window, naming.SubfolderArchive)
 		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 			s.logger.Warn("Failed to create evidence directory",

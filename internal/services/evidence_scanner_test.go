@@ -51,16 +51,16 @@ func TestExtractTaskName(t *testing.T) {
 		dirname  string
 		expected string
 	}{
-		{"Simple name", "ET-0001_TaskName", "TaskName"},
-		{"Multi-word name", "ET-0047_GitHub_Access", "GitHub Access"},
-		{"Complex name", "ET-0104_Terraform_Security_Audit", "Terraform Security Audit"},
-		{"Invalid format", "ET-0001", ""},
-		{"No underscore", "TaskName", ""},
+		{"Simple name", "TaskName_ET-0001_328001", "TaskName"},
+		{"Multi-word name", "GitHub_Access_ET-0047_328047", "GitHub Access"},
+		{"Complex name", "Terraform_Security_Audit_ET-0104_328104", "Terraform Security Audit"},
+		{"Invalid format - just ref", "ET-0001", ""},
+		{"Invalid format - no ref", "TaskName", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, result := naming.ParseEvidenceTaskDirName(tt.dirname)
+			result, _, _ := naming.ParseEvidenceTaskDirName(tt.dirname)
 			if result != tt.expected {
 				t.Errorf("ParseEvidenceTaskDirName(%s) = %q, want %q", tt.dirname, result, tt.expected)
 			}
