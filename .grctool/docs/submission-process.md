@@ -37,6 +37,22 @@ For each evidence task:
 
 ### 3. Configure GRCTool
 
+**Option A: Use the setup command (recommended)**
+
+```bash
+# Configure collector URL for each task
+grctool evidence setup ET-0001 --collector-url "https://openapi.tugboatlogic.com/api/v0/evidence/collector/805/"
+grctool evidence setup ET-0047 --collector-url "https://openapi.tugboatlogic.com/api/v0/evidence/collector/806/"
+
+# Interactive mode (prompts for URL)
+grctool evidence setup ET-0001
+
+# Using Tugboat task ID (as displayed in Tugboat UI)
+grctool evidence setup 327992 --collector-url "https://..."
+```
+
+**Option B: Manual configuration**
+
 Add to `.grctool.yaml`:
 ```yaml
 tugboat:

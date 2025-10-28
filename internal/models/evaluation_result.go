@@ -23,7 +23,7 @@ type EvaluationResult struct {
 	TaskRef  string `json:"task_ref" yaml:"task_ref"`
 	TaskID   int    `json:"task_id" yaml:"task_id"`
 	Window   string `json:"window" yaml:"window"`
-	Subfolder string `json:"subfolder,omitempty" yaml:"subfolder,omitempty"` // wip, ready, or submitted
+	Subfolder string `json:"subfolder,omitempty" yaml:"subfolder,omitempty"` // .submitted or archive
 
 	// Overall evaluation
 	OverallScore  float64          `json:"overall_score" yaml:"overall_score"`     // 0-100

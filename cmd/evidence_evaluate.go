@@ -65,11 +65,11 @@ The evaluation produces:
 Results are displayed in the terminal AND saved to .validation/validation.yaml
 
 Examples:
-  # Evaluate all evidence in a window (wip + ready + submitted)
+  # Evaluate all evidence in a window (root + .submitted + archive)
   grctool evidence evaluate ET-0001 --window 2025-Q4
 
   # Evaluate specific subfolder only
-  grctool evidence evaluate ET-0001 --window 2025-Q4 --subfolder ready
+  grctool evidence evaluate ET-0001 --window 2025-Q4 --subfolder .submitted
 
   # Evaluate all tasks
   grctool evidence evaluate --all`,
@@ -79,7 +79,7 @@ Examples:
 
 func init() {
 	evidenceEvaluateCmd.Flags().String("window", "", "specific window to evaluate (e.g., 2025-Q4)")
-	evidenceEvaluateCmd.Flags().String("subfolder", "", "evaluate specific subfolder only (wip/ready/submitted)")
+	evidenceEvaluateCmd.Flags().String("subfolder", "", "evaluate specific subfolder only (.submitted/archive)")
 	evidenceEvaluateCmd.Flags().Bool("all", false, "evaluate all evidence tasks")
 	evidenceEvaluateCmd.Flags().StringP("output", "o", "", "output results to JSON file")
 	evidenceEvaluateCmd.Flags().Bool("save-validation", true, "save results to .validation/validation.yaml")

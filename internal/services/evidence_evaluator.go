@@ -90,7 +90,7 @@ func (s *EvidenceEvaluatorService) EvaluateWindow(ctx context.Context, taskRef s
 	return result, nil
 }
 
-// EvaluateSubfolder evaluates evidence in a specific subfolder (wip/ready/submitted)
+// EvaluateSubfolder evaluates evidence in a specific subfolder (.submitted/archive)
 func (s *EvidenceEvaluatorService) EvaluateSubfolder(ctx context.Context, taskRef string, window string, subfolder string) (*models.EvaluationResult, error) {
 	s.logger.Info("Evaluating evidence subfolder",
 		logger.String("task_ref", taskRef),

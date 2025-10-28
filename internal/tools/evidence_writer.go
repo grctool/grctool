@@ -281,7 +281,7 @@ func (ewt *EvidenceWriterTool) Execute(ctx context.Context, params map[string]in
 		return "", nil, fmt.Errorf("operation cancelled before directory creation: %w", err)
 	}
 
-	// Create evidence directory structure (root directory, no wip/ subfolder in hybrid approach)
+	// Create evidence directory structure (hybrid approach - working files at root)
 	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	windowDir := filepath.Join(ewt.config.Storage.DataDir, "evidence", taskDirName, window)
 	evidenceDir := windowDir // Write directly to root
@@ -290,7 +290,7 @@ func (ewt *EvidenceWriterTool) Execute(ctx context.Context, params map[string]in
 		return "", nil, fmt.Errorf("creating evidence directory '%s': %w: %w", evidenceDir, ErrDirectoryCreation, err)
 	}
 
-	// Load or create collection plan (at window level, not in wip/)
+	// Load or create collection plan (at window level)
 	planPath := filepath.Join(windowDir, "collection_plan.md")
 	plan, err := ewt.planManager.LoadOrCreatePlan(task, window, planPath)
 	if err != nil {

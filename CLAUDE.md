@@ -61,8 +61,17 @@ grctool tool evidence-task-details --task-ref ET-0001
 # 3. Generate evidence for a task
 grctool evidence generate ET-0001
 
-# 4. Review generated evidence
+# 4. Evaluate generated evidence
+grctool evidence evaluate ET-0001
+
+# 5. Review generated evidence (human-readable assessment)
 grctool evidence review ET-0001
+
+# 6. Setup collector URL for submission (one-time per task)
+grctool evidence setup ET-0001 --collector-url "https://openapi.tugboatlogic.com/..."
+
+# 7. Submit evidence to Tugboat
+grctool evidence submit ET-0001
 ```
 
 ### Tool Discovery
@@ -201,6 +210,45 @@ grctool auth logout
 ```
 
 **Note**: Credentials are stored in /auth/ and are automatically refreshed.
+
+## 🔗 EVIDENCE SUBMISSION SETUP
+
+GRCTool can submit evidence directly to Tugboat Logic using custom collector URLs.
+
+### Setting Up Collector URLs
+
+Each evidence task requires a unique collector URL from Tugboat:
+
+```bash
+# Configure collector URL (one-time setup per task)
+grctool evidence setup ET-0001 --collector-url "https://openapi.tugboatlogic.com/api/v0/evidence/collector/805/"
+
+# Interactive mode (prompts for URL)
+grctool evidence setup ET-0001
+
+# Using Tugboat task ID (as shown in Tugboat UI)
+grctool evidence setup 327992 --collector-url "https://..."
+
+# Preview changes without modifying config
+grctool evidence setup ET-0001 --collector-url "https://..." --dry-run
+```
+
+### Getting Collector URLs from Tugboat
+
+1. Log into Tugboat Logic
+2. Navigate to: **Custom Integrations** > **Evidence Services**
+3. Find your evidence task and click **"Copy URL"**
+4. Use the copied URL with `grctool evidence setup`
+
+The collector URL is stored in `.grctool.yaml`:
+```yaml
+tugboat:
+  collector_urls:
+    ET-0001: "https://openapi.tugboatlogic.com/api/v0/evidence/collector/805/"
+    ET-0002: "https://openapi.tugboatlogic.com/api/v0/evidence/collector/806/"
+```
+
+**Note**: Collector URLs are specific to each evidence task and must be configured before submission.
 
 ## 🎨 TEMPLATE VARIABLES AND CUSTOMIZATION
 

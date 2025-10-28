@@ -124,7 +124,6 @@ func init() {
 	evidenceCmd.AddCommand(evidenceGenerateCmd)
 	evidenceCmd.AddCommand(evidenceReviewCmd)
 	evidenceCmd.AddCommand(evidenceSubmitCmd)
-	evidenceCmd.AddCommand(evidenceCleanupCmd)
 	evidenceCmd.AddCommand(evidenceEvaluateCmd)
 
 	// Register completion functions for task ID arguments
@@ -141,12 +140,6 @@ func init() {
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
 	evidenceSubmitCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 0 {
-			return completeTaskRefs(cmd, args, toComplete)
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
-	evidenceCleanupCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
 			return completeTaskRefs(cmd, args, toComplete)
 		}
@@ -2670,7 +2663,7 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 
-	// Create directories (no wip/ directory in hybrid approach - files go to root)
+	// Create directories (hybrid approach - working files go to root)
 	if err := os.MkdirAll(contextDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create context directory: %w", err)
 	}

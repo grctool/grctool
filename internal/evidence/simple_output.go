@@ -39,7 +39,7 @@ type CollectionTask struct {
 // EvidenceSnippet represents a snippet of evidence with source metadata
 type EvidenceSnippet struct {
 	Content         string
-	SourceFile      string    // Filename in wip/
+	SourceFile      string    // Destination filename
 	OriginalPath    string    // Relative path from data directory
 	LastModified    time.Time // Last modification date
 	GeneratedBy     string    // Tool command if generated
@@ -51,7 +51,7 @@ type EvidenceSnippet struct {
 type SourceFile struct {
 	OriginalPath string    // Absolute path to source
 	RelativePath string    // Relative path from data directory
-	DestFilename string    // Filename in wip/
+	DestFilename string    // Destination filename
 	LastModified time.Time
 	GeneratedBy  string // Tool command if generated
 }
@@ -160,7 +160,7 @@ func (g *SimpleOutputGenerator) GetSourceMetadata(filePath string) (*SourceFile,
 	}, nil
 }
 
-// CopySourceFilesFlat copies source files to wip directory (flat structure)
+// CopySourceFilesFlat copies source files to destination directory
 func (g *SimpleOutputGenerator) CopySourceFilesFlat(sources []SourceFile, destDir string) error {
 	// Ensure destination directory exists
 	if err := os.MkdirAll(destDir, 0755); err != nil {

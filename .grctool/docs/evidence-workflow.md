@@ -58,13 +58,19 @@ GRCTool follows a **Claude Code Assisted** approach:
          │
          v
 ┌──────────────────────┐
-│ grctool evidence     │  (6) Submit to Tugboat
+│ grctool evidence     │  (6) Setup collector URL
+│   setup ET-XXXX      │      (One-time configuration per task)
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│ grctool evidence     │  (7) Submit to Tugboat
 │   submit ET-XXXX     │      Files auto-move to .submitted/
 └────────┬─────────────┘
          │
          v
 ┌──────────────────────┐
-│ grctool sync         │  (7) Sync approved evidence from Tugboat
+│ grctool sync         │  (8) Sync approved evidence from Tugboat
 │                      │      Files appear in archive/
 └──────────────────────┘
 ```
@@ -301,7 +307,37 @@ grctool evidence review ET-0047 --window 2025-Q4
 - Records reviewer comments and approval status
 - Separate from automated evaluation
 
-### Step 6: Submit to Tugboat
+### Step 6: Setup Collector URL (One-Time Configuration)
+
+**Purpose**: Configure the Tugboat collector URL for evidence submission
+**Command**: `grctool evidence setup ET-XXXX --collector-url <URL>`
+
+```bash
+# Setup collector URL (one-time per task)
+grctool evidence setup ET-0047 --collector-url "https://openapi.tugboatlogic.com/api/v0/evidence/collector/805/"
+
+# Interactive mode (prompts for URL)
+grctool evidence setup ET-0047
+
+# Using Tugboat task ID (as displayed in Tugboat UI)
+grctool evidence setup 327992 --collector-url "https://..."
+```
+
+**What It Does**:
+- Configures task-specific collector URL from Tugboat UI
+- Accepts both ET reference (ET-0047) and numeric task ID (327992)
+- Validates URL format and HTTPS requirement
+- Updates `.grctool.yaml` configuration file
+- Creates backup before modifications
+
+**Getting the Collector URL**:
+1. Log into Tugboat Logic
+2. Navigate to: Custom Integrations > Evidence Services
+3. Find your evidence task and click "Copy URL"
+
+**Note**: This is a one-time setup per task. Once configured, you can submit evidence multiple times without reconfiguring.
+
+### Step 7: Submit to Tugboat
 
 **Purpose**: Upload evidence to Tugboat Logic for auditor review
 **Command**: `grctool evidence submit ET-XXXX`
@@ -391,7 +427,10 @@ grctool evidence evaluate ET-0047 --window 2025-Q4
 # 3. (Optional) Human review
 grctool evidence review ET-0047 --window 2025-Q4
 
-# 4. Submit (files auto-move to .submitted/)
+# 4. (One-time) Setup collector URL
+grctool evidence setup ET-0047 --collector-url "https://openapi.tugboatlogic.com/..."
+
+# 5. Submit (files auto-move to .submitted/)
 grctool evidence submit ET-0047 --window 2025-Q4
 ```
 
@@ -437,6 +476,7 @@ grctool evidence generate ET-0047 --window 2025-Q4
 # Claude will help you address the auditor feedback
 
 # 5. Resubmit (files move back to .submitted/)
+# Note: Collector URL already configured from initial setup
 grctool evidence submit ET-0047 --window 2025-Q4
 ```
 

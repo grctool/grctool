@@ -258,35 +258,19 @@ func (s *evidenceScannerImpl) ScanWindow(ctx context.Context, taskRef string, wi
 // scanWindowDirectory scans a single window directory and builds WindowState
 // Supports both root directory (new hybrid approach) and legacy subfolder structures
 func (s *evidenceScannerImpl) scanWindowDirectory(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {
-	// Check if this uses the old subfolder structure (.submitted/ and archive/ are OK, but wip/ready/submitted are legacy)
+	// Check if this uses the hybrid subfolder structure (.submitted/ and archive/)
 	subfolders := []string{naming.SubfolderSubmitted, naming.SubfolderArchive}
-	hasNewStructure := false
+	hasHybridStructure := false
 	for _, subfolder := range subfolders {
 		subfolderPath := filepath.Join(windowDir, subfolder)
 		if _, err := os.Stat(subfolderPath); err == nil {
-			hasNewStructure = true
+			hasHybridStructure = true
 			break
 		}
 	}
 
-	// Check for legacy wip/ready/submitted subfolders
-	legacySubfolders := []string{"wip", "ready", "submitted"}
-	hasLegacySubfolders := false
-	for _, subfolder := range legacySubfolders {
-		subfolderPath := filepath.Join(windowDir, subfolder)
-		if _, err := os.Stat(subfolderPath); err == nil {
-			hasLegacySubfolders = true
-			break
-		}
-	}
-
-	if hasLegacySubfolders {
-		// Legacy structure: scan old subfolders
-		return s.scanLegacySubfolderStructure(ctx, taskRef, window, windowDir)
-	}
-
-	if hasNewStructure {
-		// New hybrid structure: scan root + .submitted/ + archive/
+	if hasHybridStructure {
+		// Hybrid structure: scan root + .submitted/ + archive/
 		return s.scanHybridStructure(ctx, taskRef, window, windowDir)
 	}
 
@@ -370,96 +354,6 @@ func (s *evidenceScannerImpl) scanHybridStructure(ctx context.Context, taskRef s
 	return windowState, nil
 }
 
-// scanLegacySubfolderStructure scans the old subfolder-based structure (wip/ready/submitted)
-func (s *evidenceScannerImpl) scanLegacySubfolderStructure(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {
-	windowState := &models.WindowState{
-		Window: window,
-	}
-
-	var allFiles []models.FileState
-	var totalBytes int64
-	var oldestFile, newestFile *time.Time
-
-	// Scan ready/ subfolder (highest priority - determines submission status)
-	readyDir := filepath.Join(windowDir, "ready")
-	if stat, err := os.Stat(readyDir); err == nil && stat.IsDir() {
-		files, bytes, oldest, newest := s.scanFilesInDir(ctx, readyDir)
-		allFiles = append(allFiles, files...)
-		totalBytes += bytes
-		updateTimestamps(&oldestFile, &newestFile, oldest, newest)
-
-		// Check for validation metadata in ready/.validation/
-		if validationMeta := s.readValidationMetadata(readyDir); validationMeta != nil {
-			windowState.SubmissionStatus = "validated"
-		}
-
-		// Check for submission metadata in ready/.submission/ (submitted from ready/)
-		if subMeta, err := s.readSubmissionMetadata(readyDir); err == nil && subMeta != nil {
-			windowState.HasSubmissionMeta = true
-			windowState.SubmissionStatus = subMeta.Status
-			windowState.SubmittedAt = subMeta.SubmittedAt
-			windowState.SubmissionID = subMeta.SubmissionID
-		}
-
-		// Check for generation metadata in ready/.generation/ (moved from wip/)
-		if genMeta, err := s.readGenerationMetadata(readyDir); err == nil && genMeta != nil {
-			windowState.HasGenerationMeta = true
-			windowState.GenerationMethod = genMeta.GenerationMethod
-			windowState.GeneratedAt = &genMeta.GeneratedAt
-			windowState.GeneratedBy = genMeta.GeneratedBy
-			windowState.ToolsUsed = genMeta.ToolsUsed
-		}
-	}
-
-	// Scan submitted/ subfolder (downloaded from Tugboat)
-	submittedDir := filepath.Join(windowDir, "submitted")
-	if stat, err := os.Stat(submittedDir); err == nil && stat.IsDir() {
-		files, bytes, oldest, newest := s.scanFilesInDir(ctx, submittedDir)
-		allFiles = append(allFiles, files...)
-		totalBytes += bytes
-		updateTimestamps(&oldestFile, &newestFile, oldest, newest)
-
-		// Check for submission metadata in submitted/.submission/ (synced from Tugboat)
-		if subMeta, err := s.readSubmissionMetadata(submittedDir); err == nil && subMeta != nil {
-			// Only override if we don't already have submission info from ready/
-			if !windowState.HasSubmissionMeta {
-				windowState.HasSubmissionMeta = true
-				windowState.SubmissionStatus = subMeta.Status
-				windowState.SubmittedAt = subMeta.SubmittedAt
-				windowState.SubmissionID = subMeta.SubmissionID
-			}
-		}
-	}
-
-	// Scan wip/ subfolder (work in progress)
-	wipDir := filepath.Join(windowDir, "wip")
-	if stat, err := os.Stat(wipDir); err == nil && stat.IsDir() {
-		files, bytes, oldest, newest := s.scanFilesInDir(ctx, wipDir)
-		allFiles = append(allFiles, files...)
-		totalBytes += bytes
-		updateTimestamps(&oldestFile, &newestFile, oldest, newest)
-
-		// Check for generation metadata in wip/.generation/
-		if genMeta, err := s.readGenerationMetadata(wipDir); err == nil && genMeta != nil {
-			// Only use wip generation metadata if we don't have it from ready/
-			if !windowState.HasGenerationMeta {
-				windowState.HasGenerationMeta = true
-				windowState.GenerationMethod = genMeta.GenerationMethod
-				windowState.GeneratedAt = &genMeta.GeneratedAt
-				windowState.GeneratedBy = genMeta.GeneratedBy
-				windowState.ToolsUsed = genMeta.ToolsUsed
-			}
-		}
-	}
-
-	windowState.FileCount = len(allFiles)
-	windowState.TotalBytes = totalBytes
-	windowState.OldestFile = oldestFile
-	windowState.NewestFile = newestFile
-	windowState.Files = allFiles
-
-	return windowState, nil
-}
 
 // scanFlatStructure scans the old flat structure (backward compatibility)
 func (s *evidenceScannerImpl) scanFlatStructure(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {

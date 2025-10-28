@@ -28,7 +28,6 @@ import (
 
 	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/naming"
-	"github.com/grctool/grctool/internal/services/conversion"
 	"gopkg.in/yaml.v3"
 )
 
@@ -149,7 +148,7 @@ func (us *Storage) SaveValidationResult(taskRef, window string, result *models.V
 	return nil
 }
 
-// SaveValidationResultToSubfolder saves validation results to a specific subfolder (typically "ready")
+// SaveValidationResultToSubfolder saves validation results to a specific subfolder (.submitted/archive)
 func (us *Storage) SaveValidationResultToSubfolder(taskRef, window string, result *models.ValidationResult, subfolder string) error {
 	if result == nil {
 		return fmt.Errorf("validation result cannot be nil")
@@ -640,7 +639,7 @@ func (us *Storage) getEvidenceWindowDir(taskRef, window string) string {
 }
 
 // getEvidenceSubfolderDir returns the evidence directory path for a task/window/subfolder
-// subfolder can be "wip", "ready", or "submitted"
+// subfolder can be ".submitted" or "archive"
 func (us *Storage) getEvidenceSubfolderDir(taskRef, window, subfolder string) string {
 	windowDir := us.getEvidenceWindowDir(taskRef, window)
 	return filepath.Join(windowDir, subfolder)
@@ -683,98 +682,3 @@ func (us *Storage) SubmissionExists(taskRef, window string) bool {
 	return err == nil
 }
 
-// MoveEvidenceFiles moves evidence files from one subfolder to another
-// Moves both the evidence files and their metadata directories (.generation/, .validation/, etc.)
-// If moving to "ready", automatically converts markdown files to PDF
-func (us *Storage) MoveEvidenceFiles(taskRef, window, fromSubfolder, toSubfolder string) error {
-	fromDir := us.getEvidenceSubfolderDir(taskRef, window, fromSubfolder)
-	toDir := us.getEvidenceSubfolderDir(taskRef, window, toSubfolder)
-
-	// Check if source directory exists
-	if _, err := os.Stat(fromDir); os.IsNotExist(err) {
-		return fmt.Errorf("source directory does not exist: %s", fromDir)
-	}
-
-	// Create destination directory
-	if err := os.MkdirAll(toDir, 0755); err != nil {
-		return fmt.Errorf("failed to create destination directory: %w", err)
-	}
-
-	// Read all entries from source directory
-	entries, err := os.ReadDir(fromDir)
-	if err != nil {
-		return fmt.Errorf("failed to read source directory: %w", err)
-	}
-
-	// Move each file and directory
-	for _, entry := range entries {
-		sourcePath := filepath.Join(fromDir, entry.Name())
-		destPath := filepath.Join(toDir, entry.Name())
-
-		// Rename (move) the file/directory
-		if err := os.Rename(sourcePath, destPath); err != nil {
-			return fmt.Errorf("failed to move %s: %w", entry.Name(), err)
-		}
-	}
-
-	// If moving to "ready", convert markdown files to PDF
-	if toSubfolder == "ready" {
-		if err := us.convertMarkdownToPDF(taskRef, window); err != nil {
-			// Log warning but don't fail the move operation
-			// User can still submit .md files as fallback
-			fmt.Printf("Warning: failed to convert markdown to PDF: %v\n", err)
-		}
-	}
-
-	// Optionally remove the now-empty source directory
-	// We'll keep it for now - the scanner will handle empty directories gracefully
-
-	return nil
-}
-
-// convertMarkdownToPDF converts all markdown files in the ready/ folder to PDF
-func (us *Storage) convertMarkdownToPDF(taskRef, window string) error {
-	readyDir := us.getEvidenceSubfolderDir(taskRef, window, "ready")
-
-	// Import conversion package (will be added in imports)
-	converter := conversion.NewConverter()
-
-	// Find all .md files in ready/
-	entries, err := os.ReadDir(readyDir)
-	if err != nil {
-		return fmt.Errorf("failed to read ready directory: %w", err)
-	}
-
-	for _, entry := range entries {
-		// Skip directories and non-markdown files
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".md" {
-			continue
-		}
-
-		inputPath := filepath.Join(readyDir, entry.Name())
-		outputPath := strings.TrimSuffix(inputPath, ".md") + ".pdf"
-
-		// Skip if PDF already exists and is newer than markdown
-		if pdfInfo, err := os.Stat(outputPath); err == nil {
-			mdInfo, _ := os.Stat(inputPath)
-			if pdfInfo.ModTime().After(mdInfo.ModTime()) {
-				continue // PDF is up to date
-			}
-		}
-
-		// Convert markdown to PDF
-		opts := conversion.DefaultOptions()
-		opts.Title = strings.TrimSuffix(entry.Name(), ".md")
-		opts.Subject = fmt.Sprintf("Evidence for %s - %s", taskRef, window)
-
-		if err := converter.ConvertMarkdownToPDF(inputPath, outputPath, opts); err != nil {
-			// Log error but continue with other files
-			fmt.Printf("Warning: failed to convert %s to PDF: %v\n", entry.Name(), err)
-			continue
-		}
-
-		fmt.Printf("Converted %s → %s\n", entry.Name(), filepath.Base(outputPath))
-	}
-
-	return nil
-}
