@@ -326,64 +326,91 @@ func (client *GitHubAPIClient) GetRepositoryBranches(ctx context.Context, owner,
 	return branches, nil
 }
 
-// GetDeploymentEnvironments gets all deployment environments using GraphQL
+// GetDeploymentEnvironments gets all deployment environments using REST API
 func (client *GitHubAPIClient) GetDeploymentEnvironments(ctx context.Context, owner, repo string) ([]models.GitHubEnvironment, error) {
-	query := `
-	query($owner: String!, $repo: String!) {
-		repository(owner: $owner, name: $repo) {
-			environments(first: 100) {
-				nodes {
-					name
-					id
-					protectionRules(first: 100) {
-						nodes {
-							type
-							... on RequiredReviewers {
-								requiredReviewers {
-									... on User {
-										login
-										name
-										email
-									}
-									... on Team {
-										name
-										slug
-									}
-								}
-							}
-							... on WaitTimer {
-								waitTimer
-							}
-						}
-					}
-				}
-			}
-		}
-	}`
+	endpoint := fmt.Sprintf("/repos/%s/%s/environments", owner, repo)
 
-	variables := map[string]interface{}{
-		"owner": owner,
-		"repo":  repo,
-	}
-
-	resp, err := client.makeGraphQLRequest(ctx, query, variables)
+	resp, err := client.makeRESTRequest(ctx, "GET", endpoint, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get deployment environments: %w", err)
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 404 {
+		// No environments configured - return empty list
+		return []models.GitHubEnvironment{}, nil
 	}
 
-	var result struct {
-		Repository struct {
-			Environments struct {
-				Nodes []models.GitHubEnvironment `json:"nodes"`
-			} `json:"environments"`
-		} `json:"repository"`
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("GitHub API error %d: %s", resp.StatusCode, string(body))
 	}
 
-	if err := json.Unmarshal(resp.Data, &result); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal environments response: %w", err)
+	var envResponse struct {
+		TotalCount   int `json:"total_count"`
+		Environments []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+			ProtectionRules []struct {
+				ID        int    `json:"id"`
+				Type      string `json:"type"`
+				WaitTimer int    `json:"wait_timer,omitempty"`
+				Reviewers []struct {
+					Type     string `json:"type"` // User or Team
+					Reviewer struct {
+						Login string `json:"login,omitempty"`
+						Name  string `json:"name,omitempty"`
+						Email string `json:"email,omitempty"`
+						Slug  string `json:"slug,omitempty"`
+					} `json:"reviewer,omitempty"`
+				} `json:"reviewers,omitempty"`
+			} `json:"protection_rules"`
+			CreatedAt time.Time `json:"created_at"`
+			UpdatedAt time.Time `json:"updated_at"`
+		} `json:"environments"`
 	}
 
-	return result.Repository.Environments.Nodes, nil
+	if err := json.NewDecoder(resp.Body).Decode(&envResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode environments response: %w", err)
+	}
+
+	// Convert to our model format
+	environments := make([]models.GitHubEnvironment, 0, len(envResponse.Environments))
+	for _, env := range envResponse.Environments {
+		ghEnv := models.GitHubEnvironment{
+			ID:              fmt.Sprintf("%d", env.ID),
+			Name:            env.Name,
+			CreatedAt:       env.CreatedAt,
+			UpdatedAt:       env.UpdatedAt,
+			ProtectionRules: make([]models.GitHubEnvironmentProtection, 0, len(env.ProtectionRules)),
+		}
+
+		// Convert protection rules
+		for _, rule := range env.ProtectionRules {
+			protection := models.GitHubEnvironmentProtection{
+				Type:      rule.Type,
+				WaitTimer: rule.WaitTimer,
+			}
+
+			// Convert reviewers
+			for _, reviewer := range rule.Reviewers {
+				ghReviewer := models.GitHubRequiredReviewer{
+					Type:  reviewer.Type,
+					Login: reviewer.Reviewer.Login,
+					Name:  reviewer.Reviewer.Name,
+					Email: reviewer.Reviewer.Email,
+					Slug:  reviewer.Reviewer.Slug,
+				}
+				protection.RequiredReviewers = append(protection.RequiredReviewers, ghReviewer)
+			}
+
+			ghEnv.ProtectionRules = append(ghEnv.ProtectionRules, protection)
+		}
+
+		environments = append(environments, ghEnv)
+	}
+
+	return environments, nil
 }
 
 // GetRepositorySecurity gets repository security settings
