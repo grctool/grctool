@@ -1250,85 +1250,129 @@ func generateClaudeInstructions(task *domain.EvidenceTask, window string) string
 
 ## Your Mission
 
-Help the user generate comprehensive evidence for **%s** (%s).
+Help the user generate evidence for **%s** (%s).
 
 ## What You Have
 
-1. **Assembly Prompt** (assembly-prompt.md)
+1. **Assembly Prompt** (.context/assembly-prompt.md)
    - Comprehensive context from prompt-assembler
    - Related controls and policies
    - Example evidence structure
    - All requirements for this task
 
-2. **Evidence Template** (evidence-template.md)
+2. **Evidence Template** (.context/evidence-template.md)
    - Pre-structured report outline
    - Section headers and prompts
    - Based on proven evidence patterns
 
-3. **Tool Data** (tool_outputs/ directory, if available)
+3. **Tool Data** (.context/tool_outputs/ directory, if available)
    - Pre-collected data from automated tools
-   - Ready for synthesis into report
+   - Ready for synthesis into evidence
+
+## Dual Output Approach
+
+You will generate TWO outputs:
+
+### 1. Simple Evidence File (wip/%s_Evidence.md)
+**Purpose**: Clean, auditor-friendly evidence document
+**Structure**:
+- Header with task description and collection date
+- Collection tasks broken down from task description/guidance
+- Each task shows: Evidence statement → Inline snippet (quoted) → Source reference
+- Flat file structure (no subfolders) ready for Tugboat upload
+
+**Format Example**:
+`+"```"+`markdown
+## Collection Task 1: Document access provisioning process
+
+**Evidence:** Policy requires manager approval for all access requests
+
+**Source:** `+"`"+`POL-0001-access-control.md`+"`"+`
+**Original Path:** `+"`"+`docs/policies/POL-0001-access-control.md`+"`"+`
+**Last Modified:** 2025-09-15
+**Section:** 3.2 (lines 45-52)
+
+> All access requests must be:
+> 1. Submitted via standardized request form
+> 2. Approved by direct manager
+> 3. Reviewed by security team
+
+---
+`+"```"+`
+
+### 2. Narrative Background (.context/narrative-background.md)
+**Purpose**: Detailed context and explanations (NOT uploaded to Tugboat)
+**Contents**:
+- Detailed analysis and reasoning
+- Executive summaries
+- Compliance interpretations
+- Background information for internal use
 
 ## Workflow
 
 ### Step 1: Review Assembly Prompt
-Read assembly-prompt.md to understand:
+Read .context/assembly-prompt.md to understand:
 - What evidence is needed
 - Which controls it satisfies
-- What policies are relevant
+- What policies/sources are relevant
 - What tools can help
 
-### Step 2: Collect Tool Data (if not already collected)
-Run applicable tools identified in the prompt:
+### Step 2: Breakdown Collection Tasks
+Analyze task description and guidance to identify discrete collection tasks:
+- What specific items need to be verified?
+- What documentation needs to be reviewed?
+- What technical evidence needs to be collected?
+
+### Step 3: Collect Tool Data & Sources
+Run applicable tools and gather source materials:
 `+"```bash\n"+`
-grctool tool <tool-name> --repository <repo> > tool_outputs/<tool-name>.json
+grctool tool <tool-name> --repository <repo> > .context/tool_outputs/<tool-name>.json
 `+"```\n"+`
 
-### Step 3: Use Evidence Generator
-Synthesize tool outputs into comprehensive report:
-`+"```bash\n"+`
-grctool tool evidence-generator \
-  --task-ref %s \
-  --prompt-file .context/assembly-prompt.md \
-  --tools terraform,github,docs \
-  --format markdown \
-  --output-dir .
-`+"```\n"+`
+### Step 4: Generate Simple Evidence File
+Create wip/%s_Evidence.md with:
+- Collection tasks derived from description/guidance
+- Evidence snippets with inline quotes
+- Source file references with relative paths and dates
+- Copy all referenced source files flat to wip/
 
-### Step 4: Refine Report
-- Review generated evidence
-- Fill in analysis sections
-- Add executive summary
-- Ensure all requirements met
-
-### Step 5: Save Evidence
-`+"```bash\n"+`
-grctool tool evidence-writer \
-  --task-ref %s \
-  --title "%s" \
-  --file evidence-report.md
-`+"```\n\n"+`
-**Note**: The output filename is auto-generated from the title. Use --file to read content from an existing file.
-
-## Expected Output
-
-A comprehensive evidence document (500+ lines) with:
+### Step 5: Generate Narrative Background
+Create .context/narrative-background.md with:
+- Detailed analysis and interpretation
 - Executive summary
-- Control mapping
-- Policy foundations
-- Technical evidence/data
-- Compliance review/analysis
-- Auditor notes
-- Quality assurance section
+- Compliance reasoning
+- Additional context
 
-## Example
+## Source File Handling
 
-See ET-0008 Workstation Firewall evidence for reference structure.
+**IMPORTANT**: Copy all referenced source files to wip/ (flat, no subdirectories):
+- Policy documents → wip/POL-XXXX-name.md
+- Control files → wip/AC1-778771.json
+- Tool outputs → wip/github-permissions.json
+- Terraform files → wip/terraform-main.tf
+
+**Path References**: Use relative paths from data directory:
+- ✅ `+"`"+`docs/policies/POL-0001-access-control.md`+"`"+`
+- ❌ `+"`"+`/Users/erik/Projects/7thsense-ops/isms/docs/policies/POL-0001-access-control.md`+"`"+`
+
+## Expected Outputs
+
+**wip/**: Ready for Tugboat upload
+- %s_Evidence.md (simple, task-focused)
+- POL-XXXX-*.md (policy source files)
+- Control-*.json (control source files)
+- Other source files referenced in evidence
+
+**.context/**: Internal context only
+- narrative-background.md (detailed analysis)
+- assembly-prompt.md
+- claude-instructions.md
+- evidence-template.md
 
 ---
 
-**Need help?** Ask the user questions to understand what data they have available!
-`, task.ReferenceID, task.Name, task.ReferenceID, task.ReferenceID, task.ReferenceID, task.Name)
+**Need help?** Review the assembly prompt first, then ask questions about available data sources!
+`, task.ReferenceID, task.Name, task.ReferenceID, task.ReferenceID, task.ReferenceID, task.ReferenceID)
 }
 
 func sanitizeFilename(name string) string {
@@ -2484,10 +2528,14 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
+	wipDir := filepath.Join(windowDir, "wip")
 
-	// Create context directory
+	// Create directories
 	if err := os.MkdirAll(contextDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create context directory: %w", err)
+	}
+	if err := os.MkdirAll(wipDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create wip directory: %w", err)
 	}
 
 	assemblyPaths := &AssemblyPaths{
@@ -2518,5 +2566,44 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 		return nil, fmt.Errorf("failed to create tool outputs directory: %w", err)
 	}
 
+	// Generate simple evidence template in wip/
+	simpleEvidenceFilename := fmt.Sprintf("%s_%s-Evidence.md", task.ReferenceID, sanitizeFilename(task.Name))
+	simpleEvidencePath := filepath.Join(wipDir, simpleEvidenceFilename)
+
+	// Create initial simple evidence template
+	simpleTemplate := generateSimpleEvidenceTemplate(task, window)
+	if err := os.WriteFile(simpleEvidencePath, []byte(simpleTemplate), 0644); err != nil {
+		return nil, fmt.Errorf("failed to save simple evidence template: %w", err)
+	}
+
 	return assemblyPaths, nil
+}
+
+// generateSimpleEvidenceTemplate creates an initial simple evidence template
+func generateSimpleEvidenceTemplate(task *domain.EvidenceTask, window string) string {
+	// Create initial template with header and placeholder sections
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("# %s: %s\n\n", task.ReferenceID, task.Name))
+	sb.WriteString(fmt.Sprintf("**Task Description:** %s\n", task.Description))
+	sb.WriteString(fmt.Sprintf("**Collection Date:** %s\n", time.Now().Format("2006-01-02")))
+	if window != "" {
+		sb.WriteString(fmt.Sprintf("**Collection Window:** %s\n", window))
+	}
+	sb.WriteString("\n---\n\n")
+
+	sb.WriteString("## Collection Task 1: [Task description]\n\n")
+	sb.WriteString("**Evidence:** [Evidence statement]\n\n")
+	sb.WriteString("**Source:** `[filename]`  \n")
+	sb.WriteString("**Original Path:** `[relative-path]`  \n")
+	sb.WriteString("**Last Modified:** [date]  \n")
+	sb.WriteString("**Section:** [section reference]\n\n")
+	sb.WriteString("> [Quoted snippet from source]\n")
+	sb.WriteString("> [More quoted content...]\n\n")
+	sb.WriteString("---\n\n")
+
+	sb.WriteString("<!-- Add more collection tasks as needed -->\n")
+	sb.WriteString("<!-- Remember to copy all source files flat to wip/ directory -->\n")
+
+	return sb.String()
 }
