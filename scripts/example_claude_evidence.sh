@@ -29,10 +29,10 @@ echo "📋 Step 2: Listing evidence tasks..."
 ./build/grctool evidence list --framework SOC2 --status pending | head -20
 echo ""
 
-# Step 3: Analyze a specific task (example task ID)
+# Step 3: Generate evidence assembly context for a specific task
 TASK_ID=328123  # Replace with your actual task ID
-echo "🔍 Step 3: Analyzing task $TASK_ID..."
-./build/grctool evidence analyze $TASK_ID
+echo "🔍 Step 3: Generating assembly context for task $TASK_ID..."
+./build/grctool evidence generate $TASK_ID --context-only
 echo ""
 
 # Step 4: Generate evidence using Claude and tools

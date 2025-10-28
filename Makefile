@@ -319,10 +319,10 @@ sync: build ## Example: Run sync command
 evidence-list: build ## Example: List evidence tasks
 	./$(BUILD_DIR)/$(BINARY_NAME) evidence list --status pending
 
-prompts: build ## Example: List evidence tasks
-	./$(BUILD_DIR)/$(BINARY_NAME) evidence analyze --all
+prompts: build ## Example: Generate evidence assembly contexts for all tasks
+	./$(BUILD_DIR)/$(BINARY_NAME) evidence generate --all --context-only
 
-evidence: build ## Example: List evidence tasks
+evidence: build ## Example: Generate evidence for all tasks
 	./$(BUILD_DIR)/$(BINARY_NAME) evidence generate --all
 
 terraform-scan: build ## Example: Scan Terraform configurations

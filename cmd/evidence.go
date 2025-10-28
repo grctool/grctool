@@ -30,7 +30,6 @@ import (
 	"github.com/grctool/grctool/internal/formatters"
 	"github.com/grctool/grctool/internal/interpolation"
 	"github.com/grctool/grctool/internal/logger"
-	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/services/evidence"
 	"github.com/grctool/grctool/internal/services/submission"
@@ -84,16 +83,6 @@ Examples:
 	RunE: runEvidenceView,
 }
 
-var evidenceAnalyzeCmd = &cobra.Command{
-	Use:   "analyze [task-id]",
-	Short: "Analyze evidence tasks and generate structured prompts",
-	Long: `Analyze evidence tasks to understand their relationships with controls and policies, and generate structured prompts for evidence collection using template-based assembly. 
-	
-Can analyze a single task by ID/reference or all tasks with --all flag.`,
-	Args: cobra.MaximumNArgs(1),
-	RunE: runEvidenceAnalyze,
-}
-
 var evidenceMapCmd = &cobra.Command{
 	Use:   "map",
 	Short: "Map relationships between evidence tasks, controls, and policies",
@@ -129,7 +118,6 @@ func init() {
 
 	evidenceCmd.AddCommand(evidenceListCmd)
 	evidenceCmd.AddCommand(evidenceViewCmd)
-	evidenceCmd.AddCommand(evidenceAnalyzeCmd)
 	evidenceCmd.AddCommand(evidenceMapCmd)
 	evidenceCmd.AddCommand(evidenceGenerateCmd)
 	evidenceCmd.AddCommand(evidenceReviewCmd)
@@ -138,12 +126,6 @@ func init() {
 	evidenceCmd.AddCommand(evidenceEvaluateCmd)
 
 	// Register completion functions for task ID arguments
-	evidenceAnalyzeCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		if len(args) == 0 {
-			return completeTaskRefs(cmd, args, toComplete)
-		}
-		return nil, cobra.ShellCompDirectiveNoFileComp
-	}
 	evidenceGenerateCmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
 			return completeTaskRefs(cmd, args, toComplete)
@@ -196,13 +178,6 @@ func init() {
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-
-	// Evidence analyze flags
-	evidenceAnalyzeCmd.Flags().String("output", "", "save analysis to file (markdown format)")
-	evidenceAnalyzeCmd.Flags().Bool("markdown", false, "format output as markdown")
-	evidenceAnalyzeCmd.Flags().Bool("include-templates", true, "include evidence collection templates")
-	evidenceAnalyzeCmd.Flags().Bool("include-checklist", true, "include compliance checklist")
-	evidenceAnalyzeCmd.Flags().Bool("all", false, "generate prompts for all evidence tasks")
 
 	// Evidence generate flags
 	evidenceGenerateCmd.Flags().Bool("all", false, "generate evidence for all pending tasks")
@@ -307,27 +282,6 @@ func runEvidenceView(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func runEvidenceAnalyze(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
-
-	// Initialize service
-	evidenceService, err := initializeEvidenceService()
-	if err != nil {
-		return err
-	}
-
-	// Parse flags
-	allTasks, _ := cmd.Flags().GetBool("all")
-	outputFile, _ := cmd.Flags().GetString("output")
-
-	// Validate args
-	if !allTasks && len(args) == 0 {
-		return fmt.Errorf("task ID required (or use --all flag)")
-	}
-
-	return processEvidenceAnalysis(cmd, evidenceService, allTasks, args, outputFile, ctx)
 }
 
 func runEvidenceMap(cmd *cobra.Command, args []string) error {
@@ -962,40 +916,6 @@ func displayEvidenceTasks(cmd *cobra.Command, tasks []domain.EvidenceTask, evide
 	return nil
 }
 
-func processEvidenceAnalysis(cmd *cobra.Command, evidenceService evidence.Service, allTasks bool, args []string, outputFile string, ctx context.Context) error {
-	if allTasks {
-		cmd.Println("Generating Claude AI prompts for all evidence tasks...")
-		return evidenceService.ProcessBulkAnalysis(ctx, "markdown")
-	}
-
-	// Resolve single task ID
-	taskID, err := evidenceService.ResolveTaskID(ctx, args[0])
-	if err != nil {
-		return err
-	}
-
-	cmd.Printf("Analyzing evidence task %d...\n", taskID)
-
-	// Process analysis for task
-	promptPath, promptText, err := evidenceService.ProcessAnalysisForTask(ctx, taskID, "markdown")
-	if err != nil {
-		return fmt.Errorf("failed to process analysis for task %d: %w", taskID, err)
-	}
-
-	cmd.Printf("   Prompt generated: %s\n", promptPath)
-
-	if outputFile != "" {
-		// For single task with custom output file
-		if err := evidenceService.SaveAnalysisToFile(outputFile, promptText); err != nil {
-			return fmt.Errorf("failed to save to custom file: %w", err)
-		}
-		cmd.Printf("   Also saved to: %s\n", outputFile)
-	}
-
-	cmd.Printf("Template-based prompt generation complete\n")
-	return nil
-}
-
 func displayEvidenceMap(cmd *cobra.Command, mapResult *evidence.EvidenceMapResult) error {
 	cmd.Println("Mapping Evidence Task Relationships")
 
@@ -1048,16 +968,9 @@ func displayEvidenceMap(cmd *cobra.Command, mapResult *evidence.EvidenceMapResul
 	if mapResult.Summary.OverdueCount > 0 {
 		cmd.Printf("   • Address %d overdue tasks\n", mapResult.Summary.OverdueCount)
 	}
-	cmd.Println("   • Use 'grctool evidence analyze <task-id>' for detailed task analysis")
-	cmd.Println("   • Use 'grctool evidence generate <task-id>' to create evidence")
+	cmd.Println("   • Use 'grctool evidence generate <task-id>' to create evidence and assembly context")
 
 	return nil
-}
-
-// Legacy function for backward compatibility - moved to service layer
-func generateTemplateBasedPrompt(context *models.EvidenceContext, outputFormat string) string {
-	// Delegate to service layer
-	return "Legacy function - use service layer implementation"
 }
 
 // Evidence context generation helpers

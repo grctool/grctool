@@ -266,9 +266,6 @@ grctool evidence list --status pending
 # Filter by framework
 grctool evidence list --framework soc2
 
-# Analyze evidence task relationships
-./bin/grctool evidence analyze [task-id]
-
 # Map all evidence-control-policy relationships
 ./bin/grctool evidence map
 ```

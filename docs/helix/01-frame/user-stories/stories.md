@@ -166,7 +166,7 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
 **As a DevOps Engineer, I want to:**
 
 - **Infrastructure Compliance Verification**
-  > "I need to validate that our VPC configurations meet network security requirements. I want to run `grctool evidence analyze CC6.6` to understand what's required, then have it scan our Terraform files and generate evidence of our network security controls."
+  > "I need to validate that our VPC configurations meet network security requirements. I want to run `grctool evidence generate CC6.6` to create an assembly context and then have it scan our Terraform files and generate evidence of our network security controls."
 
   **Value**: Automated compliance checking in CI/CD pipelines
 
