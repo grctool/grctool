@@ -76,6 +76,29 @@ auth:
     # Can use environment variable: ${TUGBOAT_BEARER_TOKEN}
     bearer_token: ""
 
+# Template Variable Interpolation Configuration
+# Enables automatic substitution of template variables in policies and controls
+interpolation:
+  # Enable/disable interpolation (default: true)
+  enabled: true
+
+  # Template variables for substitution
+  # Supports nested keys with dot notation: {{organization.name}} or {{Organization}}
+  variables:
+    organization:
+      name: "Seventh Sense"
+    # Alternative format support (legacy)
+    Organization Name: "Seventh Sense"
+
+  # Add custom variables as needed:
+  # variables:
+  #   organization:
+  #     name: "Your Organization Name"
+  #     legal_name: "Your Organization Inc."
+  #     security_team: "security@example.com"
+  #   custom:
+  #     value: "Custom Value"
+
 # Logging Configuration
 # Multi-logger support: configure multiple independent loggers
 logging:

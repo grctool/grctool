@@ -780,6 +780,9 @@ func (c *Config) Validate() error {
 	}
 
 	// Validate Interpolation configuration
+	// Enable interpolation by default
+	c.Interpolation.Enabled = true
+
 	// Set defaults
 	if c.Interpolation.Variables == nil {
 		c.Interpolation.Variables = make(map[string]interface{})
@@ -790,9 +793,9 @@ func (c *Config) Validate() error {
 		// Only set default if no variables are configured at all
 		c.Interpolation.Variables = map[string]interface{}{
 			"organization": map[string]interface{}{
-				"name": "[Organization Name]",
+				"name": "Seventh Sense",
 			},
-			"Organization Name": "Your Organization",
+			"Organization Name": "Seventh Sense",
 		}
 	}
 

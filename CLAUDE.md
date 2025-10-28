@@ -17,7 +17,13 @@ Help users navigate their compliance program, generate evidence, and understand 
 
 This project is organized as follows:
 
-**Data Directory**: /Users/erik/Projects/grctool
+**Data Directory**: /Users/erik/Projects/7thsense-ops/isms
+- **docs/** - Synced data from Tugboat Logic
+  - **policies/** - Policy documents and metadata (JSON/Markdown)
+  - **controls/** - Security controls and requirements (JSON/Markdown)
+  - **evidence_tasks/** - Evidence collection tasks (JSON)
+- **evidence/** - Generated evidence files organized by task
+- **.cache/** - Performance cache (can be safely deleted)
 
 ## 🔧 COMMON COMMANDS
 
@@ -159,7 +165,7 @@ This shows all pending evidence tasks with status and assignees.
 ### "What controls apply to [some system]?"
 ```bash
 # Search through synced controls
-grep -r "keyword" /Users/erik/Projects/grctool//controls/
+grep -r "keyword" /Users/erik/Projects/7thsense-ops/isms/docs/controls/
 
 # Or ask me - I can read the control files and explain them
 ```
@@ -196,6 +202,55 @@ grctool auth logout
 
 **Note**: Credentials are stored in /auth/ and are automatically refreshed.
 
+## 🎨 TEMPLATE VARIABLES AND CUSTOMIZATION
+
+GRCTool automatically substitutes template variables in policies and controls with your organization's information.
+
+**What are Template Variables?**
+- Placeholders like `{{organization.name}}` in policy documents
+- Automatically replaced with your actual organization name in generated evidence
+- Found in 408+ places across 40 policy documents
+- Ensures consistent branding throughout compliance documentation
+
+**Supported Template Variables:**
+- `{{organization.name}}` - Organization name (e.g., "Seventh Sense")
+- `{{Organization}}` - Alternative format (legacy support)
+
+**Configuration:**
+Template variables are configured in `.grctool.yaml`:
+
+```yaml
+interpolation:
+  enabled: true  # Default: true
+  variables:
+    organization:
+      name: "Seventh Sense"
+```
+
+**How It Works:**
+1. **Sync**: Policies and controls are synced from Tugboat Logic with template markers intact
+2. **Generation**: When generating evidence or markdown documents, templates are automatically replaced
+3. **Consistency**: All generated evidence uses your configured organization name
+
+**Adding Custom Variables:**
+You can add custom template variables to the configuration:
+
+```yaml
+interpolation:
+  enabled: true
+  variables:
+    organization:
+      name: "Seventh Sense"
+      legal_name: "Seventh Sense Inc."
+      security_team: "security@7thsense.ai"
+    custom:
+      compliance_contact: "compliance@7thsense.ai"
+```
+
+Then use them in custom evidence prompts: `{{organization.security_team}}`
+
+**Note**: Template substitution is enabled by default. All synced policy and control documents will automatically use your configured values when generating evidence or documentation.
+
 ## 🎯 HELPING USERS WITH EVIDENCE
 
 When a user asks for help with evidence collection:
@@ -213,7 +268,7 @@ When a user asks for help with evidence collection:
 grctool tool evidence-task-details --task-ref ET-0047
 
 # 2. Check what controls it maps to
-# I can read: /Users/erik/Projects/grctool//evidence_tasks/ET-0047-*.json
+# I can read: /Users/erik/Projects/7thsense-ops/isms/docs/evidence_tasks/ET-0047-*.json
 
 # 3. Run the appropriate tool
 grctool tool github-permissions --repository org/repo --output-format matrix
@@ -238,6 +293,8 @@ grctool tool github-permissions --help
 ## ✅ CHECKLIST FOR AI ASSISTANTS
 
 When helping users:
+- [ ] Confirm data is synced (`grctool sync`)
+- [ ] Verify authentication is valid (`grctool auth status`)
 - [ ] Read evidence task files to understand requirements
 - [ ] Suggest appropriate tools for evidence collection
 - [ ] Help interpret tool output for compliance purposes
@@ -247,8 +304,8 @@ When helping users:
 ---
 
 **Configuration Details**
-- Organization ID: YOUR_ORG_ID
-- Data Directory: /Users/erik/Projects/grctool
+- Organization ID: test
+- Data Directory: /Users/erik/Projects/7thsense-ops/isms
 - Authentication: Browser-based (Safari)
 - Tools Available: 30 evidence collection tools
 
