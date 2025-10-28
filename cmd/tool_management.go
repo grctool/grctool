@@ -494,13 +494,3 @@ func runGrctoolRun(cmd *cobra.Command, args []string) error {
 
 	return nil
 }
-
-func init() {
-	// Add management tools to the tool command (flags already defined in existing init function above)
-	toolCmd.AddCommand(evidenceValidatorCmd)
-	toolCmd.AddCommand(evidenceGeneratorCmd)
-	toolCmd.AddCommand(tugboatSyncCmd)
-	toolCmd.AddCommand(storageReadCmd)
-	toolCmd.AddCommand(storageWriteCmd)
-	toolCmd.AddCommand(grctoolRunCmd)
-}
