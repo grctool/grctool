@@ -31,6 +31,7 @@ import (
 	"github.com/grctool/grctool/internal/interpolation"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/registry"
 	"github.com/grctool/grctool/internal/storage"
 	"github.com/grctool/grctool/internal/tugboat"
@@ -413,7 +414,8 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 	// Save attachments for each window
 	for window, windowAttachments := range windowMap {
 		// Download actual files to submitted/ subfolder for file-type attachments
-		evidenceDir := filepath.Join(s.baseDir, "evidence", task.ReferenceID, window, "submitted")
+		taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
+		evidenceDir := filepath.Join(s.baseDir, "evidence", taskDirName, window, "submitted")
 		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 			s.logger.Warn("Failed to create evidence directory",
 				logger.String("task_ref", task.ReferenceID),
@@ -475,7 +477,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 			}
 		}
 
-		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskID, window, windowAttachments)
+		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskDirName, taskID, window, windowAttachments)
 		if err := s.storage.SaveSubmissionToSubfolder(submission, "submitted"); err != nil {
 			s.logger.Warn("Failed to save submission for window",
 				logger.String("task_ref", task.ReferenceID),
@@ -943,7 +945,7 @@ func (s *SyncService) getWindowFromDate(dateStr string) string {
 }
 
 // convertAttachmentsToSubmission converts Tugboat attachments to EvidenceSubmission model
-func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskID int, window string, attachments []tugboatModels.EvidenceAttachment) *models.EvidenceSubmission {
+func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskDirName string, taskID int, window string, attachments []tugboatModels.EvidenceAttachment) *models.EvidenceSubmission {
 	now := time.Now()
 	submission := &models.EvidenceSubmission{
 		TaskID:             taskID,
@@ -969,11 +971,11 @@ func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskID int,
 		// Handle different attachment types
 		if att.Type == "file" && att.Attachment != nil {
 			fileRef.Filename = att.Attachment.OriginalFilename
-			fileRef.RelativePath = fmt.Sprintf("evidence/%s/%s/%s", taskRef, window, att.Attachment.OriginalFilename)
+			fileRef.RelativePath = fmt.Sprintf("evidence/%s/%s/%s", taskDirName, window, att.Attachment.OriginalFilename)
 		} else if att.Type == "url" {
 			fileRef.Filename = "url_reference.txt"
 			fileRef.Title = att.URL
-			fileRef.RelativePath = fmt.Sprintf("evidence/%s/%s/url_%d.txt", taskRef, window, att.ID)
+			fileRef.RelativePath = fmt.Sprintf("evidence/%s/%s/url_%d.txt", taskDirName, window, att.ID)
 		}
 
 		submission.EvidenceFiles = append(submission.EvidenceFiles, fileRef)

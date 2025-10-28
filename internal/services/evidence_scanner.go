@@ -27,6 +27,7 @@ import (
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/naming"
 	"gopkg.in/yaml.v3"
 )
 
@@ -77,7 +78,6 @@ func (s *evidenceScannerImpl) ScanAll(ctx context.Context) (map[string]*models.E
 
 	// Walk the evidence directory to find all task directories
 	taskStates := make(map[string]*models.EvidenceTaskState)
-	taskPattern := regexp.MustCompile(`^(ET-\d+)_`)
 
 	entries, err := os.ReadDir(s.evidenceDir)
 	if err != nil {
@@ -95,12 +95,10 @@ func (s *evidenceScannerImpl) ScanAll(ctx context.Context) (map[string]*models.E
 		}
 
 		// Extract task reference from directory name (e.g., "ET-0001_TaskName" -> "ET-0001")
-		matches := taskPattern.FindStringSubmatch(entry.Name())
-		if len(matches) < 2 {
+		taskRef := naming.ExtractTaskRef(entry.Name())
+		if taskRef == "" {
 			continue
 		}
-
-		taskRef := matches[1]
 		s.logger.Debug("Found task directory",
 			logger.Field{Key: "task_ref", Value: taskRef},
 			logger.Field{Key: "directory", Value: entry.Name()})
@@ -197,10 +195,11 @@ func (s *evidenceScannerImpl) ScanTask(ctx context.Context, taskRef string) (*mo
 	}
 
 	// Build task state
+	_, taskName := naming.ParseEvidenceTaskDirName(filepath.Base(taskDir))
 	taskState := &models.EvidenceTaskState{
 		TaskRef:       taskRef,
 		TaskID:        taskID,
-		TaskName:      extractTaskName(filepath.Base(taskDir)),
+		TaskName:      taskName,
 		Windows:       windows,
 		LastScannedAt: time.Now(),
 	}
@@ -560,10 +559,9 @@ func (s *evidenceScannerImpl) findTaskDirectory(taskRef string) (string, error) 
 		return "", err
 	}
 
-	// Look for directory starting with task reference (ET-0001_)
-	prefix := taskRef + "_"
+	// Look for directory matching task reference using naming service
 	for _, entry := range entries {
-		if entry.IsDir() && strings.HasPrefix(entry.Name(), prefix) {
+		if entry.IsDir() && naming.MatchesTaskRef(entry.Name(), taskRef) {
 			return filepath.Join(s.evidenceDir, entry.Name()), nil
 		}
 	}
@@ -699,18 +697,6 @@ func extractTaskIDFromRef(taskRef string) int {
 	var id int
 	fmt.Sscanf(matches[1], "%d", &id)
 	return id
-}
-
-// extractTaskName extracts task name from directory name (ET-0001_TaskName -> TaskName)
-func extractTaskName(dirname string) string {
-	re := regexp.MustCompile(`^ET-\d+_(.+)$`)
-	matches := re.FindStringSubmatch(dirname)
-	if len(matches) < 2 {
-		return ""
-	}
-
-	// Replace underscores with spaces
-	return strings.ReplaceAll(matches[1], "_", " ")
 }
 
 // isWindowDirectory checks if a directory name looks like a window (2025-Q4, 2025, 2025-10, 2025-H1)

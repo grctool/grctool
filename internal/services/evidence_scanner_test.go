@@ -17,6 +17,8 @@ package services
 
 import (
 	"testing"
+
+	"github.com/grctool/grctool/internal/naming"
 )
 
 // Test helper functions
@@ -58,9 +60,9 @@ func TestExtractTaskName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := extractTaskName(tt.dirname)
+			_, result := naming.ParseEvidenceTaskDirName(tt.dirname)
 			if result != tt.expected {
-				t.Errorf("extractTaskName(%s) = %q, want %q", tt.dirname, result, tt.expected)
+				t.Errorf("ParseEvidenceTaskDirName(%s) = %q, want %q", tt.dirname, result, tt.expected)
 			}
 		})
 	}

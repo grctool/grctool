@@ -26,6 +26,7 @@ import (
 
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/domain"
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/services/evidence"
 	"github.com/grctool/grctool/internal/storage"
 	"github.com/spf13/cobra"
@@ -482,7 +483,7 @@ func TestSanitizeFilename(t *testing.T) {
 		{
 			name:     "filename with spaces",
 			input:    "test file name",
-			expected: "test file name", // spaces are kept
+			expected: "test_file_name", // spaces converted to underscores for filesystem safety
 		},
 		{
 			name:     "filename with slashes",
@@ -503,7 +504,7 @@ func TestSanitizeFilename(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := sanitizeFilename(tt.input)
+			result := naming.SanitizeTaskName(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

@@ -30,6 +30,7 @@ import (
 	"github.com/grctool/grctool/internal/formatters"
 	"github.com/grctool/grctool/internal/interpolation"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/services/evidence"
 	"github.com/grctool/grctool/internal/services/submission"
@@ -447,6 +448,12 @@ func processSingleTaskGeneration(cmd *cobra.Command, taskRef string, window stri
 	task, err := storage.GetEvidenceTask(taskRef)
 	if err != nil {
 		return fmt.Errorf("evidence task not found: %s", taskRef)
+	}
+
+	// Check if this is a Tugboat-managed task (AEC enabled + Hybrid collection)
+	if isTugboatManagedTask(task) {
+		displayTugboatManagedMessage(cmd, task)
+		return nil // Skip assembly context generation
 	}
 
 	// NEW: Generate comprehensive assembly context
@@ -1031,7 +1038,7 @@ func generateEvidenceContext(task *domain.EvidenceTask, window string, requested
 
 	// Scan for existing evidence
 	evidenceDir := filepath.Join(cfg.Storage.DataDir, "evidence")
-	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
+	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	taskEvidenceDir := filepath.Join(evidenceDir, taskDirName)
 
 	// Check for existing evidence windows
@@ -1227,7 +1234,7 @@ func formatContextAsMarkdown(context *EvidenceGenerationContext, task *domain.Ev
 func saveEvidenceContext(task *domain.EvidenceTask, window string, contextMarkdown string, dataDir string) (string, error) {
 	// Create evidence directory structure
 	evidenceDir := filepath.Join(dataDir, "evidence")
-	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
+	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 
@@ -1346,22 +1353,28 @@ Create .context/narrative-background.md with:
 ## Source File Handling
 
 **IMPORTANT**: Copy all referenced source files to wip/ (flat, no subdirectories):
-- Policy documents → wip/POL-XXXX-name.md
-- Control files → wip/AC1-778771.json
-- Tool outputs → wip/github-permissions.json
-- Terraform files → wip/terraform-main.tf
+- Policy documents → wip/POL-XXXX-name.md (from docs/policies/markdown/)
+- Control files → wip/AC1-778771.md (from docs/controls/markdown/)
+- Infrastructure configs → wip/main.tf, wip/deploy.yml (original source files)
+- Application configs → wip/config.yaml, wip/.env.example
+
+**File Selection Rules**:
+- ✅ **DO include**: Markdown documentation (.md), infrastructure source files (.tf, .yml, .yaml, .toml, .hcl)
+- ❌ **NEVER include**: JSON files (.json) - not auditor-friendly
+- 📊 **Tool outputs**: Analyze JSON internally, summarize findings in narrative, DON'T copy JSON to wip/
 
 **Path References**: Use relative paths from data directory:
-- ✅ `+"`"+`docs/policies/POL-0001-access-control.md`+"`"+`
+- ✅ `+"`"+`docs/policies/markdown/POL-0001-access-control.md`+"`"+`
+- ✅ `+"`"+`docs/controls/markdown/AC1-778771.md`+"`"+`
 - ❌ `+"`"+`/Users/erik/Projects/7thsense-ops/isms/docs/policies/POL-0001-access-control.md`+"`"+`
 
 ## Expected Outputs
 
 **wip/**: Ready for Tugboat upload
 - %s_Evidence.md (simple, task-focused)
-- POL-XXXX-*.md (policy source files)
-- Control-*.json (control source files)
-- Other source files referenced in evidence
+- POL-XXXX-*.md (policy source files in markdown)
+- AC*-*.md (control source files in markdown)
+- Infrastructure/config files (.tf, .yml, .yaml - original source files only, NO JSON)
 
 **.context/**: Internal context only
 - narrative-background.md (detailed analysis)
@@ -1375,20 +1388,106 @@ Create .context/narrative-background.md with:
 `, task.ReferenceID, task.Name, task.ReferenceID, task.ReferenceID, task.ReferenceID, task.ReferenceID)
 }
 
-func sanitizeFilename(name string) string {
-	// Replace problematic characters with underscores
-	replacer := strings.NewReplacer(
-		"/", "_",
-		"\\", "_",
-		":", "_",
-		"*", "_",
-		"?", "_",
-		"\"", "_",
-		"<", "_",
-		">", "_",
-		"|", "_",
-	)
-	return replacer.Replace(name)
+// isTugboatManagedTask checks if a task is managed by Tugboat (AEC enabled + Hybrid collection)
+func isTugboatManagedTask(task *domain.EvidenceTask) bool {
+	// Check if AEC (Automated Evidence Collection) is enabled
+	if task.AecStatus != nil && task.AecStatus.Status == "enabled" {
+		// Check if collection type is Hybrid (indicating Tugboat collects it)
+		collectionType := task.GetCollectionType()
+		if collectionType == "Hybrid" {
+			return true
+		}
+	}
+	return false
+}
+
+// displayTugboatManagedMessage shows guidance for Tugboat-managed evidence tasks
+func displayTugboatManagedMessage(cmd *cobra.Command, task *domain.EvidenceTask) {
+	cmd.Println()
+	cmd.Println("═══════════════════════════════════════════════════════════════════")
+	cmd.Printf("📋 Task: %s - %s\n", task.ReferenceID, task.Name)
+	cmd.Println("═══════════════════════════════════════════════════════════════════")
+	cmd.Println()
+	cmd.Println("ℹ️  This evidence is collected directly in Tugboat Logic.")
+	cmd.Println()
+	cmd.Println("This task has Automated Evidence Collection (AEC) enabled and uses")
+	cmd.Println("Tugboat's data collection system. Evidence should be provided through")
+	cmd.Println("Tugboat's interface rather than using grctool automation.")
+	cmd.Println()
+
+	// Show what data is needed
+	if task.Description != "" || task.Guidance != "" {
+		cmd.Println("📝 What's needed:")
+		cmd.Println()
+		if task.Description != "" {
+			cmd.Printf("   %s\n", task.Description)
+			cmd.Println()
+		}
+		if task.Guidance != "" {
+			cmd.Println("   Guidance:")
+			cmd.Printf("   %s\n", task.Guidance)
+			cmd.Println()
+		}
+	}
+
+	cmd.Println("🔗 How to provide this evidence:")
+	cmd.Println()
+	cmd.Println("   1. Log into Tugboat Logic web interface")
+
+	if task.TugboatURL != "" {
+		cmd.Printf("   2. Navigate to this task: %s\n", task.TugboatURL)
+	} else {
+		cmd.Printf("   2. Navigate to evidence task %s\n", task.ReferenceID)
+	}
+
+	cmd.Println("   3. Use Tugboat's data upload or integration features to provide:")
+	cmd.Println()
+
+	// Category-specific guidance
+	category := task.GetCategory()
+	switch category {
+	case "Personnel":
+		cmd.Println("      • Upload CSV or Excel file with employee/contractor data")
+		cmd.Println("      • Required fields: Name, Start Date, Title, Department")
+		cmd.Println("      • Include termination dates for separated personnel")
+		cmd.Println("      • Use your HRIS system export or generate from HR database")
+	case "Process":
+		cmd.Println("      • Upload policy documents, procedures, or reports")
+		cmd.Println("      • Provide signed acknowledgments or approvals")
+		cmd.Println("      • Include meeting minutes or review documentation")
+	case "Infrastructure":
+		cmd.Println("      • Upload system configuration files or screenshots")
+		cmd.Println("      • Provide scan results or monitoring reports")
+		cmd.Println("      • Include audit logs or access control lists")
+	default:
+		cmd.Println("      • Follow the task guidance above for required data format")
+		cmd.Println("      • Upload supporting documents or evidence files")
+		cmd.Println("      • Ensure all required fields are included")
+	}
+
+	cmd.Println()
+
+	// Show related controls for context
+	if len(task.RelatedControls) > 0 {
+		cmd.Println("📊 Related controls:")
+		cmd.Println()
+		for i, ctrl := range task.RelatedControls {
+			if i < 5 { // Limit to first 5 controls
+				cmd.Printf("   • %s: %s\n", ctrl.ReferenceID, ctrl.Name)
+			}
+		}
+		if len(task.RelatedControls) > 5 {
+			cmd.Printf("   ... and %d more\n", len(task.RelatedControls)-5)
+		}
+		cmd.Println()
+	}
+
+	cmd.Println("═══════════════════════════════════════════════════════════════════")
+	cmd.Println()
+	cmd.Println("💡 Note: grctool automation is designed for infrastructure-sourced")
+	cmd.Println("   evidence (GitHub, Terraform, docs). For HRIS and manual uploads,")
+	cmd.Println("   use Tugboat Logic's web interface directly.")
+	cmd.Println()
 }
 
 // generateAssemblyContext generates a comprehensive assembly context for evidence collection
@@ -2525,7 +2624,7 @@ func calculatePeriod(window string) string {
 func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *AssemblyContext, dataDir string) (*AssemblyPaths, error) {
 	// Determine evidence directory path
 	evidenceDir := filepath.Join(dataDir, "evidence")
-	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, sanitizeFilename(task.Name))
+	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 	wipDir := filepath.Join(windowDir, "wip")
@@ -2567,7 +2666,7 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 	}
 
 	// Generate simple evidence template in wip/
-	simpleEvidenceFilename := fmt.Sprintf("%s_%s-Evidence.md", task.ReferenceID, sanitizeFilename(task.Name))
+	simpleEvidenceFilename := fmt.Sprintf("%s_%s-Evidence.md", task.ReferenceID, naming.SanitizeTaskName(task.Name))
 	simpleEvidencePath := filepath.Join(wipDir, simpleEvidenceFilename)
 
 	// Create initial simple evidence template

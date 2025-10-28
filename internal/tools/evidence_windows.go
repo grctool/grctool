@@ -20,6 +20,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/grctool/grctool/internal/naming"
 )
 
 // CalculateEvidenceWindow determines the window for a given interval and date
@@ -67,31 +69,8 @@ func GenerateEvidenceFilename(index int, title string) string {
 	return fmt.Sprintf("%02d_%s", index, safe)
 }
 
-// SanitizeTaskName creates a filesystem-safe directory name from task name
-// Pure function for directory naming
+// SanitizeTaskName is deprecated. Use naming.SanitizeTaskName instead.
+// This is kept for backwards compatibility but delegates to the naming package.
 func SanitizeTaskName(name string) string {
-	// Keep alphanumeric, spaces, hyphens, underscores, parentheses
-	safe := regexp.MustCompile(`[^a-zA-Z0-9\s\-_()\[\]]`).ReplaceAllString(name, "")
-
-	// Replace spaces with underscores
-	safe = strings.ReplaceAll(safe, " ", "_")
-
-	// Remove multiple consecutive underscores
-	safe = regexp.MustCompile(`_{2,}`).ReplaceAllString(safe, "_")
-
-	// Trim underscores from start and end
-	safe = strings.Trim(safe, "_")
-
-	// Ensure we have something and limit length
-	if safe == "" {
-		safe = "evidence_task"
-	}
-
-	// Limit length to 100 characters for filesystem compatibility
-	if len(safe) > 100 {
-		safe = safe[:100]
-		safe = strings.TrimSuffix(safe, "_")
-	}
-
-	return safe
+	return naming.SanitizeTaskName(name)
 }

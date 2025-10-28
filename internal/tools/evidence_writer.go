@@ -32,6 +32,7 @@ import (
 	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/storage"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -281,7 +282,7 @@ func (ewt *EvidenceWriterTool) Execute(ctx context.Context, params map[string]in
 	}
 
 	// Create evidence directory structure with wip/ subfolder
-	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, SanitizeTaskName(task.Name))
+	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	windowDir := filepath.Join(ewt.config.Storage.DataDir, "evidence", taskDirName, window)
 	evidenceDir := filepath.Join(windowDir, "wip")
 
@@ -601,31 +602,3 @@ func GenerateEvidenceFilename(index int, title string) string {
 	return fmt.Sprintf("%02d_%s", index, safe)
 }
 
-// SanitizeTaskName creates a filesystem-safe directory name from task name
-// Pure function for directory naming
-func SanitizeTaskName(name string) string {
-	// Keep alphanumeric, spaces, hyphens, underscores, parentheses
-	safe := regexp.MustCompile(`[^a-zA-Z0-9\s\-_()\[\]]`).ReplaceAllString(name, "")
-
-	// Replace spaces with underscores
-	safe = strings.ReplaceAll(safe, " ", "_")
-
-	// Remove multiple consecutive underscores
-	safe = regexp.MustCompile(`_{2,}`).ReplaceAllString(safe, "_")
-
-	// Trim underscores from start and end
-	safe = strings.Trim(safe, "_")
-
-	// Ensure we have something and limit length
-	if safe == "" {
-		safe = "evidence_task"
-	}
-
-	// Limit length to 100 characters for filesystem compatibility
-	if len(safe) > 100 {
-		safe = safe[:100]
-		safe = strings.TrimSuffix(safe, "_")
-	}
-
-	return safe
-}

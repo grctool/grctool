@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/services/conversion"
 	"gopkg.in/yaml.v3"
 )
@@ -536,7 +537,6 @@ func (us *Storage) GetEvidenceFilesFromSubfolder(taskRef, window, subfolder stri
 // getEvidenceWindowDir returns the evidence directory path for a task/window
 func (us *Storage) getEvidenceWindowDir(taskRef, window string) string {
 	// Evidence directory pattern: evidence/ET-{num}_{name}/{window}/
-	// For now, just use the task ref directly
 	evidenceBase := filepath.Join(us.localDataStore.GetBaseDir(), "evidence")
 
 	// Find the task directory
@@ -546,9 +546,9 @@ func (us *Storage) getEvidenceWindowDir(taskRef, window string) string {
 		return filepath.Join(evidenceBase, taskRef, window)
 	}
 
-	// Look for directory matching task reference
+	// Look for directory matching task reference using naming service
 	for _, entry := range entries {
-		if entry.IsDir() && (entry.Name() == taskRef || entry.Name()[:len(taskRef)] == taskRef) {
+		if entry.IsDir() && naming.MatchesTaskRef(entry.Name(), taskRef) {
 			return filepath.Join(evidenceBase, entry.Name(), window)
 		}
 	}

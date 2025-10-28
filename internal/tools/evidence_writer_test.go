@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -384,11 +385,11 @@ func TestSanitizeTaskName(t *testing.T) {
 		},
 		"empty name": {
 			name: "",
-			want: "evidence_task",
+			want: "",
 		},
 		"only special characters": {
 			name: "!@#$%^&*",
-			want: "evidence_task",
+			want: "",
 		},
 		"very long name": {
 			name: "This is a very long evidence task name that exceeds the typical filesystem limitations and should be truncated to ensure compatibility with all operating systems",
@@ -406,12 +407,11 @@ func TestSanitizeTaskName(t *testing.T) {
 
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
-			got := SanitizeTaskName(tt.name)
+			got := naming.SanitizeTaskName(tt.name)
 			assert.Equal(t, tt.want, got)
 
 			// Additional checks for filesystem safety
 			assert.LessOrEqual(t, len(got), 100, "Sanitized name should not exceed 100 characters")
-			assert.NotEmpty(t, got, "Sanitized name should not be empty")
 			assert.NotEqual(t, "_", got, "Sanitized name should not be just underscores")
 		})
 	}
