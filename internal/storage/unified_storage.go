@@ -17,6 +17,7 @@ package storage
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -274,21 +275,83 @@ func (us *Storage) GetControl(id string) (*domain.Control, error) {
 	return nil, fmt.Errorf("control not found: %s", id)
 }
 
-// GetEvidenceTask retrieves an evidence task by numeric ID (for compatibility)
+// GetEvidenceTask retrieves an evidence task by numeric ID or task reference (ET-0001, ET0001, or 327992)
 func (us *Storage) GetEvidenceTask(id string) (*domain.EvidenceTask, error) {
 	tasks, err := us.GetAllEvidenceTasks()
 	if err != nil {
 		return nil, err
 	}
 
-	numID, _ := strconv.Atoi(id)
+	// Parse the ID to get the numeric task ID
+	numID := us.parseTaskID(id)
+	if numID == 0 {
+		return nil, fmt.Errorf("invalid task ID format: %s (expected: numeric ID, ET-0001, or ET0001)", id)
+	}
+
+	// Find task by numeric ID
 	for _, task := range tasks {
 		if task.ID == numID {
 			return &task, nil
 		}
 	}
 
-	return nil, fmt.Errorf("evidence task not found: %s", id)
+	return nil, fmt.Errorf("evidence task not found: %s (parsed as ID %d)", id, numID)
+}
+
+// parseTaskID extracts the numeric task ID from various formats:
+// - "327992" -> 327992 (pure numeric)
+// - "ET-0001" -> 327992 (reference with dash, looks up by ReferenceID)
+// - "ET0001" -> 327992 (reference without dash, looks up by ReferenceID)
+// - "ET-1" -> 327992 (reference with dash, zero-padding)
+func (us *Storage) parseTaskID(id string) int {
+	trimmed := strings.TrimSpace(id)
+
+	// Try pure numeric ID first
+	if numID, err := strconv.Atoi(trimmed); err == nil {
+		return numID
+	}
+
+	// Try parsing as task reference (ET-0001 or ET0001)
+	upper := strings.ToUpper(trimmed)
+
+	// Match ET-XXXX format (with dash)
+	if matched, _ := regexp.MatchString(`^ET-\d+$`, upper); matched {
+		refNum := strings.TrimPrefix(upper, "ET-")
+		if num, err := strconv.Atoi(refNum); err == nil {
+			// Look up task by ReferenceID
+			return us.lookupTaskByReferenceNumber(num)
+		}
+	}
+
+	// Match ETXXXX format (without dash)
+	if matched, _ := regexp.MatchString(`^ET\d+$`, upper); matched {
+		refNum := strings.TrimPrefix(upper, "ET")
+		if num, err := strconv.Atoi(refNum); err == nil {
+			// Look up task by ReferenceID
+			return us.lookupTaskByReferenceNumber(num)
+		}
+	}
+
+	return 0
+}
+
+// lookupTaskByReferenceNumber finds a task by its reference number (e.g., 1 for ET-0001)
+func (us *Storage) lookupTaskByReferenceNumber(refNum int) int {
+	tasks, err := us.GetAllEvidenceTasks()
+	if err != nil {
+		return 0
+	}
+
+	// Format as ET-XXXX with zero padding
+	refID := fmt.Sprintf("ET-%04d", refNum)
+
+	for _, task := range tasks {
+		if task.ReferenceID == refID {
+			return task.ID
+		}
+	}
+
+	return 0
 }
 
 // GetAllPolicies retrieves all policies regardless of filename format

@@ -201,7 +201,7 @@ func TestEvidenceListCommand(t *testing.T) {
 	}
 }
 
-func TestEvidenceShowCommand(t *testing.T) {
+func TestEvidenceViewCommand(t *testing.T) {
 	// Set up test configuration with VCR
 	configFile := setupTestConfigForEvidence(t)
 	viper.SetConfigFile(configFile)
@@ -215,7 +215,7 @@ func TestEvidenceShowCommand(t *testing.T) {
 		checkFunc func(t *testing.T, output string, err error)
 	}{
 		{
-			name: "show specific task",
+			name: "view specific task",
 			args: []string{"327992"},
 			checkFunc: func(t *testing.T, output string, err error) {
 				// In test environment, we expect this to fail since there's no synced data
@@ -229,12 +229,12 @@ func TestEvidenceShowCommand(t *testing.T) {
 			},
 		},
 		{
-			name:      "show without task ID",
+			name:      "view without task ID",
 			args:      []string{},
 			expectErr: true,
 		},
 		{
-			name:      "show with too many args",
+			name:      "view with too many args",
 			args:      []string{"327992", "extra-arg"},
 			expectErr: true,
 		},
@@ -243,9 +243,9 @@ func TestEvidenceShowCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cmd := &cobra.Command{
-				Use:  "show [task-id]",
+				Use:  "view [task-id]",
 				Args: cobra.ExactArgs(1),
-				RunE: runEvidenceAnalyze,
+				RunE: runEvidenceView,
 			}
 
 			cmd.SetArgs(tt.args)
@@ -600,13 +600,13 @@ func TestEvidenceCommands(t *testing.T) {
 
 		// Add subcommands
 		listCmd := &cobra.Command{Use: "list", RunE: runEvidenceList}
-		showCmd := &cobra.Command{Use: "show [task-id]", Args: cobra.ExactArgs(1), RunE: runEvidenceAnalyze}
+		viewCmd := &cobra.Command{Use: "view [task-id]", Args: cobra.ExactArgs(1), RunE: runEvidenceView}
 		prepareCmd := &cobra.Command{Use: "prepare [task-id]", RunE: runEvidenceGenerate}
 		validateCmd := &cobra.Command{Use: "validate [task-id]", Args: cobra.ExactArgs(1), RunE: runEvidenceReview}
 		submitCmd := &cobra.Command{Use: "submit [task-id]", Args: cobra.ExactArgs(1), RunE: runEvidenceSubmit}
 		statusCmd := &cobra.Command{Use: "status [task-id]", Args: cobra.ExactArgs(1), RunE: runEvidenceList}
 
-		cmd.AddCommand(listCmd, showCmd, prepareCmd, validateCmd, submitCmd, statusCmd)
+		cmd.AddCommand(listCmd, viewCmd, prepareCmd, validateCmd, submitCmd, statusCmd)
 
 		// Test help for main evidence command
 		cmd.SetArgs([]string{"--help"})
@@ -619,7 +619,7 @@ func TestEvidenceCommands(t *testing.T) {
 		helpOutput := output.String()
 		assert.Contains(t, helpOutput, "Available Commands:")
 		assert.Contains(t, helpOutput, "list")
-		assert.Contains(t, helpOutput, "show")
+		assert.Contains(t, helpOutput, "view")
 		assert.Contains(t, helpOutput, "prepare")
 		assert.Contains(t, helpOutput, "validate")
 		assert.Contains(t, helpOutput, "submit")
