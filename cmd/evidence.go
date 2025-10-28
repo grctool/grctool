@@ -2665,44 +2665,5 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 		return nil, fmt.Errorf("failed to create tool outputs directory: %w", err)
 	}
 
-	// Generate simple evidence template in wip/
-	simpleEvidenceFilename := fmt.Sprintf("%s_%s-Evidence.md", task.ReferenceID, naming.SanitizeTaskName(task.Name))
-	simpleEvidencePath := filepath.Join(wipDir, simpleEvidenceFilename)
-
-	// Create initial simple evidence template
-	simpleTemplate := generateSimpleEvidenceTemplate(task, window)
-	if err := os.WriteFile(simpleEvidencePath, []byte(simpleTemplate), 0644); err != nil {
-		return nil, fmt.Errorf("failed to save simple evidence template: %w", err)
-	}
-
 	return assemblyPaths, nil
-}
-
-// generateSimpleEvidenceTemplate creates an initial simple evidence template
-func generateSimpleEvidenceTemplate(task *domain.EvidenceTask, window string) string {
-	// Create initial template with header and placeholder sections
-	var sb strings.Builder
-
-	sb.WriteString(fmt.Sprintf("# %s: %s\n\n", task.ReferenceID, task.Name))
-	sb.WriteString(fmt.Sprintf("**Task Description:** %s\n", task.Description))
-	sb.WriteString(fmt.Sprintf("**Collection Date:** %s\n", time.Now().Format("2006-01-02")))
-	if window != "" {
-		sb.WriteString(fmt.Sprintf("**Collection Window:** %s\n", window))
-	}
-	sb.WriteString("\n---\n\n")
-
-	sb.WriteString("## Collection Task 1: [Task description]\n\n")
-	sb.WriteString("**Evidence:** [Evidence statement]\n\n")
-	sb.WriteString("**Source:** `[filename]`  \n")
-	sb.WriteString("**Original Path:** `[relative-path]`  \n")
-	sb.WriteString("**Last Modified:** [date]  \n")
-	sb.WriteString("**Section:** [section reference]\n\n")
-	sb.WriteString("> [Quoted snippet from source]\n")
-	sb.WriteString("> [More quoted content...]\n\n")
-	sb.WriteString("---\n\n")
-
-	sb.WriteString("<!-- Add more collection tasks as needed -->\n")
-	sb.WriteString("<!-- Remember to copy all source files flat to wip/ directory -->\n")
-
-	return sb.String()
 }
