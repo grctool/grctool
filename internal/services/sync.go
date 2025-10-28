@@ -412,8 +412,8 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 
 	// Save attachments for each window
 	for window, windowAttachments := range windowMap {
-		// Download actual files for file-type attachments
-		evidenceDir := filepath.Join(s.baseDir, "evidence", task.ReferenceID, window)
+		// Download actual files to submitted/ subfolder for file-type attachments
+		evidenceDir := filepath.Join(s.baseDir, "evidence", task.ReferenceID, window, "submitted")
 		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 			s.logger.Warn("Failed to create evidence directory",
 				logger.String("task_ref", task.ReferenceID),
@@ -423,8 +423,13 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 			continue
 		}
 
+		s.logger.Debug("Processing attachments for window",
+			logger.String("task_ref", task.ReferenceID),
+			logger.String("window", window),
+			logger.Int("total_attachments", len(windowAttachments)))
+
 		for _, att := range windowAttachments {
-			if att.Type == "file" && att.AttachmentID != nil && *att.AttachmentID > 0 {
+			if att.Type == "file" && att.Attachment != nil {
 				// Download the file
 				filename := att.Attachment.OriginalFilename
 				if filename == "" {
@@ -460,11 +465,18 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 				} else {
 					stats.Downloaded++
 				}
+			} else {
+				// Log skipped attachments for debugging
+				s.logger.Debug("Skipping attachment - not downloadable",
+					logger.Int("attachment_id", att.ID),
+					logger.String("type", att.Type),
+					logger.Field{Key: "has_attachment_object", Value: att.Attachment != nil})
+				stats.Skipped++
 			}
 		}
 
 		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskID, window, windowAttachments)
-		if err := s.storage.SaveSubmission(submission); err != nil {
+		if err := s.storage.SaveSubmissionToSubfolder(submission, "submitted"); err != nil {
 			s.logger.Warn("Failed to save submission for window",
 				logger.String("task_ref", task.ReferenceID),
 				logger.String("window", window),
@@ -472,7 +484,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 			continue
 		}
 
-		// Also save to submission history
+		// Also save to submission history in submitted/ subfolder
 		history, err := s.storage.LoadSubmissionHistory(task.ReferenceID, window)
 		if err != nil {
 			// History doesn't exist yet, create new one
@@ -496,7 +508,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 			history.Entries = append(history.Entries, entry)
 		}
 
-		if err := s.storage.SaveSubmissionHistory(history); err != nil {
+		if err := s.storage.SaveSubmissionHistoryToSubfolder(history, "submitted"); err != nil {
 			s.logger.Warn("Failed to save submission history",
 				logger.String("task_ref", task.ReferenceID),
 				logger.String("window", window),

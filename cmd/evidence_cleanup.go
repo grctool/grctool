@@ -126,7 +126,7 @@ func runEvidenceCleanup(cmd *cobra.Command, args []string) error {
 	cleanupService := services.NewEvidenceCleanupService(evidenceDir, scanner, log)
 
 	if dryRun {
-		fmt.Println("=== DRY RUN MODE - No changes will be made ===\n")
+		fmt.Println("=== DRY RUN MODE - No changes will be made ===")
 	}
 
 	if all {

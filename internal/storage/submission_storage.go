@@ -23,9 +23,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/services/conversion"
 	"gopkg.in/yaml.v3"
 )
 
@@ -38,6 +40,7 @@ const (
 )
 
 // SaveSubmission saves submission metadata for a task window
+// For backward compatibility, saves at window level (use SaveSubmissionToSubfolder for new structure)
 func (us *Storage) SaveSubmission(submission *models.EvidenceSubmission) error {
 	if submission == nil {
 		return fmt.Errorf("submission cannot be nil")
@@ -45,6 +48,35 @@ func (us *Storage) SaveSubmission(submission *models.EvidenceSubmission) error {
 
 	// Get evidence directory for this task/window
 	evidenceDir := us.getEvidenceWindowDir(submission.TaskRef, submission.Window)
+	submissionDir := filepath.Join(evidenceDir, submissionMetadataDir)
+
+	// Create .submission directory if it doesn't exist
+	if err := os.MkdirAll(submissionDir, 0755); err != nil {
+		return fmt.Errorf("failed to create submission directory: %w", err)
+	}
+
+	// Save submission metadata
+	submissionPath := filepath.Join(submissionDir, submissionFilename)
+	data, err := yaml.Marshal(submission)
+	if err != nil {
+		return fmt.Errorf("failed to marshal submission: %w", err)
+	}
+
+	if err := os.WriteFile(submissionPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write submission file: %w", err)
+	}
+
+	return nil
+}
+
+// SaveSubmissionToSubfolder saves submission metadata to a specific subfolder (ready/submitted)
+func (us *Storage) SaveSubmissionToSubfolder(submission *models.EvidenceSubmission, subfolder string) error {
+	if submission == nil {
+		return fmt.Errorf("submission cannot be nil")
+	}
+
+	// Get evidence subfolder directory for this task/window/subfolder
+	evidenceDir := us.getEvidenceSubfolderDir(submission.TaskRef, submission.Window, subfolder)
 	submissionDir := filepath.Join(evidenceDir, submissionMetadataDir)
 
 	// Create .submission directory if it doesn't exist
@@ -89,6 +121,7 @@ func (us *Storage) LoadSubmission(taskRef, window string) (*models.EvidenceSubmi
 }
 
 // SaveValidationResult saves validation results for a task window
+// For backward compatibility, saves at window level (use SaveValidationResultToSubfolder for new structure)
 func (us *Storage) SaveValidationResult(taskRef, window string, result *models.ValidationResult) error {
 	if result == nil {
 		return fmt.Errorf("validation result cannot be nil")
@@ -103,6 +136,33 @@ func (us *Storage) SaveValidationResult(taskRef, window string, result *models.V
 	}
 
 	validationPath := filepath.Join(submissionDir, validationFilename)
+	data, err := yaml.Marshal(result)
+	if err != nil {
+		return fmt.Errorf("failed to marshal validation result: %w", err)
+	}
+
+	if err := os.WriteFile(validationPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write validation file: %w", err)
+	}
+
+	return nil
+}
+
+// SaveValidationResultToSubfolder saves validation results to a specific subfolder (typically "ready")
+func (us *Storage) SaveValidationResultToSubfolder(taskRef, window string, result *models.ValidationResult, subfolder string) error {
+	if result == nil {
+		return fmt.Errorf("validation result cannot be nil")
+	}
+
+	evidenceDir := us.getEvidenceSubfolderDir(taskRef, window, subfolder)
+	validationDir := filepath.Join(evidenceDir, ".validation")
+
+	// Create .validation directory if it doesn't exist
+	if err := os.MkdirAll(validationDir, 0755); err != nil {
+		return fmt.Errorf("failed to create validation directory: %w", err)
+	}
+
+	validationPath := filepath.Join(validationDir, validationFilename)
 	data, err := yaml.Marshal(result)
 	if err != nil {
 		return fmt.Errorf("failed to marshal validation result: %w", err)
@@ -162,13 +222,60 @@ func (us *Storage) AddSubmissionHistory(taskRef, window string, entry models.Sub
 	return us.SaveSubmissionHistory(history)
 }
 
+// AddSubmissionHistoryToSubfolder adds an entry to the submission history in a specific subfolder
+func (us *Storage) AddSubmissionHistoryToSubfolder(taskRef, window string, entry models.SubmissionHistoryEntry, subfolder string) error {
+	// Load existing history or create new
+	// Note: LoadSubmissionHistory doesn't have a subfolder variant, so history starts fresh
+	history := &models.SubmissionHistory{
+		TaskRef: taskRef,
+		Window:  window,
+		Entries: []models.SubmissionHistoryEntry{entry},
+	}
+
+	// Sort by submitted time (most recent first)
+	sort.Slice(history.Entries, func(i, j int) bool {
+		return history.Entries[i].SubmittedAt.After(history.Entries[j].SubmittedAt)
+	})
+
+	// Save history to subfolder
+	return us.SaveSubmissionHistoryToSubfolder(history, subfolder)
+}
+
 // SaveSubmissionHistory saves the complete submission history
+// For backward compatibility, saves at window level (use SaveSubmissionHistoryToSubfolder for new structure)
 func (us *Storage) SaveSubmissionHistory(history *models.SubmissionHistory) error {
 	if history == nil {
 		return fmt.Errorf("history cannot be nil")
 	}
 
 	evidenceDir := us.getEvidenceWindowDir(history.TaskRef, history.Window)
+	submissionDir := filepath.Join(evidenceDir, submissionMetadataDir)
+
+	// Create .submission directory if it doesn't exist
+	if err := os.MkdirAll(submissionDir, 0755); err != nil {
+		return fmt.Errorf("failed to create submission directory: %w", err)
+	}
+
+	historyPath := filepath.Join(submissionDir, historyFilename)
+	data, err := yaml.Marshal(history)
+	if err != nil {
+		return fmt.Errorf("failed to marshal history: %w", err)
+	}
+
+	if err := os.WriteFile(historyPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write history file: %w", err)
+	}
+
+	return nil
+}
+
+// SaveSubmissionHistoryToSubfolder saves submission history to a specific subfolder (ready/submitted)
+func (us *Storage) SaveSubmissionHistoryToSubfolder(history *models.SubmissionHistory, subfolder string) error {
+	if history == nil {
+		return fmt.Errorf("history cannot be nil")
+	}
+
+	evidenceDir := us.getEvidenceSubfolderDir(history.TaskRef, history.Window, subfolder)
 	submissionDir := filepath.Join(evidenceDir, submissionMetadataDir)
 
 	// Create .submission directory if it doesn't exist
@@ -315,6 +422,7 @@ func (us *Storage) CalculateFileChecksum(filePath string) (string, error) {
 }
 
 // GetEvidenceFiles gets all evidence files for a task window with metadata
+// This method scans the window directory for backward compatibility (pre-subfolder structure)
 func (us *Storage) GetEvidenceFiles(taskRef, window string) ([]models.EvidenceFileRef, error) {
 	evidenceDir := us.getEvidenceWindowDir(taskRef, window)
 
@@ -335,6 +443,62 @@ func (us *Storage) GetEvidenceFiles(taskRef, window string) ([]models.EvidenceFi
 		}
 
 		// Skip non-evidence files (collection_plan, etc.)
+		if entry.Name() == "collection_plan.md" || entry.Name() == "collection_plan_metadata.yaml" {
+			continue
+		}
+
+		filePath := filepath.Join(evidenceDir, entry.Name())
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		// Calculate checksum
+		checksum, err := us.CalculateFileChecksum(filePath)
+		if err != nil {
+			checksum = ""
+		}
+
+		// Get relative path from data directory
+		relPath, err := filepath.Rel(us.localDataStore.GetBaseDir(), filePath)
+		if err != nil {
+			relPath = filePath
+		}
+
+		files = append(files, models.EvidenceFileRef{
+			Filename:       entry.Name(),
+			RelativePath:   relPath,
+			Title:          entry.Name(),
+			SizeBytes:      info.Size(),
+			ChecksumSHA256: checksum,
+		})
+	}
+
+	return files, nil
+}
+
+// GetEvidenceFilesFromSubfolder gets all evidence files from a specific subfolder (wip/ready/submitted)
+func (us *Storage) GetEvidenceFilesFromSubfolder(taskRef, window, subfolder string) ([]models.EvidenceFileRef, error) {
+	evidenceDir := us.getEvidenceSubfolderDir(taskRef, window, subfolder)
+
+	if _, err := os.Stat(evidenceDir); os.IsNotExist(err) {
+		// Return empty list if subfolder doesn't exist (not an error - just no files yet)
+		return []models.EvidenceFileRef{}, nil
+	}
+
+	entries, err := os.ReadDir(evidenceDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read evidence directory: %w", err)
+	}
+
+	var files []models.EvidenceFileRef
+	for _, entry := range entries {
+		// Skip directories and hidden files
+		if entry.IsDir() || entry.Name()[0] == '.' {
+			continue
+		}
+
+		// Skip non-evidence files
 		if entry.Name() == "collection_plan.md" || entry.Name() == "collection_plan_metadata.yaml" {
 			continue
 		}
@@ -393,6 +557,13 @@ func (us *Storage) getEvidenceWindowDir(taskRef, window string) string {
 	return filepath.Join(evidenceBase, taskRef, window)
 }
 
+// getEvidenceSubfolderDir returns the evidence directory path for a task/window/subfolder
+// subfolder can be "wip", "ready", or "submitted"
+func (us *Storage) getEvidenceSubfolderDir(taskRef, window, subfolder string) string {
+	windowDir := us.getEvidenceWindowDir(taskRef, window)
+	return filepath.Join(windowDir, subfolder)
+}
+
 // InitializeSubmissionMetadata creates the .submission directory structure
 func (us *Storage) InitializeSubmissionMetadata(taskRef, window string) error {
 	evidenceDir := us.getEvidenceWindowDir(taskRef, window)
@@ -428,4 +599,100 @@ func (us *Storage) SubmissionExists(taskRef, window string) bool {
 	submissionPath := filepath.Join(evidenceDir, submissionMetadataDir, submissionFilename)
 	_, err := os.Stat(submissionPath)
 	return err == nil
+}
+
+// MoveEvidenceFiles moves evidence files from one subfolder to another
+// Moves both the evidence files and their metadata directories (.generation/, .validation/, etc.)
+// If moving to "ready", automatically converts markdown files to PDF
+func (us *Storage) MoveEvidenceFiles(taskRef, window, fromSubfolder, toSubfolder string) error {
+	fromDir := us.getEvidenceSubfolderDir(taskRef, window, fromSubfolder)
+	toDir := us.getEvidenceSubfolderDir(taskRef, window, toSubfolder)
+
+	// Check if source directory exists
+	if _, err := os.Stat(fromDir); os.IsNotExist(err) {
+		return fmt.Errorf("source directory does not exist: %s", fromDir)
+	}
+
+	// Create destination directory
+	if err := os.MkdirAll(toDir, 0755); err != nil {
+		return fmt.Errorf("failed to create destination directory: %w", err)
+	}
+
+	// Read all entries from source directory
+	entries, err := os.ReadDir(fromDir)
+	if err != nil {
+		return fmt.Errorf("failed to read source directory: %w", err)
+	}
+
+	// Move each file and directory
+	for _, entry := range entries {
+		sourcePath := filepath.Join(fromDir, entry.Name())
+		destPath := filepath.Join(toDir, entry.Name())
+
+		// Rename (move) the file/directory
+		if err := os.Rename(sourcePath, destPath); err != nil {
+			return fmt.Errorf("failed to move %s: %w", entry.Name(), err)
+		}
+	}
+
+	// If moving to "ready", convert markdown files to PDF
+	if toSubfolder == "ready" {
+		if err := us.convertMarkdownToPDF(taskRef, window); err != nil {
+			// Log warning but don't fail the move operation
+			// User can still submit .md files as fallback
+			fmt.Printf("Warning: failed to convert markdown to PDF: %v\n", err)
+		}
+	}
+
+	// Optionally remove the now-empty source directory
+	// We'll keep it for now - the scanner will handle empty directories gracefully
+
+	return nil
+}
+
+// convertMarkdownToPDF converts all markdown files in the ready/ folder to PDF
+func (us *Storage) convertMarkdownToPDF(taskRef, window string) error {
+	readyDir := us.getEvidenceSubfolderDir(taskRef, window, "ready")
+
+	// Import conversion package (will be added in imports)
+	converter := conversion.NewConverter()
+
+	// Find all .md files in ready/
+	entries, err := os.ReadDir(readyDir)
+	if err != nil {
+		return fmt.Errorf("failed to read ready directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		// Skip directories and non-markdown files
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".md" {
+			continue
+		}
+
+		inputPath := filepath.Join(readyDir, entry.Name())
+		outputPath := strings.TrimSuffix(inputPath, ".md") + ".pdf"
+
+		// Skip if PDF already exists and is newer than markdown
+		if pdfInfo, err := os.Stat(outputPath); err == nil {
+			mdInfo, _ := os.Stat(inputPath)
+			if pdfInfo.ModTime().After(mdInfo.ModTime()) {
+				continue // PDF is up to date
+			}
+		}
+
+		// Convert markdown to PDF
+		opts := conversion.DefaultOptions()
+		opts.Title = strings.TrimSuffix(entry.Name(), ".md")
+		opts.Subject = fmt.Sprintf("Evidence for %s - %s", taskRef, window)
+
+		if err := converter.ConvertMarkdownToPDF(inputPath, outputPath, opts); err != nil {
+			// Log error but continue with other files
+			fmt.Printf("Warning: failed to convert %s to PDF: %v\n", entry.Name(), err)
+			continue
+		}
+
+		fmt.Printf("Converted %s → %s\n", entry.Name(), filepath.Base(outputPath))
+	}
+
+	return nil
 }

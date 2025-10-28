@@ -158,7 +158,7 @@ func evaluateTask(ctx context.Context, evaluator *services.EvidenceEvaluatorServ
 	if subfolder != "" {
 		fmt.Printf(" / %s", subfolder)
 	}
-	fmt.Println("\n")
+	fmt.Println()
 
 	var result *models.EvaluationResult
 	var err error
@@ -201,7 +201,7 @@ func evaluateTask(ctx context.Context, evaluator *services.EvidenceEvaluatorServ
 func evaluateAllTasks(ctx context.Context, scanner services.EvidenceScanner, evaluator *services.EvidenceEvaluatorService,
 	storage *storage.Storage, saveValidation, verbose bool, outputFile string) error {
 
-	fmt.Println("Evaluating all evidence tasks...\n")
+	fmt.Println("Evaluating all evidence tasks...")
 
 	// Scan all evidence
 	taskStates, err := scanner.ScanAll(ctx)
@@ -291,7 +291,7 @@ func displayEvaluationResult(result *models.EvaluationResult, verbose bool) {
 		}
 		fmt.Println()
 	} else {
-		fmt.Println("✓ No issues found\n")
+		fmt.Println("✓ No issues found")
 	}
 
 	// Recommendations

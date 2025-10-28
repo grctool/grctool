@@ -280,16 +280,17 @@ func (ewt *EvidenceWriterTool) Execute(ctx context.Context, params map[string]in
 		return "", nil, fmt.Errorf("operation cancelled before directory creation: %w", err)
 	}
 
-	// Create evidence directory structure
+	// Create evidence directory structure with wip/ subfolder
 	taskDirName := fmt.Sprintf("%s_%s", task.ReferenceID, SanitizeTaskName(task.Name))
-	evidenceDir := filepath.Join(ewt.config.Storage.DataDir, "evidence", taskDirName, window)
+	windowDir := filepath.Join(ewt.config.Storage.DataDir, "evidence", taskDirName, window)
+	evidenceDir := filepath.Join(windowDir, "wip")
 
 	if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 		return "", nil, fmt.Errorf("creating evidence directory '%s': %w: %w", evidenceDir, ErrDirectoryCreation, err)
 	}
 
-	// Load or create collection plan
-	planPath := filepath.Join(evidenceDir, "collection_plan.md")
+	// Load or create collection plan (at window level, not in wip/)
+	planPath := filepath.Join(windowDir, "collection_plan.md")
 	plan, err := ewt.planManager.LoadOrCreatePlan(task, window, planPath)
 	if err != nil {
 		return "", nil, fmt.Errorf("loading collection plan from '%s': %w", planPath, err)
@@ -489,16 +490,17 @@ func (ewt *EvidenceWriterTool) writeEvidenceFile(filePath, content, format strin
 }
 
 // writeGenerationMetadata creates a .generation/metadata.yaml file with generation details
+// wipDir should point to the wip/ folder where evidence files are written
 func (ewt *EvidenceWriterTool) writeGenerationMetadata(
-	windowDir string,
+	wipDir string,
 	task *domain.EvidenceTask,
 	window string,
 	files []models.FileMetadata,
 	generatedBy string,
 	toolsUsed []string,
 ) error {
-	// Create .generation directory
-	metadataDir := filepath.Join(windowDir, ".generation")
+	// Create .generation directory inside wip/
+	metadataDir := filepath.Join(wipDir, ".generation")
 	if err := os.MkdirAll(metadataDir, 0755); err != nil {
 		return fmt.Errorf("creating metadata directory: %w", err)
 	}

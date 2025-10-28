@@ -141,12 +141,12 @@ func (s *SubmissionService) Submit(ctx context.Context, req *SubmitRequest) (*Su
 		submission.SubmissionID = fmt.Sprintf("local-%d", time.Now().Unix())
 	}
 
-	// Step 5: Save submission metadata
-	if err := s.storage.SaveSubmission(submission); err != nil {
+	// Step 5: Save submission metadata to ready/.submission/
+	if err := s.storage.SaveSubmissionToSubfolder(submission, "ready"); err != nil {
 		return nil, fmt.Errorf("failed to save submission: %w", err)
 	}
 
-	// Step 6: Add to history
+	// Step 6: Add to history in ready/.submission/
 	historyEntry := models.SubmissionHistoryEntry{
 		SubmissionID: submission.SubmissionID,
 		SubmittedAt:  time.Now(),
@@ -155,7 +155,7 @@ func (s *SubmissionService) Submit(ctx context.Context, req *SubmitRequest) (*Su
 		FileCount:    submission.TotalFileCount,
 		Notes:        submission.Notes,
 	}
-	if err := s.storage.AddSubmissionHistory(req.TaskRef, req.Window, historyEntry); err != nil {
+	if err := s.storage.AddSubmissionHistoryToSubfolder(req.TaskRef, req.Window, historyEntry, "ready"); err != nil {
 		// Log error but don't fail
 		fmt.Printf("Warning: failed to save submission history: %v\n", err)
 	}
@@ -176,11 +176,14 @@ func (s *SubmissionService) prepareSubmission(
 	task *domain.EvidenceTask,
 	validationResult *models.ValidationResult,
 ) (*models.EvidenceSubmission, error) {
-	// Get evidence files
-	files, err := s.storage.GetEvidenceFiles(req.TaskRef, req.Window)
+	// Get evidence files from ready/ subfolder
+	files, err := s.storage.GetEvidenceFilesFromSubfolder(req.TaskRef, req.Window, "ready")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get evidence files: %w", err)
+		return nil, fmt.Errorf("failed to get evidence files from ready/: %w", err)
 	}
+
+	// Filter to prefer PDF over markdown when both exist
+	files = filterPreferPDF(files)
 
 	// Calculate total size
 	var totalSize int64
@@ -211,6 +214,34 @@ func (s *SubmissionService) prepareSubmission(
 	}
 
 	return submission, nil
+}
+
+// filterPreferPDF filters evidence files to prefer PDF over markdown when both exist
+func filterPreferPDF(files []models.EvidenceFileRef) []models.EvidenceFileRef {
+	// Build map of basenames (without extension) that have PDF versions
+	pdfExists := make(map[string]bool)
+	for _, f := range files {
+		if filepath.Ext(f.Filename) == ".pdf" {
+			basename := filepath.Base(f.Filename)
+			basename = basename[:len(basename)-4] // Remove .pdf extension
+			pdfExists[basename] = true
+		}
+	}
+
+	// Filter: exclude .md if .pdf exists with same basename
+	result := []models.EvidenceFileRef{}
+	for _, f := range files {
+		if filepath.Ext(f.Filename) == ".md" {
+			basename := filepath.Base(f.Filename)
+			basename = basename[:len(basename)-3] // Remove .md extension
+			if pdfExists[basename] {
+				continue // Skip .md, prefer .pdf
+			}
+		}
+		result = append(result, f)
+	}
+
+	return result
 }
 
 // submitToTugboat submits evidence to Tugboat Custom Evidence Integration API
