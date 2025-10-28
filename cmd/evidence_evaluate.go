@@ -28,6 +28,7 @@ import (
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/storage"
 	"github.com/spf13/cobra"
@@ -109,8 +110,8 @@ func runEvidenceEvaluate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("cannot specify task reference with --all flag")
 	}
 
-	if subfolder != "" && subfolder != "wip" && subfolder != "ready" && subfolder != "submitted" {
-		return fmt.Errorf("invalid subfolder: must be wip, ready, or submitted")
+	if subfolder != "" && subfolder != naming.SubfolderSubmitted && subfolder != naming.SubfolderArchive {
+		return fmt.Errorf("invalid subfolder: must be %s or %s", naming.SubfolderSubmitted, naming.SubfolderArchive)
 	}
 
 	// Load configuration

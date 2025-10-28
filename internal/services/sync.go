@@ -413,9 +413,9 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 
 	// Save attachments for each window
 	for window, windowAttachments := range windowMap {
-		// Download actual files to submitted/ subfolder for file-type attachments
+		// Download actual files to archive/ subfolder for file-type attachments
 		taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
-		evidenceDir := filepath.Join(s.baseDir, "evidence", taskDirName, window, "submitted")
+		evidenceDir := filepath.Join(s.baseDir, "evidence", taskDirName, window, naming.SubfolderArchive)
 		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 			s.logger.Warn("Failed to create evidence directory",
 				logger.String("task_ref", task.ReferenceID),
@@ -478,7 +478,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 		}
 
 		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskDirName, taskID, window, windowAttachments)
-		if err := s.storage.SaveSubmissionToSubfolder(submission, "submitted"); err != nil {
+		if err := s.storage.SaveSubmissionToSubfolder(submission, naming.SubfolderArchive); err != nil {
 			s.logger.Warn("Failed to save submission for window",
 				logger.String("task_ref", task.ReferenceID),
 				logger.String("window", window),
@@ -510,7 +510,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 			history.Entries = append(history.Entries, entry)
 		}
 
-		if err := s.storage.SaveSubmissionHistoryToSubfolder(history, "submitted"); err != nil {
+		if err := s.storage.SaveSubmissionHistoryToSubfolder(history, naming.SubfolderArchive); err != nil {
 			s.logger.Warn("Failed to save submission history",
 				logger.String("task_ref", task.ReferenceID),
 				logger.String("window", window),

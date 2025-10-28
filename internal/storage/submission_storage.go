@@ -423,7 +423,7 @@ func (us *Storage) CalculateFileChecksum(filePath string) (string, error) {
 }
 
 // GetEvidenceFiles gets all evidence files for a task window with metadata
-// This method scans the window directory for backward compatibility (pre-subfolder structure)
+// NEW HYBRID APPROACH: Reads from window root directory (working directory)
 func (us *Storage) GetEvidenceFiles(taskRef, window string) ([]models.EvidenceFileRef, error) {
 	evidenceDir := us.getEvidenceWindowDir(taskRef, window)
 
@@ -478,7 +478,8 @@ func (us *Storage) GetEvidenceFiles(taskRef, window string) ([]models.EvidenceFi
 	return files, nil
 }
 
-// GetEvidenceFilesFromSubfolder gets all evidence files from a specific subfolder (wip/ready/submitted)
+// GetEvidenceFilesFromSubfolder gets all evidence files from a specific subfolder
+// NEW HYBRID APPROACH: Only supports .submitted and archive subfolders
 func (us *Storage) GetEvidenceFilesFromSubfolder(taskRef, window, subfolder string) ([]models.EvidenceFileRef, error) {
 	evidenceDir := us.getEvidenceSubfolderDir(taskRef, window, subfolder)
 
@@ -532,6 +533,87 @@ func (us *Storage) GetEvidenceFilesFromSubfolder(taskRef, window, subfolder stri
 	}
 
 	return files, nil
+}
+
+// MoveEvidenceFilesToSubmitted moves evidence files from root to .submitted/ subfolder after successful upload
+// NEW HYBRID APPROACH: Prevents resubmission by hiding files
+func (us *Storage) MoveEvidenceFilesToSubmitted(taskRef, window string, files []models.EvidenceFileRef) error {
+	windowDir := us.getEvidenceWindowDir(taskRef, window)
+	submittedDir := filepath.Join(windowDir, naming.SubfolderSubmitted)
+
+	// Create .submitted directory if it doesn't exist
+	if err := os.MkdirAll(submittedDir, 0755); err != nil {
+		return fmt.Errorf("failed to create .submitted directory: %w", err)
+	}
+
+	// Move each file
+	for _, file := range files {
+		sourcePath := filepath.Join(windowDir, file.Filename)
+		destPath := filepath.Join(submittedDir, file.Filename)
+
+		// Check if source exists
+		if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+			// File doesn't exist in root - may have already been moved
+			continue
+		}
+
+		// Move file
+		if err := os.Rename(sourcePath, destPath); err != nil {
+			return fmt.Errorf("failed to move file %s: %w", file.Filename, err)
+		}
+	}
+
+	// Move metadata directories too
+	metadataDirs := []string{".generation", ".validation"}
+	for _, metadataDir := range metadataDirs {
+		sourcePath := filepath.Join(windowDir, metadataDir)
+		if stat, err := os.Stat(sourcePath); err == nil && stat.IsDir() {
+			destPath := filepath.Join(submittedDir, metadataDir)
+			// Only move if destination doesn't exist
+			if _, err := os.Stat(destPath); os.IsNotExist(err) {
+				if err := os.Rename(sourcePath, destPath); err != nil {
+					// Log warning but don't fail - metadata move is best-effort
+					continue
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// CheckAlreadySubmitted checks if files exist in .submitted/ folder (prevents resubmission)
+// NEW HYBRID APPROACH: Hidden folder check
+func (us *Storage) CheckAlreadySubmitted(taskRef, window string) (bool, error) {
+	submittedDir := filepath.Join(us.getEvidenceWindowDir(taskRef, window), naming.SubfolderSubmitted)
+
+	// Check if .submitted directory exists
+	stat, err := os.Stat(submittedDir)
+	if os.IsNotExist(err) {
+		return false, nil // Directory doesn't exist - nothing submitted
+	}
+	if err != nil {
+		return false, fmt.Errorf("failed to check .submitted directory: %w", err)
+	}
+	if !stat.IsDir() {
+		return false, nil
+	}
+
+	// Check if there are any files in .submitted/
+	entries, err := os.ReadDir(submittedDir)
+	if err != nil {
+		return false, fmt.Errorf("failed to read .submitted directory: %w", err)
+	}
+
+	// Count evidence files (not directories)
+	fileCount := 0
+	for _, entry := range entries {
+		if !entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
+			fileCount++
+		}
+	}
+
+	return fileCount > 0, nil
 }
 
 // getEvidenceWindowDir returns the evidence directory path for a task/window

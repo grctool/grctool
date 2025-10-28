@@ -30,6 +30,7 @@ import (
 	"github.com/grctool/grctool/internal/formatters"
 	"github.com/grctool/grctool/internal/interpolation"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/naming"
 	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/services/evidence"
@@ -190,6 +191,7 @@ func init() {
 	evidenceGenerateCmd.Flags().Bool("with-tool-data", false, "execute applicable tools and collect data during context generation")
 
 	// Evidence review flags
+	evidenceReviewCmd.Flags().String("window", "", "evidence collection window (e.g., 2025-Q4)")
 	evidenceReviewCmd.Flags().Bool("show-reasoning", true, "show AI reasoning process")
 	evidenceReviewCmd.Flags().Bool("show-sources", true, "show evidence sources")
 
@@ -456,13 +458,13 @@ func processSingleTaskGeneration(cmd *cobra.Command, taskRef string, window stri
 		return nil // Skip assembly context generation
 	}
 
-	// NEW: Generate comprehensive assembly context
+	// Generate comprehensive assembly context
 	assemblyContext, err := generateAssemblyContext(task, window, options.Tools, cfg, storage)
 	if err != nil {
 		return fmt.Errorf("failed to generate assembly context: %w", err)
 	}
 
-	// Save comprehensive assembly materials
+	// Save comprehensive assembly materials to root directory
 	assemblyPaths, err := saveAssemblyContext(task, window, assemblyContext, cfg.Storage.DataDir)
 	if err != nil {
 		return fmt.Errorf("failed to save assembly context: %w", err)
@@ -607,35 +609,53 @@ func processBulkEvidenceGeneration(cmd *cobra.Command, evidenceService interface
 }
 
 func runEvidenceReview(cmd *cobra.Command, args []string) error {
-	ctx := context.Background()
-
-	// Initialize service
-	evidenceService, err := initializeEvidenceService()
+	// Load configuration
+	cfg, err := config.Load()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
-	taskID, err := evidenceService.ResolveTaskID(ctx, args[0])
+	// Initialize storage
+	storage, err := storage.NewStorage(cfg.Storage)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
 
-	// Parse flags
-	options := evidence.ReviewOptions{
-		ShowReasoning: must(cmd.Flags().GetBool("show-reasoning")),
-		ShowSources:   must(cmd.Flags().GetBool("show-sources")),
+	// Get task by reference or ID
+	taskRef := args[0]
+	task, err := storage.GetEvidenceTask(taskRef)
+	if err != nil {
+		return fmt.Errorf("evidence task not found: %s", taskRef)
 	}
 
-	return processEvidenceReview(cmd, evidenceService, taskID, options, ctx)
-}
+	// Get window from flags or use current quarter
+	window, _ := cmd.Flags().GetString("window")
+	if window == "" {
+		window = getCurrentQuarter()
+	}
 
-func processEvidenceReview(cmd *cobra.Command, evidenceService evidence.Service, taskID int, options evidence.ReviewOptions, ctx context.Context) error {
-	cmd.Printf("Reviewing evidence for task %d\n", taskID)
+	// Display review header
+	displayReviewHeader(cmd, task, window)
 
-	// Implementation delegated to service layer
-	// For now, return a simplified message
-	cmd.Println("Evidence review functionality has been moved to the service layer.")
-	cmd.Printf("Use the evidence service to review task %d\n", taskID)
+	// 1. Display evidence files summary
+	files, err := storage.GetEvidenceFiles(task.ReferenceID, window)
+	hasFiles := err == nil && len(files) > 0
+	displayEvidenceFiles(cmd, files, err)
+
+	// 2. Display validation status if available
+	validationResult, validationErr := storage.LoadValidationResult(task.ReferenceID, window)
+	hasValidation := validationErr == nil && validationResult != nil
+	displayValidationStatus(cmd, validationResult, validationErr)
+
+	// 3. Display requirements checklist
+	displayRequirementsChecklist(cmd, task, hasFiles)
+
+	// 4. Display control alignment
+	displayControlAlignment(cmd, task, storage)
+
+	// 5. Display submission recommendation
+	alreadySubmitted, _ := storage.CheckAlreadySubmitted(task.ReferenceID, window)
+	displaySubmissionRecommendation(cmd, task, window, hasFiles, hasValidation, validationResult, alreadySubmitted)
 
 	return nil
 }
@@ -686,13 +706,26 @@ func runEvidenceSubmit(cmd *cobra.Command, args []string) error {
 		SubmittedBy:    "grctool-cli",
 	}
 
-	// Preview files
+	// Check if files already exist in .submitted/ folder (prevents resubmission)
+	alreadySubmitted, err := storage.CheckAlreadySubmitted(taskRef, window)
+	if err != nil {
+		return fmt.Errorf("failed to check submission status: %w", err)
+	}
+	if alreadySubmitted {
+		cmd.Printf("⚠️  Evidence for %s/%s has already been submitted\n", taskRef, window)
+		cmd.Println("Files are in .submitted/ folder. To resubmit:")
+		cmd.Println("  1. Move files from .submitted/ back to root directory")
+		cmd.Println("  2. Run submit command again")
+		return nil
+	}
+
+	// Preview files (from root directory)
 	files, err := storage.GetEvidenceFiles(taskRef, window)
 	if err != nil {
 		return fmt.Errorf("failed to get evidence files: %w", err)
 	}
 
-	cmd.Printf("📁 Evidence directory: data/evidence/%s/%s\n", taskRef, window)
+	cmd.Printf("📁 Evidence directory: data/evidence/%s/%s (root)\n", taskRef, window)
 	cmd.Printf("📄 Files to submit: %d\n\n", len(files))
 	for i, file := range files {
 		cmd.Printf("  %d. %s (%d bytes)\n", i+1, file.Filename, file.SizeBytes)
@@ -738,6 +771,15 @@ func runEvidenceSubmit(cmd *cobra.Command, args []string) error {
 		}
 		if resp.Message != "" {
 			cmd.Printf("\n%s\n", resp.Message)
+		}
+
+		// NEW HYBRID APPROACH: Move files to .submitted/ after successful upload
+		cmd.Println("\n📦 Moving files to .submitted/ folder...")
+		if err := storage.MoveEvidenceFilesToSubmitted(taskRef, window, files); err != nil {
+			cmd.Printf("⚠️  Warning: Failed to move files to .submitted/: %v\n", err)
+			cmd.Println("Files were uploaded successfully but remain in root directory")
+		} else {
+			cmd.Printf("✅ Files moved to .submitted/ (prevents resubmission)\n")
 		}
 	} else {
 		cmd.Printf("❌ Submission failed: %s\n", resp.Message)
@@ -1280,7 +1322,7 @@ Help the user generate evidence for **%s** (%s).
 
 You will generate TWO outputs:
 
-### 1. Simple Evidence File (wip/%s_Evidence.md)
+### 1. Simple Evidence File (%s_Evidence.md - root directory)
 **Purpose**: Clean, auditor-friendly evidence document
 **Structure**:
 - Header with task description and collection date
@@ -1337,11 +1379,11 @@ grctool tool <tool-name> --repository <repo> > .context/tool_outputs/<tool-name>
 `+"```\n"+`
 
 ### Step 4: Generate Simple Evidence File
-Create wip/%s_Evidence.md with:
+Create %s_Evidence.md (root directory) with:
 - Collection tasks derived from description/guidance
 - Evidence snippets with inline quotes
 - Source file references with relative paths and dates
-- Copy all referenced source files flat to wip/
+- Copy all referenced source files flat to root directory
 
 ### Step 5: Generate Narrative Background
 Create .context/narrative-background.md with:
@@ -1352,16 +1394,16 @@ Create .context/narrative-background.md with:
 
 ## Source File Handling
 
-**IMPORTANT**: Copy all referenced source files to wip/ (flat, no subdirectories):
-- Policy documents → wip/POL-XXXX-name.md (from docs/policies/markdown/)
-- Control files → wip/AC1-778771.md (from docs/controls/markdown/)
-- Infrastructure configs → wip/main.tf, wip/deploy.yml (original source files)
-- Application configs → wip/config.yaml, wip/.env.example
+**IMPORTANT**: Copy all referenced source files to root directory (flat, no subdirectories):
+- Policy documents → POL-XXXX-name.md (from docs/policies/markdown/)
+- Control files → AC1-778771.md (from docs/controls/markdown/)
+- Infrastructure configs → main.tf, deploy.yml (original source files)
+- Application configs → config.yaml, .env.example
 
 **File Selection Rules**:
 - ✅ **DO include**: Markdown documentation (.md), infrastructure source files (.tf, .yml, .yaml, .toml, .hcl)
 - ❌ **NEVER include**: JSON files (.json) - not auditor-friendly
-- 📊 **Tool outputs**: Analyze JSON internally, summarize findings in narrative, DON'T copy JSON to wip/
+- 📊 **Tool outputs**: Analyze JSON internally, summarize findings in narrative, DON'T copy JSON to root
 
 **Path References**: Use relative paths from data directory:
 - ✅ `+"`"+`docs/policies/markdown/POL-0001-access-control.md`+"`"+`
@@ -1370,7 +1412,7 @@ Create .context/narrative-background.md with:
 
 ## Expected Outputs
 
-**wip/**: Ready for Tugboat upload
+**Root Directory**: Ready for Tugboat upload
 - %s_Evidence.md (simple, task-focused)
 - POL-XXXX-*.md (policy source files in markdown)
 - AC*-*.md (control source files in markdown)
@@ -2627,14 +2669,14 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
-	wipDir := filepath.Join(windowDir, "wip")
 
-	// Create directories
+	// Create directories (no wip/ directory in hybrid approach - files go to root)
 	if err := os.MkdirAll(contextDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create context directory: %w", err)
 	}
-	if err := os.MkdirAll(wipDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create wip directory: %w", err)
+	// Ensure window root exists for evidence files
+	if err := os.MkdirAll(windowDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create window directory: %w", err)
 	}
 
 	assemblyPaths := &AssemblyPaths{
@@ -2666,4 +2708,358 @@ func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *Assembly
 	}
 
 	return assemblyPaths, nil
+}
+
+// ============================================================================
+// Evidence Review Display Functions
+// ============================================================================
+
+func displayReviewHeader(cmd *cobra.Command, task *domain.EvidenceTask, window string) {
+	separator := strings.Repeat("=", 67)
+	cmd.Println(separator)
+	cmd.Printf("Evidence Review: %s (%s)\n", task.ReferenceID, window)
+	cmd.Println(task.Name)
+	cmd.Println(separator)
+	cmd.Println()
+}
+
+func displayEvidenceFiles(cmd *cobra.Command, files []models.EvidenceFileRef, err error) {
+	cmd.Println("📁 EVIDENCE FILES (Root Directory)")
+	cmd.Println(strings.Repeat("─", 67))
+
+	if err != nil || len(files) == 0 {
+		cmd.Println("  ⚠️  No evidence files found in root directory")
+		cmd.Println("     Run 'grctool evidence generate' first")
+		cmd.Println()
+		return
+	}
+
+	var totalSize int64
+	for _, file := range files {
+		// Format size
+		sizeStr := formatFileSize(file.SizeBytes)
+
+		// Display file
+		cmd.Printf("  ✓ %-40s (%8s)\n",
+			truncateFileName(file.Filename, 40),
+			sizeStr)
+		totalSize += file.SizeBytes
+	}
+
+	cmd.Printf("\nTotal: %d files (%s)\n\n", len(files), formatFileSize(totalSize))
+}
+
+func displayValidationStatus(cmd *cobra.Command, result *models.ValidationResult, err error) {
+	cmd.Println("📊 EVALUATION STATUS")
+	cmd.Println(strings.Repeat("─", 67))
+
+	if err != nil || result == nil {
+		cmd.Println("  ⚠️  No evaluation results found")
+		cmd.Println("     Run 'grctool evidence evaluate' for detailed scoring")
+		cmd.Println()
+		return
+	}
+
+	// Overall score and status
+	statusIcon := getStatusIcon(result.Status)
+	cmd.Printf("Overall Score: %.1f/100 %s %s\n\n",
+		result.CompletenessScore,
+		statusIcon,
+		strings.ToUpper(result.Status))
+
+	// Dimension scores (if available from checks)
+	cmd.Println("Dimension Scores:")
+	displayDimensionScores(cmd, result)
+
+	// Issues summary
+	if len(result.Errors) > 0 || len(result.WarningsList) > 0 {
+		cmd.Printf("\nIssues Found: %d errors, %d warnings\n",
+			len(result.Errors), len(result.WarningsList))
+
+		// Display errors
+		for _, err := range result.Errors {
+			cmd.Printf("  ❌ [%s] %s\n", strings.ToUpper(err.Severity), err.Message)
+		}
+
+		// Display warnings
+		for _, warn := range result.WarningsList {
+			cmd.Printf("  ⚠️  [%s] %s\n", strings.ToUpper(warn.Severity), warn.Message)
+		}
+	} else {
+		cmd.Println("\nNo issues found ✓")
+	}
+
+	cmd.Println()
+}
+
+func displayDimensionScores(cmd *cobra.Command, result *models.ValidationResult) {
+	// Parse dimension scores from checks if available
+	dimensions := make(map[string]float64)
+	dimensionMax := make(map[string]float64)
+
+	// Default dimensions
+	dimensionMax["Completeness"] = 30.0
+	dimensionMax["Requirements Match"] = 30.0
+	dimensionMax["Quality"] = 20.0
+	dimensionMax["Control Alignment"] = 20.0
+
+	// Try to extract from checks
+	for _, check := range result.Checks {
+		// Parse check name for dimension
+		checkLower := strings.ToLower(check.Name)
+		if strings.Contains(checkLower, "completeness") {
+			if check.Status == "passed" {
+				dimensions["Completeness"] += 10.0
+			}
+		} else if strings.Contains(checkLower, "requirement") {
+			if check.Status == "passed" {
+				dimensions["Requirements Match"] += 10.0
+			}
+		} else if strings.Contains(checkLower, "quality") || strings.Contains(checkLower, "format") {
+			if check.Status == "passed" {
+				dimensions["Quality"] += 10.0
+			}
+		} else if strings.Contains(checkLower, "control") {
+			if check.Status == "passed" {
+				dimensions["Control Alignment"] += 10.0
+			}
+		}
+	}
+
+	// If no checks, estimate from overall score
+	if len(dimensions) == 0 && result.CompletenessScore > 0 {
+		// Distribute overall score proportionally
+		dimensions["Completeness"] = result.CompletenessScore * 0.30
+		dimensions["Requirements Match"] = result.CompletenessScore * 0.30
+		dimensions["Quality"] = result.CompletenessScore * 0.20
+		dimensions["Control Alignment"] = result.CompletenessScore * 0.20
+	}
+
+	// Display dimensions
+	for _, dimName := range []string{"Completeness", "Requirements Match", "Quality", "Control Alignment"} {
+		score := dimensions[dimName]
+		maxScore := dimensionMax[dimName]
+		percentage := 0.0
+		if maxScore > 0 {
+			percentage = (score / maxScore) * 100
+		}
+
+		status := getScoreStatus(percentage)
+		cmd.Printf("  %-20s %5.1f/%.0f  (%3.0f%%)  %s\n",
+			dimName,
+			score,
+			maxScore,
+			percentage,
+			status)
+	}
+}
+
+func displayRequirementsChecklist(cmd *cobra.Command, task *domain.EvidenceTask, hasFiles bool) {
+	cmd.Println("📋 REQUIREMENTS CHECKLIST")
+	cmd.Println(strings.Repeat("─", 67))
+	cmd.Println("This evidence should demonstrate:")
+
+	// Parse requirements from task description and guidance
+	requirements := extractRequirements(task)
+
+	if len(requirements) == 0 {
+		cmd.Println("  • Compliance with related controls")
+		cmd.Println("  • Evidence of implemented security measures")
+		if hasFiles {
+			cmd.Println("  ✓ Evidence files present")
+		} else {
+			cmd.Println("  ⚠️  No evidence files found")
+		}
+	} else {
+		for _, req := range requirements {
+			icon := "⚠️ "
+			if hasFiles {
+				icon = "✓"
+			}
+			cmd.Printf("  %s %s\n", icon, req)
+		}
+	}
+
+	cmd.Println()
+}
+
+func displayControlAlignment(cmd *cobra.Command, task *domain.EvidenceTask, storage *storage.Storage) {
+	cmd.Println("🎯 CONTROL ALIGNMENT")
+	cmd.Println(strings.Repeat("─", 67))
+
+	if len(task.Controls) == 0 {
+		cmd.Println("  No controls mapped to this evidence task")
+		cmd.Println()
+		return
+	}
+
+	cmd.Println("Supports controls:")
+
+	// Load and display related controls
+	displayCount := len(task.Controls)
+	if displayCount > 5 {
+		displayCount = 5
+	}
+
+	for i := 0; i < displayCount; i++ {
+		controlID := task.Controls[i]
+		control, err := storage.GetControl(controlID)
+		if err == nil {
+			cmd.Printf("  • %s - %s\n", control.ReferenceID, control.Name)
+		} else {
+			cmd.Printf("  • %s\n", controlID)
+		}
+	}
+
+	if len(task.Controls) > 5 {
+		cmd.Printf("  ... and %d more\n", len(task.Controls)-5)
+	}
+
+	cmd.Println()
+}
+
+func displaySubmissionRecommendation(cmd *cobra.Command, task *domain.EvidenceTask, window string, hasFiles bool, hasValidation bool, result *models.ValidationResult, alreadySubmitted bool) {
+	// Check if ready
+	isReady := hasFiles && (!hasValidation || (result != nil && result.ReadyForSubmission))
+
+	if alreadySubmitted {
+		cmd.Println("📦 STATUS: ALREADY SUBMITTED")
+		cmd.Println(strings.Repeat("─", 67))
+		cmd.Println("Evidence for this window has already been submitted to Tugboat.")
+		cmd.Println("Files are in .submitted/ folder.")
+		cmd.Println()
+		cmd.Println("To resubmit:")
+		cmd.Println("  1. Move files from .submitted/ back to root directory")
+		cmd.Println("  2. Run: grctool evidence submit " + task.ReferenceID + " --window " + window)
+		cmd.Println(strings.Repeat("=", 67))
+		return
+	}
+
+	if isReady {
+		cmd.Println("✅ RECOMMENDATION: READY TO SUBMIT")
+	} else {
+		cmd.Println("⚠️  RECOMMENDATION: NOT READY FOR SUBMISSION")
+	}
+	cmd.Println(strings.Repeat("─", 67))
+
+	if isReady {
+		cmd.Println("This evidence is ready for submission to Tugboat Logic.")
+		cmd.Println()
+		cmd.Println("Reasons:")
+		cmd.Println("  ✓ All required files present")
+		if hasValidation && result != nil {
+			cmd.Printf("  ✓ Meets quality threshold (%.0f/100)\n", result.CompletenessScore)
+		}
+		cmd.Println("  ✓ Addresses key requirements")
+		cmd.Println()
+		cmd.Println("Next steps:")
+		cmd.Println("  1. Review files one more time if desired")
+		cmd.Printf("  2. Run: grctool evidence submit %s --window %s\n", task.ReferenceID, window)
+		cmd.Println("  3. Files will be automatically moved to .submitted/ after upload")
+	} else {
+		cmd.Println("This evidence needs additional work before submission.")
+		cmd.Println()
+		cmd.Println("Reasons:")
+		if !hasFiles {
+			cmd.Println("  ❌ No evidence files found")
+		}
+		if hasValidation && result != nil && !result.ReadyForSubmission {
+			cmd.Printf("  ❌ Does not meet quality threshold (%.0f/100 < 70)\n", result.CompletenessScore)
+			if len(result.Errors) > 0 {
+				cmd.Printf("  ❌ %d error(s) found\n", len(result.Errors))
+			}
+		}
+		cmd.Println()
+		cmd.Println("Next steps:")
+		if !hasFiles {
+			cmd.Printf("  1. Run: grctool evidence generate %s --window %s\n", task.ReferenceID, window)
+		} else {
+			cmd.Println("  1. Address validation errors")
+			cmd.Printf("  2. Run: grctool evidence evaluate %s --window %s\n", task.ReferenceID, window)
+			cmd.Println("  3. Review results and resubmit")
+		}
+	}
+
+	cmd.Println(strings.Repeat("=", 67))
+}
+
+// Helper functions for formatting
+
+func formatFileSize(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+func getStatusIcon(status string) string {
+	switch strings.ToLower(status) {
+	case "passed", "pass":
+		return "✓"
+	case "failed", "fail":
+		return "✗"
+	case "warning":
+		return "⚠️"
+	default:
+		return "○"
+	}
+}
+
+func getScoreStatus(percentage float64) string {
+	if percentage >= 90 {
+		return "✓ pass"
+	} else if percentage >= 70 {
+		return "✓ pass"
+	} else if percentage >= 50 {
+		return "⚠ warning"
+	}
+	return "✗ fail"
+}
+
+func truncateFileName(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen-3] + "..."
+}
+
+func extractRequirements(task *domain.EvidenceTask) []string {
+	requirements := []string{}
+
+	// Parse from description
+	desc := strings.ToLower(task.Description + " " + task.Guidance)
+
+	// Common requirement patterns
+	if strings.Contains(desc, "access") {
+		requirements = append(requirements, "Access control documentation")
+	}
+	if strings.Contains(desc, "approval") {
+		requirements = append(requirements, "Approval workflow evidence")
+	}
+	if strings.Contains(desc, "configuration") {
+		requirements = append(requirements, "System configuration details")
+	}
+	if strings.Contains(desc, "log") {
+		requirements = append(requirements, "Audit log examples")
+	}
+	if strings.Contains(desc, "policy") {
+		requirements = append(requirements, "Policy documentation")
+	}
+	if strings.Contains(desc, "procedure") {
+		requirements = append(requirements, "Procedural documentation")
+	}
+	if strings.Contains(desc, "training") {
+		requirements = append(requirements, "Training records")
+	}
+	if strings.Contains(desc, "review") {
+		requirements = append(requirements, "Review documentation")
+	}
+
+	return requirements
 }

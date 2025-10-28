@@ -22,7 +22,7 @@ func TestGetEvidenceTaskDirName(t *testing.T) {
 			name:     "task name with special characters",
 			taskRef:  "ET-0042",
 			taskName: "Test/Report: Access & Permissions",
-			want:     "ET-0042_TestReport_Access_Permissions",
+			want:     "ET-0042_Test_Report_Access_Permissions",
 		},
 		{
 			name:     "task name with multiple spaces",
@@ -132,7 +132,7 @@ func TestSanitizeTaskName(t *testing.T) {
 		{
 			name:  "remove special characters",
 			input: "Test/Report: Access & Permissions",
-			want:  "TestReport_Access_Permissions",
+			want:  "Test_Report_Access_Permissions",
 		},
 		{
 			name:  "multiple consecutive spaces",
@@ -157,7 +157,7 @@ func TestSanitizeTaskName(t *testing.T) {
 		{
 			name:  "remove filesystem-unsafe characters",
 			input: `Task<>:"|?*Name`,
-			want:  "TaskName",
+			want:  "Task_Name",
 		},
 		{
 			name:  "truncate long names",
@@ -177,12 +177,12 @@ func TestSanitizeTaskName(t *testing.T) {
 		{
 			name:  "only special characters",
 			input: "@#$%^&*",
-			want:  "",
+			want:  "", // All special chars become underscores, then trimmed
 		},
 		{
 			name:  "unicode characters",
 			input: "Task名前Name",
-			want:  "TaskName",
+			want:  "Task_Name",
 		},
 	}
 

@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/naming"
 )
 
 // EvidenceCleanupService handles organizing evidence from flat structure to subfolder structure
@@ -176,13 +177,16 @@ func (s *EvidenceCleanupService) CleanupAll(ctx context.Context, dryRun bool) (*
 	return summary, nil
 }
 
-// isFlatStructure checks if a window directory uses flat structure
+// isFlatStructure checks if a window directory uses flat structure (no subfolders)
 func (s *EvidenceCleanupService) isFlatStructure(windowDir string) (bool, error) {
-	// Check if subdirectories wip/, ready/, submitted/ exist
-	subfolders := []string{"wip", "ready", "submitted"}
+	// Check if subdirectories exist (legacy wip/ready/submitted or new .submitted/archive)
+	legacySubfolders := []string{"wip", "ready", "submitted"}
+	newSubfolders := []string{naming.SubfolderSubmitted, naming.SubfolderArchive}
 	hasSubfolders := false
 
-	for _, subfolder := range subfolders {
+	// Check for any subfolder structure
+	allSubfolders := append(legacySubfolders, newSubfolders...)
+	for _, subfolder := range allSubfolders {
 		subfolderPath := filepath.Join(windowDir, subfolder)
 		if stat, err := os.Stat(subfolderPath); err == nil && stat.IsDir() {
 			hasSubfolders = true
@@ -201,7 +205,7 @@ func (s *EvidenceCleanupService) isFlatStructure(windowDir string) (bool, error)
 	}
 
 	for _, entry := range entries {
-		// Skip directories (including hidden ones like .generation, .submission, .context)
+		// Skip directories (including hidden ones like .generation, .submission, .context, .validation)
 		if entry.IsDir() {
 			continue
 		}
@@ -219,6 +223,7 @@ func (s *EvidenceCleanupService) isFlatStructure(windowDir string) (bool, error)
 }
 
 // organizeFiles organizes files from flat structure into subfolders
+// NEW HYBRID APPROACH: Most files stay in root, only archive files move to archive/
 func (s *EvidenceCleanupService) organizeFiles(ctx context.Context, windowDir string, result *CleanupResult, dryRun bool) error {
 	// Determine target subfolder based on metadata
 	targetSubfolder, err := s.determineTargetSubfolder(windowDir)
@@ -230,7 +235,15 @@ func (s *EvidenceCleanupService) organizeFiles(ctx context.Context, windowDir st
 		logger.String("window_dir", windowDir),
 		logger.String("target", targetSubfolder))
 
-	// Create target directory
+	// If target is root (empty string), files stay where they are
+	if targetSubfolder == "" {
+		s.logger.Info("Files staying in root directory (working directory)",
+			logger.String("window_dir", windowDir))
+		// No files to move - they stay in root
+		return nil
+	}
+
+	// Create target directory if needed
 	targetDir := filepath.Join(windowDir, targetSubfolder)
 	if !dryRun {
 		if err := os.MkdirAll(targetDir, 0755); err != nil {
@@ -304,41 +317,56 @@ func (s *EvidenceCleanupService) organizeFiles(ctx context.Context, windowDir st
 }
 
 // determineTargetSubfolder determines which subfolder files should go to based on metadata
+// NEW HYBRID APPROACH:
+// - Old wip/ → root (working directory)
+// - Old ready/ → root (if no submission) or .submitted/ (if has submission metadata)
+// - Old submitted/ → archive/ (synced from Tugboat)
 func (s *EvidenceCleanupService) determineTargetSubfolder(windowDir string) (string, error) {
-	// Check for .submission/submission.yaml
+	// Check for .submission/submission.yaml - indicates already submitted
 	submissionPath := filepath.Join(windowDir, ".submission", "submission.yaml")
 	if _, err := os.Stat(submissionPath); err == nil {
-		return "submitted", nil
+		// Has submission metadata - check if this is synced from Tugboat or locally submitted
+		// For migration: if in old "submitted/" folder, move to archive/
+		// If in old "ready/" folder with submission, leave in root for now (user can submit again)
+		return naming.SubfolderArchive, nil
 	}
 
-	// Check for .validation/validation.yaml
+	// Check for .validation/validation.yaml - indicates validated but not submitted
 	validationPath := filepath.Join(windowDir, ".validation", "validation.yaml")
 	if _, err := os.Stat(validationPath); err == nil {
-		return "ready", nil
+		// Has validation - keep in root (working directory)
+		return "", nil // Empty string means root
 	}
 
-	// Check for .generation/metadata.yaml
+	// Check for .generation/metadata.yaml - indicates generated
 	generationPath := filepath.Join(windowDir, ".generation", "metadata.yaml")
 	if _, err := os.Stat(generationPath); err == nil {
-		return "wip", nil
+		// Has generation metadata - keep in root (working directory)
+		return "", nil // Empty string means root
 	}
 
-	// Default to wip if no metadata found
-	return "wip", nil
+	// Default to root (working directory)
+	return "", nil // Empty string means root
 }
 
 // shouldMoveMetadata determines if a metadata directory should be moved
+// NEW HYBRID APPROACH: Most metadata stays in root, only move to archive if targetSubfolder is archive
 func (s *EvidenceCleanupService) shouldMoveMetadata(metadataDir string, targetSubfolder string) bool {
+	// If target is root (empty string), don't move any metadata
+	if targetSubfolder == "" {
+		return false
+	}
+
 	switch metadataDir {
 	case ".generation":
-		// Always move with files
-		return true
+		// Move with files if going to archive, otherwise stay in root
+		return targetSubfolder == naming.SubfolderArchive
 	case ".validation":
-		// Only move if going to ready or submitted
-		return targetSubfolder == "ready" || targetSubfolder == "submitted"
+		// Never move validation - always stays in root
+		return false
 	case ".submission":
-		// Only move if going to submitted
-		return targetSubfolder == "submitted"
+		// Move with files if going to archive or .submitted
+		return targetSubfolder == naming.SubfolderArchive || targetSubfolder == naming.SubfolderSubmitted
 	case ".context":
 		// Never move - stays at window level (shared)
 		return false

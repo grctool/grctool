@@ -493,12 +493,12 @@ func TestSanitizeFilename(t *testing.T) {
 		{
 			name:     "filename with special chars",
 			input:    "test:file*name?",
-			expected: "test_file_name_",
+			expected: "test_file_name",
 		},
 		{
 			name:     "filename with quotes and brackets",
 			input:    `test"file<name>`,
-			expected: "test_file_name_",
+			expected: "test_file_name",
 		},
 	}
 

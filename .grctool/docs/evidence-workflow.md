@@ -4,9 +4,9 @@
 
 ---
 
-**Generated**: 2025-10-27 16:56:21 EDT  
-**GRCTool Version**: dev  
-**Documentation Version**: dev  
+**Generated**: 2025-10-28 10:33:19 EDT
+**GRCTool Version**: dev
+**Documentation Version**: dev
 
 ---
 
@@ -34,40 +34,150 @@ GRCTool follows a **Claude Code Assisted** approach:
          │
          v
 ┌──────────────────────┐
-│ grctool evidence     │  (2) Generate context for task
+│ grctool evidence     │  (2) Generate evidence with Claude Code
 │   generate ET-XXXX   │
 └────────┬─────────────┘
          │
          v
 ┌──────────────────────┐
-│  Claude Code reads   │  (3) Claude reads .context/generation-context.md
-│     context file     │
+│  Run tools together  │  (3) Execute grctool tools with guidance
+│  with Claude's help  │      Evidence saved to root directory
 └────────┬─────────────┘
          │
          v
 ┌──────────────────────┐
-│  Run tools together  │  (4) Execute grctool tools with guidance
-│  with Claude's help  │
+│ grctool evidence     │  (4) Automated quality scoring
+│   evaluate ET-XXXX   │      (Optional but recommended)
 └────────┬─────────────┘
          │
          v
 ┌──────────────────────┐
-│ grctool tool         │  (5) Save evidence with metadata
-│   evidence-writer    │
+│ grctool evidence     │  (5) Human review and assessment
+│   review ET-XXXX     │      (Optional)
 └────────┬─────────────┘
          │
          v
 ┌──────────────────────┐
-│ grctool evidence     │  (6) Validate before submission
-│   validate ET-XXXX   │
+│ grctool evidence     │  (6) Submit to Tugboat
+│   submit ET-XXXX     │      Files auto-move to .submitted/
 └────────┬─────────────┘
          │
          v
 ┌──────────────────────┐
-│ grctool evidence     │  (7) Submit to Tugboat
-│   submit ET-XXXX     │
+│ grctool sync         │  (7) Sync approved evidence from Tugboat
+│                      │      Files appear in archive/
 └──────────────────────┘
 ```
+
+**Key Points**:
+- **Working Area**: Root directory (e.g., `2025-Q4/01_evidence.md`)
+- **Evaluate**: Automated scoring, not validation
+- **Review**: Human assessment, separate from evaluate
+- **Submit**: Automatically moves files from root to `.submitted/`
+- **Sync**: Downloads approved evidence from Tugboat to `archive/`
+
+---
+
+## Tugboat-Managed Evidence Tasks
+
+### Overview
+
+Some evidence tasks are collected directly by Tugboat Logic rather than through grctool automation. These tasks typically involve:
+- **Personnel data** (employee lists, terminations, HRIS exports)
+- **Manual documents** (signed policies, approvals, contracts)
+- **Vendor-provided reports** (audit reports, certifications)
+
+### Detection Criteria
+
+GRCTool automatically detects Tugboat-managed tasks when **both** conditions are met:
+1. **AEC Status**: `enabled` (Automated Evidence Collection is enabled)
+2. **Collection Type**: `Hybrid` (Mixed automated and manual collection)
+
+### Behavior
+
+When you run `grctool evidence generate` on a Tugboat-managed task:
+
+**Instead of generating files**, grctool will:
+- ✅ Display a helpful message explaining that Tugboat collects this evidence
+- ✅ Show what data is needed based on task guidance
+- ✅ Provide category-specific instructions (Personnel vs Process vs Infrastructure)
+- ✅ Include related controls for context
+- ✅ Direct you to Tugboat's web interface
+
+**Example Output**:
+```
+═══════════════════════════════════════════════════════════════════
+📋 Task: ET-0002 - Population 2 - List of Employees and Contractors
+═══════════════════════════════════════════════════════════════════
+
+ℹ️  This evidence is collected directly in Tugboat Logic.
+
+📝 What's needed:
+   System-generated list of employees and contractors throughout
+   the audit period including start dates, titles, and termination
+   dates (as applicable).
+
+🔗 How to provide this evidence:
+   1. Log into Tugboat Logic web interface
+   2. Navigate to evidence task ET-0002
+   3. Use Tugboat's data upload or integration features to provide:
+
+      • Upload CSV or Excel file with employee/contractor data
+      • Required fields: Name, Start Date, Title, Department
+      • Include termination dates for separated personnel
+      • Use your HRIS system export or generate from HR database
+
+═══════════════════════════════════════════════════════════════════
+```
+
+### Why This Matters
+
+**GRCTool automation is designed for infrastructure-sourced evidence** from:
+- Terraform configurations
+- GitHub repositories
+- Google Workspace
+- Documentation files
+
+**Tugboat-managed tasks require data from**:
+- HRIS systems (Workday, BambooHR, etc.)
+- Document management systems
+- Manual uploads
+- Vendor portals
+
+### Workflow for Tugboat-Managed Tasks
+
+```
+┌─────────────────┐
+│ grctool evidence│  (1) Run generate command
+│   generate ET-XX│
+└────────┬────────┘
+         │
+         v
+┌──────────────────────┐
+│ Tugboat Detection    │  (2) Detects AEC + Hybrid
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│  Display Guidance    │  (3) Shows what to upload
+│  Skip File Creation  │
+└────────┬─────────────┘
+         │
+         v
+┌──────────────────────┐
+│ Log into Tugboat     │  (4) Use web interface
+│ Upload Data/Files    │
+└──────────────────────┘
+```
+
+### Common Tugboat-Managed Tasks
+
+| Task Type | Examples | Data Source |
+|-----------|----------|-------------|
+| **Personnel** | Employee lists, terminations, contractors | HRIS system |
+| **Process** | Signed policies, approvals, board minutes | Document management |
+| **Vendor** | Audit reports, SOC2 reports, certifications | Vendor portals |
+| **Training** | Training completion records, acknowledgments | LMS system |
 
 ---
 
@@ -75,8 +185,8 @@ GRCTool follows a **Claude Code Assisted** approach:
 
 ### Step 1: Check Evidence Status
 
-**Purpose**: See what evidence needs to be collected  
-**Command**: `grctool status`  
+**Purpose**: See what evidence needs to be collected
+**Command**: `grctool status`
 
 ```bash
 # See dashboard
@@ -95,154 +205,106 @@ grctool status --filter state=no_evidence
 - Automation level for each task
 - Next steps recommendations
 
-### Step 2: Generate Assembly Context
+### Step 2: Generate Evidence
 
-**Purpose**: Create comprehensive assembly context with prompts and templates
+**Purpose**: Generate evidence with Claude Code assistance
+**Command**: `grctool evidence generate ET-XXXX --window {window}`
 
-**Command**:
 ```bash
-grctool evidence generate ET-XXXX --window {window}
+# Generate evidence for current window
+grctool evidence generate ET-0047 --window 2025-Q4
 ```
 
 **What Happens**:
-- Calls `prompt-assembler` tool to generate comprehensive prompt (200+ lines)
-- Creates Claude-specific workflow instructions
-- Selects appropriate evidence template based on task category
-- Identifies applicable tools for evidence collection
-- Creates `.context/` directory structure with three key files
+- Launches interactive evidence generation with Claude Code
+- Auto-detects applicable tools from task keywords
+- Gathers related controls and policies
+- Scans for existing evidence from previous windows
+- Claude Code guides you through tool execution
+- Evidence is saved directly to root directory (e.g., `2025-Q4/01_evidence.md`)
 
-**Files Created:**
-1. **assembly-prompt.md** - Comprehensive prompt with:
-   - Task requirements and objectives
-   - Related controls and their requirements
-   - Relevant policy sections
-   - Example evidence structures
-   - Applicable tools and their usage
+**Interactive Workflow**:
+1. Claude Code reads task requirements
+2. Claude suggests which tools to run
+3. You execute tools with Claude's guidance
+4. Claude helps format and save evidence
+5. Files are written to root directory using `evidence-writer`
 
-2. **claude-instructions.md** - Workflow guidance with:
-   - Step-by-step evidence generation process
-   - Tool execution commands
-   - Evidence-generator usage
-   - Expected output structure
+### Step 3: Execute Tools
 
-3. **evidence-template.md** - Pre-structured report template with:
-   - Task-specific metadata pre-filled
-   - Section headers based on task category
-   - Placeholder prompts for each section
-   - Compliance mapping structure
-
-**Directory Structure:**
-```
-evidence/ET-XXXX_{task_name}/{window}/
-└── .context/
-    ├── assembly-prompt.md        # Comprehensive context
-    ├── claude-instructions.md    # Workflow guide
-    ├── evidence-template.md      # Report structure
-    └── tool_outputs/             # For optional tool data
-```
-
-**Optional: Execute Tools During Context Generation**
-
-To automatically collect tool data during context generation:
-
-```bash
-grctool evidence generate ET-XXXX --window {window} --with-tool-data
-```
-
-This will:
-- Generate assembly context as normal
-- Execute applicable tools identified by prompt-assembler
-- Save tool outputs to `.context/tool_outputs/` as JSON files
-- Provide ready-to-use data for evidence synthesis
-
-### Step 3: Work with Claude Code
-
-**Purpose**: Use Claude Code to help collect evidence  
-
-**Start Claude Code**:
-```bash
-# In your terminal
-claude
-```
-
-**Tell Claude**:
-> "Please read the evidence context at data/evidence/ET-0047_*/2025-Q4/.context/assembly-prompt.md and help me collect the evidence"
-
-**Claude Will**:
-1. Read the context file
-2. Understand the requirements
-3. Suggest which tools to run
-4. Help you execute the commands
-5. Guide you through saving evidence
-
-### Step 4: Execute Tools
-
-**Purpose**: Collect evidence using automated tools  
+**Purpose**: Collect evidence using automated tools with Claude's guidance
 
 **With Claude's Guidance**:
 ```bash
 # Claude will help you run commands like:
 grctool tool github-permissions \
   --repository org/repo \
-  --output-format csv > /tmp/permissions.csv
+  --output-format json > /tmp/permissions.json
 
 grctool tool github-security-features \
   --repository org/repo > /tmp/security.json
+
+# Note: JSON outputs are for Claude's analysis only
+# Findings will be written into markdown evidence documents
 ```
 
-**Claude Can Help With**:
-- Selecting the right tool parameters
-- Finding repository names from config
-- Formatting output appropriately
-- Troubleshooting errors
-
-### Step 5: Save Evidence
-
-**Purpose**: Save collected evidence with metadata tracking
-**Command**: `grctool tool evidence-writer`  
-
+**Save Evidence to Root Directory**:
 ```bash
-# Save each evidence file
+# Save markdown evidence (Claude writes findings from JSON analysis)
 grctool tool evidence-writer \
   --task-ref ET-0047 \
-  --title "GitHub Permissions" \
-  --file /tmp/permissions.csv
+  --title "GitHub Permissions Analysis" \
+  --file /tmp/permissions_summary.md
 
+# Save original source files for auditor review
 grctool tool evidence-writer \
   --task-ref ET-0047 \
-  --title "Security Features" \
-  --file /tmp/security.json
+  --title "GitHub Workflow Configuration" \
+  --file /path/to/.github/workflows/deploy.yml
 ```
 
-**What Happens**:
-- Evidence saved to `data/evidence/ET-0047_*/2025-Q4/`
+**Where Files Go**:
+- Evidence saved to root directory: `evidence/ET-0047_*/2025-Q4/01_evidence.md`
 - Files automatically numbered (01_, 02_, etc.)
-- `.generation/metadata.yaml` created with:
-  - SHA256 checksums
-  - Timestamps
-  - Tools used
-  - Generation method (claude-code-assisted)
+- `.generation/metadata.yaml` created with checksums and timestamps
 
-### Step 6: Validate Evidence
+### Step 4: Evaluate Evidence (Optional but Recommended)
 
-**Purpose**: Ensure evidence is complete and correctly formatted
-**Command**: `grctool evidence validate ET-XXXX`  
+**Purpose**: Automated quality scoring to ensure completeness
+**Command**: `grctool evidence evaluate ET-XXXX`
 
 ```bash
-# Validate specific task
-grctool evidence validate ET-0047 --window 2025-Q4
+# Evaluate specific task
+grctool evidence evaluate ET-0047 --window 2025-Q4
 ```
 
-**Validation Checks**:
-- Files exist and are readable
-- Checksums match metadata
-- Required file types present
-- File sizes within limits
+**What It Does**:
+- Analyzes evidence quality and completeness
+- Generates quality scores (0-100)
+- Provides specific recommendations for improvement
+- Creates `.validation/validation.yaml` with results
 
-### Step 7: Submit to Tugboat
+**Note**: This is different from `review` command. Evaluate = automated scoring, Review = human assessment.
+
+### Step 5: Review Evidence (Optional)
+
+**Purpose**: Human assessment and approval
+**Command**: `grctool evidence review ET-XXXX`
+
+```bash
+# Review evidence interactively
+grctool evidence review ET-0047 --window 2025-Q4
+```
+
+**What It Does**:
+- Allows human reviewer to assess evidence
+- Records reviewer comments and approval status
+- Separate from automated evaluation
+
+### Step 6: Submit to Tugboat
 
 **Purpose**: Upload evidence to Tugboat Logic for auditor review
-**Command**: `grctool evidence submit ET-XXXX`  
+**Command**: `grctool evidence submit ET-XXXX`
 
 ```bash
 # Submit evidence
@@ -252,12 +314,32 @@ grctool evidence submit ET-0047 \
 ```
 
 **What Happens**:
-- Files uploaded via Tugboat Custom Evidence API
-- `.submission/submission.yaml` created with:
-  - Submission ID
-  - Timestamp
-  - Files submitted
-  - Tugboat response status
+1. Files uploaded via Tugboat Custom Evidence API
+2. **Files automatically move from root to `.submitted/`**
+3. `.submitted/.submission/submission.yaml` created with:
+   - Submission ID
+   - Timestamp
+   - Files submitted
+   - Tugboat response status
+4. Root directory is now empty and ready for next collection
+
+**Important**: Files are automatically moved to prevent accidental resubmission
+
+### Step 7: Sync From Tugboat
+
+**Purpose**: Download auditor-approved evidence from Tugboat
+**Command**: `grctool sync`
+
+```bash
+# Sync all evidence from Tugboat
+grctool sync
+```
+
+**What Happens**:
+- Downloads approved evidence from Tugboat
+- Files saved to `archive/` directory
+- `archive/.submission/submission.yaml` contains Tugboat metadata
+- These are read-only reference files
 
 ---
 
@@ -266,23 +348,29 @@ grctool evidence submit ET-0047 \
 Evidence moves through these states:
 
 ```
-no_evidence → generated → validated → submitted → accepted
-                                          ↓
-                                      rejected
-                                          ↓
-                                      generated (rework)
+no_evidence → generated → evaluated → reviewed → submitted → accepted
+                             ↓          ↓           ↓
+                         (optional) (optional)   rejected
+                                                     ↓
+                                                 generated (rework)
 ```
 
 ### State Descriptions
 
-| State | Description | Next Action |
-|-------|-------------|-------------|
-| **no_evidence** | No evidence files exist | Run `grctool evidence generate` |
-| **generated** | Evidence created, not validated | Run `grctool evidence validate` |
-| **validated** | Evidence validated, ready to submit | Run `grctool evidence submit` |
-| **submitted** | Evidence sent to Tugboat | Wait for auditor review |
-| **accepted** | Evidence approved by auditors | Done! |
-| **rejected** | Evidence needs rework | Review feedback, regenerate |
+| State | Description | Location | Next Action |
+|-------|-------------|----------|-------------|
+| **no_evidence** | No evidence files exist | Empty window | Run `grctool evidence generate` |
+| **generated** | Evidence created | Root directory | Run `grctool evidence evaluate` (optional) |
+| **evaluated** | Automated quality scored | Root directory + `.validation/` | Run `grctool evidence review` (optional) |
+| **reviewed** | Human-reviewed | Root directory | Run `grctool evidence submit` |
+| **submitted** | Evidence sent to Tugboat | `.submitted/` directory | Wait for auditor review |
+| **accepted** | Evidence approved by auditors | `.submitted/` + `archive/` | Done! |
+| **rejected** | Evidence needs rework | `.submitted/` | Move back to root, regenerate |
+
+**Key Directory States**:
+- **Root directory has files** = Working/Active evidence
+- **`.submitted/` has files** = Submitted to Tugboat
+- **`archive/` has files** = Synced from Tugboat (auditor-approved)
 
 ---
 
@@ -293,20 +381,17 @@ no_evidence → generated → validated → submitted → accepted
 When you need to collect evidence for one task:
 
 ```bash
-# 1. Generate context
+# 1. Generate evidence with Claude Code
 grctool evidence generate ET-0047 --window 2025-Q4
+# Claude will guide you through tool execution and save to root directory
 
-# 2. Start Claude Code
-claude
+# 2. (Optional) Evaluate quality
+grctool evidence evaluate ET-0047 --window 2025-Q4
 
-# 3. Tell Claude
-# "Read the context and help me collect evidence for ET-0047"
+# 3. (Optional) Human review
+grctool evidence review ET-0047 --window 2025-Q4
 
-# 4. Work interactively with Claude
-# Claude will guide you through running tools and saving evidence
-
-# 5. Validate and submit
-grctool evidence validate ET-0047
+# 4. Submit (files auto-move to .submitted/)
 grctool evidence submit ET-0047 --window 2025-Q4
 ```
 
@@ -342,15 +427,17 @@ When evidence is rejected and needs rework:
 grctool status task ET-0047
 
 # 2. Review feedback
-cat data/evidence/ET-0047_*/2025-Q4/.submission/submission.yaml
+cat data/evidence/ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
 
-# 3. Generate fresh context
+# 3. Move rejected files back to root directory
+mv data/evidence/ET-0047_*/2025-Q4/.submitted/*.md data/evidence/ET-0047_*/2025-Q4/
+
+# 4. Regenerate addressing feedback
 grctool evidence generate ET-0047 --window 2025-Q4
+# Claude will help you address the auditor feedback
 
-# 4. Work with Claude to address feedback
-claude
-# "The evidence for ET-0047 was rejected. Please help me regenerate it
-# addressing the auditor feedback."
+# 5. Resubmit (files move back to .submitted/)
+grctool evidence submit ET-0047 --window 2025-Q4
 ```
 
 ---
@@ -371,7 +458,7 @@ grctool evidence generate ET-0047 --window 2025-Q4
 
 ### Issue: Tool execution fails
 
-**Problem**: Tool returns errors when collecting evidence  
+**Problem**: Tool returns errors when collecting evidence
 **Solution**:
 ```bash
 # Check tool help for required parameters
@@ -386,7 +473,7 @@ grctool tool <tool-name> --dry-run
 
 ### Issue: Evidence writer fails
 
-**Problem**: Cannot save evidence files  
+**Problem**: Cannot save evidence files
 **Solution**:
 ```bash
 # Check file exists

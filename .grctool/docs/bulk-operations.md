@@ -4,9 +4,9 @@
 
 ---
 
-**Generated**: 2025-10-27 16:56:21 EDT  
-**GRCTool Version**: dev  
-**Documentation Version**: dev  
+**Generated**: 2025-10-28 10:33:19 EDT
+**GRCTool Version**: dev
+**Documentation Version**: dev
 
 ---
 
@@ -117,78 +117,9 @@ grctool status \
 - **Terraform tasks**: ET-0023, ET-0024, ET-0025 (all use terraform tools)
 - **Google Workspace tasks**: ET-0001, ET-0002 (policy documents)
 
-### Step 3: Generate Assembly Contexts (Bulk)
+### Step 3: Generate Context for All Tasks
 
-**Purpose**: Create comprehensive assembly contexts for all pending evidence tasks at once
-
-**Command**:
-```bash
-grctool evidence generate --all --window 2025-Q4
-```
-
-**What Happens:**
-- Loads all pending evidence tasks from `evidence_tasks/` directory
-- For each task:
-  - Generates comprehensive assembly context via `prompt-assembler`
-  - Creates Claude workflow instructions
-  - Selects appropriate evidence template
-  - Saves three assembly files to `.context/` directory
-- Shows progress: `[1/10] ET-0001 - Task Name ✅`
-- Displays summary with success/failure counts
-
-**Output Structure:**
-
-Each task gets a complete assembly context:
-```
-evidence/ET-XXXX_{task_name}/{window}/.context/
-├── assembly-prompt.md        # 200+ line comprehensive prompt
-├── claude-instructions.md    # Workflow guidance
-├── evidence-template.md      # Pre-structured report template
-└── tool_outputs/             # Empty (for optional tool data)
-```
-
-**Example Output:**
-```
-Found 10 pending task(s)
-
-Generating comprehensive assembly contexts:
-  [1/10] ET-0001 - Access Control Documentation ✅
-  [2/10] ET-0008 - Workstation Firewall Settings ✅
-  [3/10] ET-0047 - GitHub Repository Permissions ✅
-  ...
-
-============================================================
-Assembly Context Generation Complete
-  ✅ Successful: 10 tasks
-
-Next steps:
-  1. Ask Claude Code to help with evidence generation
-  2. Claude will read assembly prompts and guide you through:
-     - Running applicable tools
-     - Using evidence-generator for synthesis
-     - Creating comprehensive reports
-
-  Example: 'Help me generate all pending evidence'
-```
-
-**With Tool Data Collection:**
-
-To pre-collect tool data for all tasks:
-```bash
-grctool evidence generate --all --window 2025-Q4 --with-tool-data
-```
-
-This will execute applicable tools for each task and save outputs automatically.
-
-**Benefits:**
-- Batch preparation of all evidence materials
-- Consistent comprehensive prompts across all tasks
-- Ready for Claude-assisted evidence generation
-- Templates pre-structured based on task categories
-
-**Manual Batch Generation (Alternative):**
-
-If you prefer to generate contexts for specific task groups:
+**Batch context generation**:
 
 ```bash
 # Generate context for all GitHub tasks
@@ -202,7 +133,7 @@ for task in ET-0023 ET-0024 ET-0025; do
 done
 ```
 
-**Read All Contexts**: Claude should read all assembly-prompt.md files to understand requirements
+**Read All Contexts**: Claude should read all context files to understand requirements
 
 ### Step 4: Optimize Tool Execution
 
@@ -215,40 +146,50 @@ grctool tool github-permissions \
   --repository org/main-repo \
   --output-format csv > /tmp/github-permissions.csv
 
-# Run github-security-features once
+# Run github-security-features once (for analysis)
 grctool tool github-security-features \
   --repository org/main-repo > /tmp/github-security.json
 
-# Run github-workflow-analyzer once
+# Run github-workflow-analyzer once (for analysis)
 grctool tool github-workflow-analyzer \
   --repository org/main-repo > /tmp/github-workflows.json
+
+# Note: JSON outputs are for Claude's analysis only
+# Claude will analyze these and write markdown evidence
 ```
 
-**Now save to multiple tasks**:
+**With Claude Code assistance, save markdown evidence to multiple tasks (root directory)**:
 ```bash
-# ET-0047 needs permissions
+# Claude analyzes JSON and writes markdown summaries
+# Evidence is saved to root directory of each task
+
+# ET-0047 needs permissions analysis
 grctool tool evidence-writer \
   --task-ref ET-0047 \
-  --title "Repository Permissions" \
-  --file /tmp/github-permissions.csv
+  --title "Repository Permissions Analysis" \
+  --file /tmp/permissions_summary.md
+# Saved to: evidence/ET-0047_*/2025-Q4/01_permissions_summary.md
 
-# ET-0048 needs workflows
+# ET-0048 needs workflow analysis
 grctool tool evidence-writer \
   --task-ref ET-0048 \
-  --title "CI/CD Workflows" \
-  --file /tmp/github-workflows.json
+  --title "CI/CD Workflows Analysis" \
+  --file /tmp/workflows_summary.md
+# Saved to: evidence/ET-0048_*/2025-Q4/01_workflows_summary.md
 
-# ET-0049 needs security features
+# ET-0049 needs security features analysis
 grctool tool evidence-writer \
   --task-ref ET-0049 \
-  --title "Security Features" \
-  --file /tmp/github-security.json
+  --title "Security Features Analysis" \
+  --file /tmp/security_summary.md
+# Saved to: evidence/ET-0049_*/2025-Q4/01_security_summary.md
 
-# Multiple tasks can use the same file!
+# Also include original source files
 grctool tool evidence-writer \
-  --task-ref ET-0047 \
-  --title "Security Features" \
-  --file /tmp/github-security.json
+  --task-ref ET-0048 \
+  --title "Deploy Workflow" \
+  --file /path/to/.github/workflows/deploy.yml
+# Saved to: evidence/ET-0048_*/2025-Q4/02_deploy_workflow.yml
 ```
 
 ### Step 5: Handle Terraform Tasks
@@ -259,32 +200,48 @@ grctool tool evidence-writer \
 grctool tool terraform-security-indexer \
   --query-type all > /tmp/tf-security-index.csv
 
-# Deep security analysis
+# Deep security analysis (for Claude's analysis)
 grctool tool terraform-security-analyzer \
   --security-domain all > /tmp/tf-security-analysis.json
 
-# If using Atmos
+# If using Atmos (for Claude's analysis)
 grctool tool terraform-atmos-analyzer \
   --stack all > /tmp/tf-atmos-stacks.json
+
+# Note: JSON outputs are analyzed by Claude to write markdown evidence
 ```
 
-**Save to all relevant tasks**:
+**With Claude Code assistance, save evidence to all relevant tasks (root directory)**:
 ```bash
+# Claude analyzes JSON and writes markdown summaries
+# Evidence is saved to root directory of each task
+
 # ET-0023: Infrastructure Security
 grctool tool evidence-writer --task-ref ET-0023 \
-  --title "Security Index" --file /tmp/tf-security-index.csv
+  --title "Security Analysis Summary" --file /tmp/security_summary.md
+# Saved to: evidence/ET-0023_*/2025-Q4/01_security_summary.md
+
 grctool tool evidence-writer --task-ref ET-0023 \
-  --title "Security Analysis" --file /tmp/tf-security-analysis.json
+  --title "Main Terraform Config" --file /path/to/terraform/main.tf
+# Saved to: evidence/ET-0023_*/2025-Q4/02_main.tf
 
 # ET-0024: Configuration Management
 grctool tool evidence-writer --task-ref ET-0024 \
-  --title "Security Index" --file /tmp/tf-security-index.csv
+  --title "Infrastructure Security Summary" --file /tmp/infra_security.md
+# Saved to: evidence/ET-0024_*/2025-Q4/01_infra_security.md
+
 grctool tool evidence-writer --task-ref ET-0024 \
-  --title "Atmos Stacks" --file /tmp/tf-atmos-stacks.json
+  --title "Variables Config" --file /path/to/terraform/variables.tf
+# Saved to: evidence/ET-0024_*/2025-Q4/02_variables.tf
 
 # ET-0025: Encryption Controls
 grctool tool evidence-writer --task-ref ET-0025 \
-  --title "Security Analysis" --file /tmp/tf-security-analysis.json
+  --title "Encryption Controls Analysis" --file /tmp/encryption_analysis.md
+# Saved to: evidence/ET-0025_*/2025-Q4/01_encryption_analysis.md
+
+grctool tool evidence-writer --task-ref ET-0025 \
+  --title "Encryption Config" --file /path/to/terraform/encryption.tf
+# Saved to: evidence/ET-0025_*/2025-Q4/02_encryption.tf
 ```
 
 ### Step 6: Progress Tracking
@@ -296,17 +253,25 @@ grctool status
 
 # Focus on specific task
 grctool status task ET-0047
+
+# Check files in root directory (working area)
+ls evidence/ET-0047_*/2025-Q4/*.md
 ```
 
 **Report to User**:
 > "I've completed evidence generation for 8 tasks:
-> - GitHub Access (ET-0047): ✅ 2 files
-> - GitHub Workflows (ET-0048): ✅ 2 files
-> - GitHub Security (ET-0049): ✅ 2 files
-> - Infrastructure Security (ET-0023): ✅ 3 files
+> - GitHub Access (ET-0047): ✅ 2 files in root directory
+> - GitHub Workflows (ET-0048): ✅ 2 files in root directory
+> - GitHub Security (ET-0049): ✅ 2 files in root directory
+> - Infrastructure Security (ET-0023): ✅ 3 files in root directory
 > ...
-> 
-> Next: Run `grctool status` to see updated progress."
+>
+> **Files Location**: All evidence saved to root directory (ready for evaluation/submission)
+>
+> **Next Steps**:
+> 1. Evaluate: `grctool evidence evaluate ET-XXXX` (optional)
+> 2. Review: `grctool evidence review ET-XXXX` (optional)
+> 3. Submit: `grctool evidence submit ET-XXXX` (files auto-move to .submitted/)"
 
 ---
 
@@ -347,7 +312,7 @@ Is tool configuration available?
 
 **Example**:
 > "⚠️ Could not collect evidence for ET-0047: github-permissions tool failed (repository not found).
-> 
+>
 > ✅ Successfully completed: ET-0048, ET-0049, ET-0023, ET-0024, ET-0025 (5 tasks)"
 
 ---
@@ -369,27 +334,31 @@ grctool evidence generate ET-0049 --window 2025-Q4  # GitHub Security
 grctool evidence generate ET-0023 --window 2025-Q4  # Infrastructure
 grctool evidence generate ET-0024 --window 2025-Q4  # Config Mgmt
 
-# Step 3: Execute GitHub tools (run once)
-grctool tool github-permissions --repository org/repo > /tmp/gh-perms.csv
+# Step 3: Execute GitHub tools (run once, for analysis)
+grctool tool github-permissions --repository org/repo > /tmp/gh-perms.json
 grctool tool github-workflow-analyzer --repository org/repo > /tmp/gh-workflows.json
 grctool tool github-security-features --repository org/repo > /tmp/gh-security.json
 
-# Step 4: Execute Terraform tools (run once)
-grctool tool terraform-security-indexer > /tmp/tf-index.csv
+# Step 4: Execute Terraform tools (run once, for analysis)
+grctool tool terraform-security-indexer > /tmp/tf-index.json
 grctool tool terraform-security-analyzer --security-domain all > /tmp/tf-analysis.json
 
-# Step 5: Save evidence to all applicable tasks
+# Step 5: Analyze JSON outputs and write markdown evidence
+# Claude reads JSON outputs and creates human-readable markdown summaries
+
+# Step 6: Save markdown evidence and source files to applicable tasks
 # GitHub tasks
-grctool tool evidence-writer --task-ref ET-0047 --title "Permissions" --file /tmp/gh-perms.csv
-grctool tool evidence-writer --task-ref ET-0047 --title "Security" --file /tmp/gh-security.json
+grctool tool evidence-writer --task-ref ET-0047 --title "Permissions Analysis" --file /tmp/permissions_summary.md
+grctool tool evidence-writer --task-ref ET-0047 --title "Security Features" --file /tmp/security_summary.md
 
-grctool tool evidence-writer --task-ref ET-0048 --title "Workflows" --file /tmp/gh-workflows.json
+grctool tool evidence-writer --task-ref ET-0048 --title "Workflows Analysis" --file /tmp/workflows_summary.md
+grctool tool evidence-writer --task-ref ET-0048 --title "Deploy Workflow" --file .github/workflows/deploy.yml
 
-grctool tool evidence-writer --task-ref ET-0049 --title "Security" --file /tmp/gh-security.json
+grctool tool evidence-writer --task-ref ET-0049 --title "Security Analysis" --file /tmp/security_features.md
 
 # Terraform tasks
-grctool tool evidence-writer --task-ref ET-0023 --title "Security" --file /tmp/tf-index.csv
-grctool tool evidence-writer --task-ref ET-0023 --title "Analysis" --file /tmp/tf-analysis.json
+grctool tool evidence-writer --task-ref ET-0023 --title "Security Summary" --file /tmp/tf_security_summary.md
+grctool tool evidence-writer --task-ref ET-0023 --title "Main Config" --file terraform/main.tf
 
 grctool tool evidence-writer --task-ref ET-0024 --title "Security" --file /tmp/tf-index.csv
 
@@ -399,18 +368,18 @@ grctool status
 
 **Claude's Report**:
 > "✅ Completed bulk evidence generation:
-> 
+>
 > **GitHub Evidence**:
 > - ET-0047 (Access Controls): 2 files generated
 > - ET-0048 (CI/CD Workflows): 1 file generated
 > - ET-0049 (Security Features): 1 file generated
-> 
+>
 > **Infrastructure Evidence**:
 > - ET-0023 (Security): 2 files generated
 > - ET-0024 (Config Mgmt): 1 file generated
-> 
+>
 > **Summary**: 5 tasks completed, 7 evidence files generated
-> 
+>
 > **Next Steps**:
 > 1. Review evidence with: `grctool status task ET-XXXX`
 > 2. Validate all: `grctool evidence validate --all`
@@ -421,20 +390,20 @@ grctool status
 ## Best Practices
 
 ### DO:
-✅ Check status before starting  
-✅ Generate context for all tasks first  
-✅ Group tasks by tool requirements  
-✅ Run each tool once, reuse output  
-✅ Track progress and report completion  
-✅ Handle errors gracefully  
-✅ Provide detailed completion summary  
+✅ Check status before starting
+✅ Generate context for all tasks first
+✅ Group tasks by tool requirements
+✅ Run each tool once, reuse output
+✅ Track progress and report completion
+✅ Handle errors gracefully
+✅ Provide detailed completion summary
 
 ### DON'T:
-❌ Run the same tool multiple times unnecessarily  
-❌ Skip status checks  
-❌ Fail silently on errors  
-❌ Process tasks one-by-one (be efficient!)  
-❌ Forget to report progress to user  
+❌ Run the same tool multiple times unnecessarily
+❌ Skip status checks
+❌ Fail silently on errors
+❌ Process tasks one-by-one (be efficient!)
+❌ Forget to report progress to user
 
 ---
 
@@ -456,10 +425,11 @@ grctool tool github-permissions ... > ET-0002.csv
 # Run once
 grctool tool github-permissions ... > /tmp/permissions.csv
 
-# Save to all 10 tasks
+# Save to all 10 tasks (root directory)
 for task in ET-0001 ET-0002 ... ET-0010; do
   grctool tool evidence-writer --task-ref $task \
     --title "Permissions" --file /tmp/permissions.csv
+  # Each saved to: evidence/ET-XXXX_*/2025-Q4/01_permissions.csv
 done
 ```
 

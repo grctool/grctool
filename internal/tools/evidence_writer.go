@@ -281,10 +281,10 @@ func (ewt *EvidenceWriterTool) Execute(ctx context.Context, params map[string]in
 		return "", nil, fmt.Errorf("operation cancelled before directory creation: %w", err)
 	}
 
-	// Create evidence directory structure with wip/ subfolder
+	// Create evidence directory structure (root directory, no wip/ subfolder in hybrid approach)
 	taskDirName := naming.GetEvidenceTaskDirName(task.ReferenceID, task.Name)
 	windowDir := filepath.Join(ewt.config.Storage.DataDir, "evidence", taskDirName, window)
-	evidenceDir := filepath.Join(windowDir, "wip")
+	evidenceDir := windowDir // Write directly to root
 
 	if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 		return "", nil, fmt.Errorf("creating evidence directory '%s': %w: %w", evidenceDir, ErrDirectoryCreation, err)
@@ -491,17 +491,17 @@ func (ewt *EvidenceWriterTool) writeEvidenceFile(filePath, content, format strin
 }
 
 // writeGenerationMetadata creates a .generation/metadata.yaml file with generation details
-// wipDir should point to the wip/ folder where evidence files are written
+// windowDir should point to the window root directory where evidence files are written
 func (ewt *EvidenceWriterTool) writeGenerationMetadata(
-	wipDir string,
+	windowDir string,
 	task *domain.EvidenceTask,
 	window string,
 	files []models.FileMetadata,
 	generatedBy string,
 	toolsUsed []string,
 ) error {
-	// Create .generation directory inside wip/
-	metadataDir := filepath.Join(wipDir, ".generation")
+	// Create .generation directory inside window root
+	metadataDir := filepath.Join(windowDir, ".generation")
 	if err := os.MkdirAll(metadataDir, 0755); err != nil {
 		return fmt.Errorf("creating metadata directory: %w", err)
 	}

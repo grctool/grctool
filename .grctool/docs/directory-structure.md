@@ -4,9 +4,9 @@
 
 ---
 
-**Generated**: 2025-10-27 16:56:21 EDT  
-**GRCTool Version**: dev  
-**Documentation Version**: dev  
+**Generated**: 2025-10-28 10:33:19 EDT
+**GRCTool Version**: dev
+**Documentation Version**: dev
 
 ---
 
@@ -16,10 +16,10 @@ GRCTool organizes all data in a structured directory hierarchy. Understanding th
 
 ## Root Data Directory
 
-**Base Path**: `/Users/erik/Projects/grctool` (configurable in `.grctool.yaml`)
+**Base Path**: `/Users/erik/Projects/7thsense-ops/isms` (configurable in `.grctool.yaml`)
 
 ```
-/Users/erik/Projects/grctool/
+/Users/erik/Projects/7thsense-ops/isms/
 ├── docs/                  # Synced data from Tugboat Logic
 │   ├── policies/          # Policy documents and metadata
 │   ├── controls/          # Security controls and requirements
@@ -32,7 +32,7 @@ GRCTool organizes all data in a structured directory hierarchy. Understanding th
 
 ## Evidence Task Directory Structure
 
-Each evidence task has its own directory under `evidence/`, organized by collection windows and workflow stages.
+Each evidence task has its own directory under `evidence/`, organized by collection windows.
 
 ### Directory Naming
 
@@ -63,73 +63,69 @@ Evidence is organized into collection windows based on the task's collection int
 evidence/ET-0001_GitHub_Access/
 ├── 2025-Q4/                           # Current collection window
 │   │
-│   ├── wip/                           # Work in progress (LocalState: generated)
-│   │   ├── 01_draft_permissions.csv   # Files being actively worked on
-│   │   ├── 02_analysis.md             # Drafts, partial evidence
-│   │   └── .generation/               # How these files were created
-│   │       └── metadata.yaml          # Tools used, timestamps, checksums
+│   ├── 01_github_permissions_analysis.md  # Working evidence (root = working area)
+│   ├── 02_deploy_workflow.yml             # Original source files for auditor review
+│   ├── 03_access_control_policy.md        # Control documentation
 │   │
-│   ├── ready/                         # Validated, ready to submit (LocalState: validated)
-│   │   ├── 01_github_permissions.csv  # Completed, validated evidence
-│   │   ├── 02_team_access.json
-│   │   ├── 02_analysis.md             # Original markdown (for editing)
-│   │   ├── 02_analysis.pdf            # Auto-generated PDF (for submission)
-│   │   ├── .generation/               # Moved from wip/ with files
-│   │   │   └── metadata.yaml
-│   │   ├── .validation/               # Validation results (created by validation)
-│   │   │   └── validation.yaml        # Score, completeness, readiness check
-│   │   └── .submission/               # Created when submitting from ready/
-│   │       └── submission.yaml        # Tugboat submission ID, timestamps
+│   ├── .generation/                   # Generation metadata (created by 'grctool tool evidence-writer')
+│   │   └── metadata.yaml              # How evidence was generated, checksums, timestamps
 │   │
-│   ├── submitted/                     # Downloaded from Tugboat (LocalState: submitted/accepted)
-│   │   ├── 01_github_permissions.csv  # What's actually in Tugboat
-│   │   ├── 02_team_access.json
-│   │   └── .submission/               # Submission metadata (synced from Tugboat)
-│   │       ├── submission.yaml        # Tugboat submission ID, timestamps
-│   │       └── history.yaml           # Full submission history
+│   ├── .validation/                   # Validation results (created by 'grctool evidence evaluate')
+│   │   └── validation.yaml            # Quality scores and recommendations
 │   │
-│   ├── .context/                      # Shared generation context for window
-│   │   └── generation-context.md      # Task details, tools, requirements
+│   ├── .submitted/                    # Submitted evidence (hidden, moved after upload)
+│   │   ├── 01_github_permissions_analysis.md  # Files automatically moved here after submit
+│   │   ├── 02_deploy_workflow.yml
+│   │   └── .submission/               # Submission tracking
+│   │       └── submission.yaml        # Submission status, Tugboat IDs, timestamps
 │   │
-│   └── collection_plan.md             # Overall collection plan (deprecated)
+│   ├── archive/                       # Evidence synced FROM Tugboat Logic
+│   │   ├── 01_auditor_approved_evidence.pdf
+│   │   └── .submission/
+│   │       └── submission.yaml        # Tugboat metadata
+│   │
+│   └── collection_plan.md             # Collection plan for this window
 │
-└── 2025-Q3/                           # Previous window (reference)
-    └── submitted/                     # Only submitted evidence remains
-        ├── 01_github_permissions.csv
-        ├── 02_team_memberships.json
-        └── .submission/
-            ├── submission.yaml
-            └── history.yaml
+├── 2025-Q3/                           # Previous window (reference)
+│   ├── 01_github_permissions.csv      # Working files from last window
+│   ├── .generation/
+│   │   └── metadata.yaml
+│   └── .submitted/
+│       ├── 01_github_permissions.csv  # Previously submitted files
+│       └── .submission/
+│           └── submission.yaml
+│
+└── README.md                          # Task overview and collection notes
 ```
 
 ## Special Directories
 
-### `.context/` Directory
+### Root Directory (Working Area)
 
-**Purpose**: Contains context for Claude Code assisted evidence generation
+**Purpose**: Active working directory for evidence generation and review
 
-**Created by**: `grctool evidence generate ET-XXXX --window {window}`
-
-**Location**: `{window}/.context/` (shared across all subfolders)
+**Created by**: `grctool tool evidence-writer` (automatic)
 
 **Contents**:
-- `generation-context.md` - Comprehensive context document including:
-  - Task details and requirements
-  - Applicable tools auto-detected from task description
-  - Related controls and policies
-  - Existing evidence from previous windows
-  - Source locations from config
-  - Next steps for evidence generation
+- Evidence files numbered with prefixes (01_, 02_, etc.)
+- Files remain here during drafting, evaluation, and review
+- Files are evaluated before submission
+- Files automatically move to `.submitted/` after successful upload
+
+**Workflow**:
+1. Evidence files are written to root directory during generation
+2. Files are reviewed and refined in place
+3. Files are evaluated using `grctool evidence evaluate`
+4. Files are reviewed by humans using `grctool evidence review`
+5. Files automatically move to `.submitted/` after successful submission
+
+**Note**: The root directory is your working area. It's safe to regenerate or modify files here without affecting submitted evidence.
 
 ### `.generation/` Directory
 
 **Purpose**: Tracks how evidence was generated
 
 **Created by**: `grctool tool evidence-writer` (automatic)
-
-**Location**:
-- `wip/.generation/` - For newly generated evidence
-- `ready/.generation/` - Moved with files during validation
 
 **Contents**:
 - `metadata.yaml` - Generation metadata:
@@ -157,103 +153,74 @@ evidence/ET-0001_GitHub_Access/
 
 ### `.validation/` Directory
 
-**Purpose**: Contains validation results for evidence ready to submit
+**Purpose**: Tracks automated evidence quality evaluation
 
-**Created by**: `grctool evidence validate ET-XXXX --window {window}`
-
-**Location**: `ready/.validation/`
+**Created by**: `grctool evidence evaluate ET-XXXX --window {window}`
 
 **Contents**:
-- `validation.yaml` - Validation results:
+- `validation.yaml` - Automated quality scores and recommendations:
   ```yaml
-  validated_at: 2025-10-27T12:00:00Z
-  validation_score: 95
-  completeness: complete
-  issues: []
+  evaluated_at: 2025-10-27T12:00:00Z
+  quality_score: 85
+  completeness_score: 90
   recommendations:
-    - "Add more detail to section 3"
-  status: validated
+    - Add more specific examples
+    - Include control mapping
+  status: ready
   ```
 
-### `.submission/` Directory
+**Note**: Use `grctool evidence evaluate` for automated scoring. This is different from `grctool evidence review` which is for human assessment.
 
-**Purpose**: Tracks submission to Tugboat Logic
+### `.submitted/` Directory (Hidden)
 
-**Created by**:
-- `grctool evidence submit ET-XXXX --window {window}` (creates in `ready/`)
-- `grctool sync --submissions` (creates in `submitted/`)
+**Purpose**: Stores evidence after successful submission to prevent resubmission
 
-**Location**:
-- `ready/.submission/` - When submitting from local ready/ folder
-- `submitted/.submission/` - When downloading from Tugboat
+**Created by**: `grctool evidence submit ET-XXXX --window {window}` (automatic)
 
 **Contents**:
-- `submission.yaml` - Submission tracking:
+- Submitted evidence files (automatically moved from root after upload)
+- `.submission/submission.yaml` - Submission tracking:
   ```yaml
   submitted_at: 2025-10-27T14:00:00Z
   submission_id: sub_abc123
   submission_status: submitted
   files_submitted:
-    - 01_github_permissions.csv
-    - 02_team_memberships.json
+    - 01_github_permissions_analysis.md
+    - 02_deploy_workflow.yml
   tugboat_response:
     status: accepted
     message: Evidence received successfully
   ```
-- `history.yaml` - Complete submission history (in `submitted/` only)
+
+**Workflow**:
+1. Evidence exists in root directory
+2. `grctool evidence submit` uploads files to Tugboat
+3. Files automatically move from root to `.submitted/`
+4. Root directory is now empty and ready for next collection
+
+**Resubmission**: To resubmit, move files back from `.submitted/` to root directory
 
 **Submission Statuses**:
 - `draft` - Evidence prepared but not submitted
-- `validated` - Evidence validated and ready
+- `validated` - Evidence evaluated and ready
 - `submitted` - Sent to Tugboat Logic
 - `accepted` - Accepted by auditors
 - `rejected` - Rejected, needs rework
 
-## Automatic Markdown to PDF Conversion
+### `archive/` Directory
 
-When evidence files move from `wip/` to `ready/` during validation, **markdown files are automatically converted to PDF** for professional presentation to auditors.
+**Purpose**: Stores evidence synced FROM Tugboat Logic
 
-### How It Works
+**Created by**: `grctool sync` (automatic)
 
-1. **Validation triggers conversion**:
-   ```bash
-   grctool evidence validate ET-0001 --window 2025-Q4
-   ```
+**Contents**:
+- Evidence files downloaded from Tugboat (auditor-approved versions)
+- `.submission/submission.yaml` - Tugboat metadata about the synced evidence
 
-2. **For each `.md` file in `ready/`**:
-   - Converts to PDF with professional formatting
-   - Keeps original `.md` file for future edits
-   - Example: `02_analysis.md` → `02_analysis.pdf`
-
-3. **During submission**:
-   - Only PDF files are submitted to Tugboat
-   - Markdown files are kept locally as source
-
-### Technical Details
-
-- **Parser**: goldmark (CommonMark compliant)
-- **Renderer**: gopdf (pure Go, no external dependencies)
-- **Supported Elements**:
-  - Headings (H1-H6)
-  - Paragraphs and text formatting
-  - Lists (ordered/unordered, nested)
-  - Code blocks (monospace font)
-  - Tables (basic support)
-  - Page breaks (automatic)
-
-### File Preference
-
-When both `.md` and `.pdf` exist with the same basename:
-- **Submission**: PDF is preferred
-- **Editing**: Markdown is the source of truth
-- **Re-validation**: PDF is regenerated if `.md` is newer
-
-### Fallback Behavior
-
-If PDF conversion fails:
-- Warning is logged
-- Markdown file is submitted instead
-- Validation continues normally
+**Important**:
+- `archive/` = evidence FROM Tugboat (read-only reference)
+- `.submitted/` = evidence TO Tugboat (locally uploaded)
+- These are separate directories to avoid confusion
 
 ## File Naming Conventions
 
@@ -262,9 +229,9 @@ If PDF conversion fails:
 Evidence files are automatically numbered with zero-padded prefixes:
 
 ```
-01_descriptive_name.csv
-02_another_file.json
-03_summary_report.md
+01_github_permissions_summary.md
+02_terraform_main.tf
+03_deploy_workflow.yml
 ```
 
 **Naming Guidelines**:
@@ -273,11 +240,12 @@ Evidence files are automatically numbered with zero-padded prefixes:
 - Include the tool name or data type
 - Use appropriate file extensions
 
-**Supported File Types**:
-- **Data**: `.csv`, `.json`, `.yaml`, `.txt`
-- **Documents**: `.md`, `.pdf`, `.doc`, `.docx`
-- **Spreadsheets**: `.xls`, `.xlsx`, `.ods`
-- **Images**: `.png`, `.jpg`, `.jpeg`, `.gif`
+**Auditor-Friendly File Types**:
+- **Evidence Narratives**: `.md` (markdown documents with findings and analysis)
+- **Infrastructure Source**: `.tf`, `.yml`, `.yaml`, `.toml`, `.hcl` (original config files)
+- **Application Configs**: `.env.example`, `.config`, configuration files
+- **Documents**: `.pdf`, `.doc`, `.docx` (when needed)
+- **NOT Included**: `.json` files (tool outputs are for analysis only, not auditor submission)
 
 ## Synced Data Structure
 
@@ -337,56 +305,63 @@ docs/evidence_tasks/
 ### Finding Evidence Tasks
 ```bash
 # List all evidence tasks
-ls /Users/erik/Projects/grctool/docs/evidence_tasks/
+ls /Users/erik/Projects/7thsense-ops/isms/docs/evidence_tasks/
 
 # Find a specific task by reference
-ls /Users/erik/Projects/grctool/docs/evidence_tasks/ET-0047-*
+ls /Users/erik/Projects/7thsense-ops/isms/docs/evidence_tasks/ET-0047-*
 ```
 
 ### Checking Existing Evidence
 ```bash
 # List evidence for a task
-ls /Users/erik/Projects/grctool/evidence/ET-0047_*/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/
 
 # List windows for a task
-ls /Users/erik/Projects/grctool/evidence/ET-0047_*/*/
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/*/
 
-# Check if generation context exists
-ls /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.context/
+# Check working evidence files (root directory)
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/
+
+# Check submitted evidence (hidden folder)
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.submitted/
+
+# Check synced evidence from Tugboat
+ls /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/archive/
 ```
 
-### Reading Context Files
+### Reading Metadata Files
 ```bash
-# Read generation context
-cat /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.context/generation-context.md
-
 # Check generation metadata
-cat /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.generation/metadata.yaml
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.generation/metadata.yaml
+
+# Check validation results
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.validation/validation.yaml
 
 # Check submission status
-cat /Users/erik/Projects/grctool/evidence/ET-0047_*/2025-Q4/.submission/submission.yaml
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
+
+# Check Tugboat sync metadata
+cat /Users/erik/Projects/7thsense-ops/isms/evidence/ET-0047_*/2025-Q4/archive/.submission/submission.yaml
 ```
 
 ## State Tracking
 
-Evidence state is tracked through **folder location** and metadata files:
+Evidence state is tracked through the presence and content of metadata files:
 
-| State | Folder Location | Metadata Indicators |
-|-------|----------------|---------------------|
-| **No Evidence** | No window directory exists | - |
-| **Generated** | Files in `wip/` | `wip/.generation/metadata.yaml` exists |
-| **Validated** | Files in `ready/` | `ready/.validation/validation.yaml` exists |
-| **Submitted** | Files in `ready/` with submission metadata | `ready/.submission/submission.yaml` with `status: submitted` |
-| **Accepted** | Files in `submitted/` from Tugboat sync | `submitted/.submission/submission.yaml` with `status: accepted` |
-| **Rejected** | Files in `ready/` or `submitted/` | `.submission/submission.yaml` has `status: rejected` |
+| State | Indicators |
+|-------|------------|
+| **No Evidence** | No window directory exists OR window directory is empty |
+| **Generated** | Evidence files exist in root directory, `.generation/metadata.yaml` present |
+| **Evaluated** | `.validation/validation.yaml` exists with quality scores |
+| **Submitted** | Files moved to `.submitted/`, `.submitted/.submission/submission.yaml` exists |
+| **Accepted** | `.submitted/.submission/submission.yaml` has `status: accepted` |
+| **Rejected** | `.submitted/.submission/submission.yaml` has `status: rejected` |
+| **Synced** | `archive/` directory contains evidence downloaded from Tugboat |
 
-### State Inference
-
-The evidence scanner determines state by:
-
-1. **Checking folder structure**: Scans `wip/`, `ready/`, `submitted/` subfolders
-2. **Reading metadata**: Checks for `.generation/`, `.validation/`, `.submission/` directories
-3. **Prioritizing ready/**: If files exist in multiple folders, `ready/` takes precedence for determining state
+**Key Workflow States**:
+- **Working**: Files in root directory (actively being created/refined)
+- **Submitted**: Files in `.submitted/` directory (uploaded to Tugboat)
+- **Archived**: Files in `archive/` directory (synced from Tugboat)
 
 Use `grctool status` to see aggregated state across all tasks.
 

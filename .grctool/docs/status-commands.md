@@ -4,9 +4,9 @@
 
 ---
 
-**Generated**: 2025-10-27 16:56:21 EDT  
-**GRCTool Version**: dev  
-**Documentation Version**: dev  
+**Generated**: 2025-10-28 10:33:19 EDT
+**GRCTool Version**: dev
+**Documentation Version**: dev
 
 ---
 
@@ -36,7 +36,9 @@ grctool status task ET-0047
 
 Shows detailed information for a specific task:
 - Current state
-- Evidence files (count, size, timestamps)
+- Evidence files in root directory (count, size, timestamps)
+- Files in `.submitted/` directory (if any)
+- Files in `archive/` directory (if any)
 - Generation metadata
 - Submission status
 - Applicable tools
@@ -86,14 +88,14 @@ grctool status \
 ## Understanding Output
 
 ### State Indicators
-| State | Meaning | Action |
-|-------|---------|--------|
-| 🔴 no_evidence | No files | Generate evidence |
-| 🟡 generated | Files exist | Validate |
-| 🟢 validated | Ready | Submit |
-| 📤 submitted | Sent to Tugboat | Wait for review |
-| ✅ accepted | Approved | Done |
-| ❌ rejected | Needs rework | Regenerate |
+| State | Meaning | Location | Action |
+|-------|---------|----------|--------|
+| 🔴 no_evidence | No files | Empty window | Generate evidence |
+| 🟡 generated | Files exist | Root directory | Evaluate (optional) |
+| 🟢 evaluated | Quality scored | Root + `.validation/` | Review or Submit |
+| 📤 submitted | Sent to Tugboat | `.submitted/` directory | Wait for review |
+| ✅ accepted | Approved | `.submitted/` + `archive/` | Done |
+| ❌ rejected | Needs rework | `.submitted/` | Move back to root, regenerate |
 
 ### Automation Levels
 | Level | Meaning |
@@ -119,12 +121,48 @@ grctool status --filter automation=fully_automated --filter state=no_evidence
 
 ### "What's ready to submit?"
 ```bash
-grctool status --filter state=validated
+# Evidence that's been evaluated
+grctool status --filter state=evaluated
+
+# Or evidence that's in root directory (generated)
+grctool status --filter state=generated
+```
+
+### "What's been submitted?"
+```bash
+grctool status --filter state=submitted
 ```
 
 ### "Show me everything for ET-0047"
 ```bash
 grctool status task ET-0047
+```
+
+### "Check files in root directory (working area)"
+```bash
+# List working files
+ls evidence/ET-0047_*/2025-Q4/*.md
+
+# Check if files exist in root
+ls -lh evidence/ET-0047_*/2025-Q4/
+```
+
+### "Check files in .submitted/ directory"
+```bash
+# List submitted files
+ls evidence/ET-0047_*/2025-Q4/.submitted/
+
+# Check submission metadata
+cat evidence/ET-0047_*/2025-Q4/.submitted/.submission/submission.yaml
+```
+
+### "Check synced evidence from Tugboat"
+```bash
+# List archived files
+ls evidence/ET-0047_*/2025-Q4/archive/
+
+# Check Tugboat metadata
+cat evidence/ET-0047_*/2025-Q4/archive/.submission/submission.yaml
 ```
 
 ---

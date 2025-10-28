@@ -17,6 +17,12 @@ const (
 
 	// MaxTaskNameLength is the maximum length for sanitized task names.
 	MaxTaskNameLength = 100
+
+	// SubfolderSubmitted is the hidden folder for submitted files (moved after upload to prevent resubmission)
+	SubfolderSubmitted = ".submitted"
+
+	// SubfolderArchive is the folder for evidence synced FROM Tugboat
+	SubfolderArchive = "archive"
 )
 
 var (
@@ -57,13 +63,13 @@ func ParseEvidenceTaskDirName(dirName string) (ref string, name string) {
 // SanitizeTaskName converts a task name into a filesystem-safe format.
 // Rules:
 // - Keeps only alphanumeric characters, spaces, hyphens, underscores, parentheses, and brackets
-// - Replaces spaces with underscores
+// - Replaces unsafe characters (and spaces) with underscores
 // - Removes consecutive underscores
 // - Trims leading/trailing underscores
 // - Limits length to MaxTaskNameLength characters
 func SanitizeTaskName(name string) string {
-	// Remove unsafe characters
-	safe := unsafeCharsRegex.ReplaceAllString(name, "")
+	// Replace unsafe characters with underscores
+	safe := unsafeCharsRegex.ReplaceAllString(name, "_")
 
 	// Replace spaces with underscores
 	safe = strings.ReplaceAll(safe, " ", "_")

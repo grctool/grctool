@@ -365,7 +365,7 @@ func TestSanitizeTaskName(t *testing.T) {
 		},
 		"with special characters": {
 			name: "User@Registration#Process!",
-			want: "UserRegistrationProcess",
+			want: "User_Registration_Process",
 		},
 		"with parentheses and brackets": {
 			name: "Policy Document (Final) [Approved]",
