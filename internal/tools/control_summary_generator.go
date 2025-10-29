@@ -274,9 +274,25 @@ func (csgt *ControlSummaryGeneratorTool) Execute(ctx context.Context, params map
 
 // buildControlSummaryContext builds template context for control summary generation
 func (csgt *ControlSummaryGeneratorTool) buildControlSummaryContext(task *domain.EvidenceTask, control *domain.Control) *models.ControlSummaryContext {
+	// Create interpolator from config to substitute template variables
+	interpolatorConfig := interpolation.InterpolatorConfig{
+		Variables:         csgt.config.Interpolation.GetFlatVariables(),
+		Enabled:           csgt.config.Interpolation.Enabled,
+		OnMissingVariable: interpolation.MissingVariableIgnore,
+	}
+	interp := interpolation.NewStandardInterpolator(interpolatorConfig)
+
+	// Interpolate control fields that may contain template variables
+	interpolatedControl := *control
+	if interpolatorConfig.Enabled {
+		interpolatedControl.Name, _ = interp.Interpolate(control.Name)
+		interpolatedControl.Description, _ = interp.Interpolate(control.Description)
+		interpolatedControl.Risk, _ = interp.Interpolate(control.Risk)
+	}
+
 	// Convert domain objects to models
 	modelsTask := csgt.convertDomainTaskToModels(task)
-	modelsControl := csgt.convertDomainControlToModels(control)
+	modelsControl := csgt.convertDomainControlToModels(&interpolatedControl)
 
 	return &models.ControlSummaryContext{
 		Task:    *modelsTask,
@@ -379,8 +395,8 @@ func (csgt *ControlSummaryGeneratorTool) extractStructuredSummary(summaryText st
 func (csgt *ControlSummaryGeneratorTool) saveSummaryToFile(summaryText string, task *domain.EvidenceTask, control *domain.Control) (string, error) {
 	// Create filename with task reference, control ID, and sanitized names
 	interpolatorConfig := interpolation.InterpolatorConfig{
-		Variables:         make(map[string]string),
-		Enabled:           false,
+		Variables:         csgt.config.Interpolation.GetFlatVariables(),
+		Enabled:           csgt.config.Interpolation.Enabled,
 		OnMissingVariable: interpolation.MissingVariableIgnore,
 	}
 	interpolator := interpolation.NewStandardInterpolator(interpolatorConfig)

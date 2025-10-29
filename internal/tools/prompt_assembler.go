@@ -257,8 +257,24 @@ func (pat *PromptAssemblerTool) Execute(ctx context.Context, params map[string]i
 
 // buildBasicEvidenceContext builds basic evidence context for template-based prompt generation
 func (pat *PromptAssemblerTool) buildBasicEvidenceContext(ctx context.Context, task *domain.EvidenceTask, contextLevel string, includeExamples bool) (*models.EvidenceContext, error) {
+	// Create interpolator from config to substitute template variables
+	interpolatorConfig := interpolation.InterpolatorConfig{
+		Variables:         pat.config.Interpolation.GetFlatVariables(),
+		Enabled:           pat.config.Interpolation.Enabled,
+		OnMissingVariable: interpolation.MissingVariableIgnore,
+	}
+	interp := interpolation.NewStandardInterpolator(interpolatorConfig)
+
+	// Interpolate task fields that may contain template variables
+	interpolatedTask := *task
+	if interpolatorConfig.Enabled {
+		interpolatedTask.Name, _ = interp.Interpolate(task.Name)
+		interpolatedTask.Description, _ = interp.Interpolate(task.Description)
+		interpolatedTask.Guidance, _ = interp.Interpolate(task.Guidance)
+	}
+
 	// Convert domain task to models task
-	modelsTask := pat.convertDomainTaskToModels(task)
+	modelsTask := pat.convertDomainTaskToModels(&interpolatedTask)
 
 	evidenceContext := &models.EvidenceContext{
 		Task:             *modelsTask,
@@ -412,8 +428,8 @@ func (pat *PromptAssemblerTool) generateBasicPrompt(context *models.EvidenceCont
 func (pat *PromptAssemblerTool) savePromptToFile(promptText string, task *domain.EvidenceTask, outputFormat string) (string, error) {
 	// Create filename with reference ID, task ID, and sanitized name
 	interpolatorConfig := interpolation.InterpolatorConfig{
-		Variables:         make(map[string]string),
-		Enabled:           false,
+		Variables:         pat.config.Interpolation.GetFlatVariables(),
+		Enabled:           pat.config.Interpolation.Enabled,
 		OnMissingVariable: interpolation.MissingVariableIgnore,
 	}
 	interpolator := interpolation.NewStandardInterpolator(interpolatorConfig)

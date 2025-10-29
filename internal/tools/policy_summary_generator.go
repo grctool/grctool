@@ -268,9 +268,26 @@ func (psgt *PolicySummaryGeneratorTool) Execute(ctx context.Context, params map[
 
 // buildPolicySummaryContext builds template context for policy summary generation
 func (psgt *PolicySummaryGeneratorTool) buildPolicySummaryContext(task *domain.EvidenceTask, policy *domain.Policy) *models.PolicySummaryContext {
+	// Create interpolator from config to substitute template variables
+	interpolatorConfig := interpolation.InterpolatorConfig{
+		Variables:         psgt.config.Interpolation.GetFlatVariables(),
+		Enabled:           psgt.config.Interpolation.Enabled,
+		OnMissingVariable: interpolation.MissingVariableIgnore,
+	}
+	interp := interpolation.NewStandardInterpolator(interpolatorConfig)
+
+	// Interpolate policy fields that may contain template variables
+	interpolatedPolicy := *policy
+	if interpolatorConfig.Enabled {
+		interpolatedPolicy.Name, _ = interp.Interpolate(policy.Name)
+		interpolatedPolicy.Description, _ = interp.Interpolate(policy.Description)
+		interpolatedPolicy.Summary, _ = interp.Interpolate(policy.Summary)
+		interpolatedPolicy.Content, _ = interp.Interpolate(policy.Content)
+	}
+
 	// Convert domain objects to models
 	modelsTask := psgt.convertDomainTaskToModels(task)
-	modelsPolicy := psgt.convertDomainPolicyToModels(policy)
+	modelsPolicy := psgt.convertDomainPolicyToModels(&interpolatedPolicy)
 
 	return &models.PolicySummaryContext{
 		Task:   *modelsTask,
@@ -373,8 +390,8 @@ func (psgt *PolicySummaryGeneratorTool) extractStructuredSummary(summaryText str
 func (psgt *PolicySummaryGeneratorTool) saveSummaryToFile(summaryText string, task *domain.EvidenceTask, policy *domain.Policy) (string, error) {
 	// Create filename with task reference, policy ID, and sanitized names
 	interpolatorConfig := interpolation.InterpolatorConfig{
-		Variables:         make(map[string]string),
-		Enabled:           false,
+		Variables:         psgt.config.Interpolation.GetFlatVariables(),
+		Enabled:           psgt.config.Interpolation.Enabled,
 		OnMissingVariable: interpolation.MissingVariableIgnore,
 	}
 	interpolator := interpolation.NewStandardInterpolator(interpolatorConfig)
