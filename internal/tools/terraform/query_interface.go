@@ -18,6 +18,7 @@ package terraform
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -877,7 +878,18 @@ func (cqi *ClaudeQueryInterface) generateNarrativeResponse(result *EvidenceQuery
 			response.WriteString(fmt.Sprintf("- **Environment:** %s\n", resource.Environment))
 			response.WriteString(fmt.Sprintf("- **Risk Level:** %s\n", resource.RiskLevel))
 			response.WriteString(fmt.Sprintf("- **Compliance:** %s\n", resource.ComplianceStatus))
-			response.WriteString(fmt.Sprintf("- **Location:** %s (%s)\n\n", resource.FilePath, resource.LineRange))
+
+			// Relativize the file path for better readability
+			relativePath := cqi.relativizePath(resource.FilePath)
+			response.WriteString(fmt.Sprintf("- **Location:** %s (%s)\n", relativePath, resource.LineRange))
+
+			// Include source code snippet if available
+			if sourceCode, ok := resource.SecurityConfig["_content"].(string); ok && sourceCode != "" {
+				response.WriteString("\n```hcl\n")
+				response.WriteString(sourceCode)
+				response.WriteString("```\n")
+			}
+			response.WriteString("\n")
 		}
 	}
 
@@ -974,10 +986,20 @@ func (cqi *ClaudeQueryInterface) generateAuditReadyResponse(result *EvidenceQuer
 		response.WriteString(fmt.Sprintf("- **Compliance Status:** %s\n", resource.ComplianceStatus))
 		response.WriteString(fmt.Sprintf("- **Risk Assessment:** %s\n", resource.RiskLevel))
 		response.WriteString(fmt.Sprintf("- **Evidence Quality:** %s\n", resource.EvidenceQuality))
-		response.WriteString(fmt.Sprintf("- **Source Location:** %s (lines %s)\n", resource.FilePath, resource.LineRange))
+
+		// Relativize the file path for better readability
+		relativePath := cqi.relativizePath(resource.FilePath)
+		response.WriteString(fmt.Sprintf("- **Source Location:** %s (lines %s)\n", relativePath, resource.LineRange))
 
 		if len(resource.ControlRelevance) > 0 {
 			response.WriteString(fmt.Sprintf("- **Applicable Controls:** %s\n", strings.Join(resource.ControlRelevance, ", ")))
+		}
+
+		// Include source code snippet if available
+		if sourceCode, ok := resource.SecurityConfig["_content"].(string); ok && sourceCode != "" {
+			response.WriteString("\n**Source Code:**\n```hcl\n")
+			response.WriteString(sourceCode)
+			response.WriteString("```\n")
 		}
 		response.WriteString("\n")
 	}
@@ -1084,4 +1106,43 @@ func (cqi *ClaudeQueryInterface) escapeCSV(value string) string {
 		return "\"" + value + "\""
 	}
 	return value
+}
+
+// relativizePath converts an absolute file path to a path relative to the Terraform scan paths
+// Falls back to the absolute path if relativization fails or no scan paths are configured
+func (cqi *ClaudeQueryInterface) relativizePath(absolutePath string) string {
+	// Skip relativization if path is empty
+	if absolutePath == "" {
+		return absolutePath
+	}
+
+	// Skip relativization for paths in .terraform/modules (they will be filtered later)
+	if strings.Contains(absolutePath, "/.terraform/modules/") {
+		return absolutePath
+	}
+
+	// Try to relativize against each configured scan path
+	if cqi.config != nil && len(cqi.config.ScanPaths) > 0 {
+		for _, scanPath := range cqi.config.ScanPaths {
+			// Clean and resolve the scan path
+			cleanScanPath, err := filepath.Abs(scanPath)
+			if err != nil {
+				continue
+			}
+
+			// Try to get relative path
+			relPath, err := filepath.Rel(cleanScanPath, absolutePath)
+			if err != nil {
+				continue
+			}
+
+			// Check if the result is actually relative (doesn't start with ..)
+			if !strings.HasPrefix(relPath, "..") {
+				return relPath
+			}
+		}
+	}
+
+	// Fallback: return absolute path if relativization fails
+	return absolutePath
 }

@@ -389,8 +389,16 @@ func (tt *TerraformTool) scanPath(ctx context.Context, scanPath string, resource
 			return nil // Continue walking
 		}
 
-		// Skip directories
+		// Skip .terraform directories entirely (including all subdirectories)
 		if info.IsDir() {
+			if info.Name() == ".terraform" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Skip files inside .terraform directories
+		if strings.Contains(path, string(filepath.Separator)+".terraform"+string(filepath.Separator)) {
 			return nil
 		}
 
