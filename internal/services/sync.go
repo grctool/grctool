@@ -112,12 +112,12 @@ type SyncResult struct {
 
 // SyncStats represents statistics for a sync operation
 type SyncStats struct {
-	Total       int `json:"total"`
-	Synced      int `json:"synced"`
-	Detailed    int `json:"detailed"`
-	Errors      int `json:"errors"`
-	Skipped     int `json:"skipped"`
-	Downloaded  int `json:"downloaded"`  // For submissions: number of files downloaded
+	Total      int `json:"total"`
+	Synced     int `json:"synced"`
+	Detailed   int `json:"detailed"`
+	Errors     int `json:"errors"`
+	Skipped    int `json:"skipped"`
+	Downloaded int `json:"downloaded"` // For submissions: number of files downloaded
 }
 
 // SyncAll performs a complete synchronization of all data types
@@ -948,17 +948,17 @@ func (s *SyncService) getWindowFromDate(dateStr string) string {
 func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskDirName string, taskID int, window string, attachments []tugboatModels.EvidenceAttachment) *models.EvidenceSubmission {
 	now := time.Now()
 	submission := &models.EvidenceSubmission{
-		TaskID:             taskID,
-		TaskRef:            taskRef,
-		Window:             window,
-		Status:             "accepted", // Tugboat attachments are already accepted
-		CreatedAt:          now,
-		SubmittedAt:        &now,
-		AcceptedAt:         &now,
-		EvidenceFiles:      []models.EvidenceFileRef{},
-		TotalFileCount:     len(attachments),
-		ValidationStatus:   "passed",
-		CompletenessScore:  1.0,
+		TaskID:            taskID,
+		TaskRef:           taskRef,
+		Window:            window,
+		Status:            "accepted", // Tugboat attachments are already accepted
+		CreatedAt:         now,
+		SubmittedAt:       &now,
+		AcceptedAt:        &now,
+		EvidenceFiles:     []models.EvidenceFileRef{},
+		TotalFileCount:    len(attachments),
+		ValidationStatus:  "passed",
+		CompletenessScore: 1.0,
 	}
 
 	// Convert attachments to evidence file refs

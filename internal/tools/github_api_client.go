@@ -349,8 +349,8 @@ func (client *GitHubAPIClient) GetDeploymentEnvironments(ctx context.Context, ow
 	var envResponse struct {
 		TotalCount   int `json:"total_count"`
 		Environments []struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
+			ID              int    `json:"id"`
+			Name            string `json:"name"`
 			ProtectionRules []struct {
 				ID        int    `json:"id"`
 				Type      string `json:"type"`

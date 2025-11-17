@@ -354,7 +354,6 @@ func (s *evidenceScannerImpl) scanHybridStructure(ctx context.Context, taskRef s
 	return windowState, nil
 }
 
-
 // scanFlatStructure scans the old flat structure (backward compatibility)
 func (s *evidenceScannerImpl) scanFlatStructure(ctx context.Context, taskRef string, window string, windowDir string) (*models.WindowState, error) {
 	windowState := &models.WindowState{

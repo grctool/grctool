@@ -38,20 +38,20 @@ type CollectionTask struct {
 
 // EvidenceSnippet represents a snippet of evidence with source metadata
 type EvidenceSnippet struct {
-	Content         string
-	SourceFile      string    // Destination filename
-	OriginalPath    string    // Relative path from data directory
-	LastModified    time.Time // Last modification date
-	GeneratedBy     string    // Tool command if generated
-	CollectionDate  time.Time // Collection date if generated
-	Section         string    // Section or line reference
+	Content        string
+	SourceFile     string    // Destination filename
+	OriginalPath   string    // Relative path from data directory
+	LastModified   time.Time // Last modification date
+	GeneratedBy    string    // Tool command if generated
+	CollectionDate time.Time // Collection date if generated
+	Section        string    // Section or line reference
 }
 
 // SourceFile represents a source file to be copied
 type SourceFile struct {
-	OriginalPath string    // Absolute path to source
-	RelativePath string    // Relative path from data directory
-	DestFilename string    // Destination filename
+	OriginalPath string // Absolute path to source
+	RelativePath string // Relative path from data directory
+	DestFilename string // Destination filename
 	LastModified time.Time
 	GeneratedBy  string // Tool command if generated
 }

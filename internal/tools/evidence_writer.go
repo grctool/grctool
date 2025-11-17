@@ -601,4 +601,3 @@ func GenerateEvidenceFilename(index int, title string) string {
 
 	return fmt.Sprintf("%02d_%s", index, safe)
 }
-

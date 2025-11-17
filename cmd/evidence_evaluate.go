@@ -481,7 +481,6 @@ func getSeverityFromStatus(status string) string {
 	}
 }
 
-
 func saveEvaluationResultToFile(result *models.EvaluationResult, filename string) error {
 	// Determine format from extension
 	ext := filepath.Ext(filename)

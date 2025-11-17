@@ -1031,9 +1031,9 @@ type EvidenceGenerationContext struct {
 type AssemblyContext struct {
 	Task                *domain.EvidenceTask
 	Window              string
-	ComprehensivePrompt string                 // From prompt-assembler
-	ClaudeInstructions  string                 // How to use materials
-	EvidenceTemplate    string                 // Structure guide
+	ComprehensivePrompt string // From prompt-assembler
+	ClaudeInstructions  string // How to use materials
+	EvidenceTemplate    string // Structure guide
 	ApplicableTools     []string
 	ToolData            map[string]interface{} // If --with-tool-data
 }
@@ -1579,9 +1579,9 @@ func executePromptAssembler(task *domain.EvidenceTask, cfg *config.Config, stora
 
 	// Parse the JSON result
 	var responseData struct {
-		Success      bool   `json:"success"`
-		PromptText   string `json:"prompt_text"`
-		FilePath     string `json:"file_path"`
+		Success        bool                   `json:"success"`
+		PromptText     string                 `json:"prompt_text"`
+		FilePath       string                 `json:"file_path"`
 		PromptMetadata map[string]interface{} `json:"prompt_metadata"`
 	}
 

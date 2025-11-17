@@ -332,7 +332,7 @@ func TestProcessBulkEvidenceGeneration(t *testing.T) {
 			name: "filters out completed tasks",
 			mockTasks: []domain.EvidenceTask{
 				createTestEvidenceTask(1, "ET-0001", "Completed Task", true), // completed
-				createTestEvidenceTask(2, "ET-0002", "Active Task", false),    // active
+				createTestEvidenceTask(2, "ET-0002", "Active Task", false),   // active
 			},
 			mockError: nil,
 			expectedOutput: []string{

@@ -252,17 +252,17 @@ When helping users:
 
 // ClaudeMdData holds the data for template rendering
 type ClaudeMdData struct {
-	DataDir            string
-	DocsPath           string
-	EvidencePath       string
-	PromptsPath        string
-	CachePath          string
-	CacheDir           string
-	OrgID              string
-	ToolCount          int
-	ToolsByCategory    map[string][]ToolInfo
-	CategoryOrder      []string
-	ExampleTools       []ToolInfo
+	DataDir         string
+	DocsPath        string
+	EvidencePath    string
+	PromptsPath     string
+	CachePath       string
+	CacheDir        string
+	OrgID           string
+	ToolCount       int
+	ToolsByCategory map[string][]ToolInfo
+	CategoryOrder   []string
+	ExampleTools    []ToolInfo
 }
 
 // ToolInfo holds information about a single tool
