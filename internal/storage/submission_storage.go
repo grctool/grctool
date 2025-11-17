@@ -681,4 +681,3 @@ func (us *Storage) SubmissionExists(taskRef, window string) bool {
 	_, err := os.Stat(submissionPath)
 	return err == nil
 }
-

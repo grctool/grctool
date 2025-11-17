@@ -23,14 +23,14 @@ const (
 
 // FontManager manages PDF fonts
 type FontManager struct {
-	pdf            *gopdf.GoPdf
-	regularLoaded  bool
-	boldLoaded     bool
-	italicLoaded   bool
-	monoLoaded     bool
-	currentStyle   FontStyle
-	fontSize       float64
-	codeSize       float64
+	pdf           *gopdf.GoPdf
+	regularLoaded bool
+	boldLoaded    bool
+	italicLoaded  bool
+	monoLoaded    bool
+	currentStyle  FontStyle
+	fontSize      float64
+	codeSize      float64
 }
 
 // NewFontManager creates a new font manager

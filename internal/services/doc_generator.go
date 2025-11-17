@@ -15,6 +15,7 @@ import (
 )
 
 // Embed all documentation templates
+//
 //go:embed templates/directory-structure.tmpl
 var directoryStructureTemplate string
 

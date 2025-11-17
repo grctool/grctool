@@ -71,19 +71,19 @@ func DefaultOptions() *ConversionOptions {
 		// Page layout
 		PageSize: "A4",
 		Margins: Margins{
-			Top:    72,  // 1 inch
-			Bottom: 72,  // 1 inch
-			Left:   72,  // 1 inch
-			Right:  72,  // 1 inch
+			Top:    72, // 1 inch
+			Bottom: 72, // 1 inch
+			Left:   72, // 1 inch
+			Right:  72, // 1 inch
 		},
 
 		// Professional features
-		HeaderImageHeight: 100,       // 100 points (~1.4 inches)
-		GenerateTOC:       true,      // Generate TOC by default
-		TOCDepth:          3,          // H1, H2, H3 in TOC
-		SyntaxTheme:       "github",   // GitHub-style syntax highlighting
-		ShowPageNumbers:   true,       // Show page numbers
-		Confidential:      true,       // Mark as confidential
+		HeaderImageHeight: 100,      // 100 points (~1.4 inches)
+		GenerateTOC:       true,     // Generate TOC by default
+		TOCDepth:          3,        // H1, H2, H3 in TOC
+		SyntaxTheme:       "github", // GitHub-style syntax highlighting
+		ShowPageNumbers:   true,     // Show page numbers
+		Confidential:      true,     // Mark as confidential
 
 		// Fonts
 		FontFamily:     "Helvetica", // System font

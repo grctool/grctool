@@ -20,26 +20,26 @@ import "time"
 // EvaluationResult represents a comprehensive evaluation of evidence against task requirements
 type EvaluationResult struct {
 	// Identification
-	TaskRef  string `json:"task_ref" yaml:"task_ref"`
-	TaskID   int    `json:"task_id" yaml:"task_id"`
-	Window   string `json:"window" yaml:"window"`
+	TaskRef   string `json:"task_ref" yaml:"task_ref"`
+	TaskID    int    `json:"task_id" yaml:"task_id"`
+	Window    string `json:"window" yaml:"window"`
 	Subfolder string `json:"subfolder,omitempty" yaml:"subfolder,omitempty"` // .submitted or archive
 
 	// Overall evaluation
-	OverallScore  float64          `json:"overall_score" yaml:"overall_score"`     // 0-100
-	OverallStatus EvaluationStatus `json:"overall_status" yaml:"overall_status"`   // pass, warning, fail
-	PassThreshold float64          `json:"pass_threshold" yaml:"pass_threshold"`   // Score needed to pass (default 70)
+	OverallScore  float64          `json:"overall_score" yaml:"overall_score"`   // 0-100
+	OverallStatus EvaluationStatus `json:"overall_status" yaml:"overall_status"` // pass, warning, fail
+	PassThreshold float64          `json:"pass_threshold" yaml:"pass_threshold"` // Score needed to pass (default 70)
 
 	// Dimension scores
-	Completeness        DimensionScore `json:"completeness" yaml:"completeness"`
-	RequirementsMatch   DimensionScore `json:"requirements_match" yaml:"requirements_match"`
-	QualityScore        DimensionScore `json:"quality_score" yaml:"quality_score"`
-	ControlAlignment    DimensionScore `json:"control_alignment" yaml:"control_alignment"`
+	Completeness      DimensionScore `json:"completeness" yaml:"completeness"`
+	RequirementsMatch DimensionScore `json:"requirements_match" yaml:"requirements_match"`
+	QualityScore      DimensionScore `json:"quality_score" yaml:"quality_score"`
+	ControlAlignment  DimensionScore `json:"control_alignment" yaml:"control_alignment"`
 
 	// Issues and recommendations
-	Issues           []EvaluationIssue  `json:"issues" yaml:"issues"`
-	Recommendations  []string           `json:"recommendations" yaml:"recommendations"`
-	MissingRequirements []string        `json:"missing_requirements,omitempty" yaml:"missing_requirements,omitempty"`
+	Issues              []EvaluationIssue `json:"issues" yaml:"issues"`
+	Recommendations     []string          `json:"recommendations" yaml:"recommendations"`
+	MissingRequirements []string          `json:"missing_requirements,omitempty" yaml:"missing_requirements,omitempty"`
 
 	// Metadata
 	EvaluatedAt time.Time `json:"evaluated_at" yaml:"evaluated_at"`
@@ -50,21 +50,21 @@ type EvaluationResult struct {
 
 // DimensionScore represents a score for one evaluation dimension
 type DimensionScore struct {
-	Score       float64 `json:"score" yaml:"score"`             // 0-100
-	MaxScore    float64 `json:"max_score" yaml:"max_score"`     // Usually 100
-	Weight      float64 `json:"weight" yaml:"weight"`           // Contribution to overall score
-	Status      string  `json:"status" yaml:"status"`           // pass, warning, fail
-	Description string  `json:"description" yaml:"description"` // What this dimension measures
+	Score       float64 `json:"score" yaml:"score"`                         // 0-100
+	MaxScore    float64 `json:"max_score" yaml:"max_score"`                 // Usually 100
+	Weight      float64 `json:"weight" yaml:"weight"`                       // Contribution to overall score
+	Status      string  `json:"status" yaml:"status"`                       // pass, warning, fail
+	Description string  `json:"description" yaml:"description"`             // What this dimension measures
 	Details     string  `json:"details,omitempty" yaml:"details,omitempty"` // Specific findings
 }
 
 // EvaluationIssue represents a specific issue found during evaluation
 type EvaluationIssue struct {
-	Severity    IssueSeverity `json:"severity" yaml:"severity"`       // critical, high, medium, low, info
-	Category    string        `json:"category" yaml:"category"`       // completeness, quality, requirements, control_alignment
-	Message     string        `json:"message" yaml:"message"`         // Human-readable description
-	Location    string        `json:"location,omitempty" yaml:"location,omitempty"` // File or section where issue was found
-	Suggestion  string        `json:"suggestion,omitempty" yaml:"suggestion,omitempty"` // How to fix
+	Severity   IssueSeverity `json:"severity" yaml:"severity"`                         // critical, high, medium, low, info
+	Category   string        `json:"category" yaml:"category"`                         // completeness, quality, requirements, control_alignment
+	Message    string        `json:"message" yaml:"message"`                           // Human-readable description
+	Location   string        `json:"location,omitempty" yaml:"location,omitempty"`     // File or section where issue was found
+	Suggestion string        `json:"suggestion,omitempty" yaml:"suggestion,omitempty"` // How to fix
 }
 
 // EvaluationStatus represents the overall status of an evaluation

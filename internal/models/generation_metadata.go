@@ -21,20 +21,20 @@ import "time"
 // This enables the state tracking system to understand evidence provenance
 type GenerationMetadata struct {
 	GeneratedAt      time.Time      `yaml:"generated_at"`
-	GeneratedBy      string         `yaml:"generated_by"`       // "claude-code-assisted", "grctool-cli", "manual"
-	GenerationMethod string         `yaml:"generation_method"`  // "tool_coordination", "manual_upload"
+	GeneratedBy      string         `yaml:"generated_by"`      // "claude-code-assisted", "grctool-cli", "manual"
+	GenerationMethod string         `yaml:"generation_method"` // "tool_coordination", "manual_upload"
 	TaskID           int            `yaml:"task_id"`
 	TaskRef          string         `yaml:"task_ref"`
 	Window           string         `yaml:"window"`
 	ToolsUsed        []string       `yaml:"tools_used,omitempty"`
 	FilesGenerated   []FileMetadata `yaml:"files_generated"`
-	Status           string         `yaml:"status"`              // "generated", "validated", "submitted"
+	Status           string         `yaml:"status"` // "generated", "validated", "submitted"
 }
 
 // FileMetadata represents metadata about a single evidence file
 type FileMetadata struct {
-	Path        string    `yaml:"path"`       // Relative path from window directory
-	Checksum    string    `yaml:"checksum"`   // "sha256:abc123..."
+	Path        string    `yaml:"path"`     // Relative path from window directory
+	Checksum    string    `yaml:"checksum"` // "sha256:abc123..."
 	SizeBytes   int64     `yaml:"size_bytes"`
 	GeneratedAt time.Time `yaml:"generated_at"`
 }

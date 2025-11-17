@@ -38,10 +38,10 @@ type GoldmarkGoPDFConverter struct {
 func NewGoldmarkGoPDFConverter() *GoldmarkGoPDFConverter {
 	md := goldmark.New(
 		goldmark.WithExtensions(
-			extension.GFM,          // GitHub Flavored Markdown
-			extension.Table,        // Tables
+			extension.GFM,           // GitHub Flavored Markdown
+			extension.Table,         // Tables
 			extension.Strikethrough, // Strikethrough text
-			extension.TaskList,     // Task lists
+			extension.TaskList,      // Task lists
 		),
 		goldmark.WithParserOptions(
 			parser.WithAutoHeadingID(),

@@ -26,18 +26,18 @@ type EvidenceTaskState struct {
 	TaskName string `json:"task_name" yaml:"task_name"` // Human-readable name
 
 	// Tugboat sync state (remote)
-	TugboatStatus    string    `json:"tugboat_status" yaml:"tugboat_status"`         // pending, in_progress, completed
-	TugboatCompleted bool      `json:"tugboat_completed" yaml:"tugboat_completed"`   // Completion flag from Tugboat
-	LastSyncedAt     time.Time `json:"last_synced_at" yaml:"last_synced_at"`         // Last sync from Tugboat API
+	TugboatStatus    string    `json:"tugboat_status" yaml:"tugboat_status"`           // pending, in_progress, completed
+	TugboatCompleted bool      `json:"tugboat_completed" yaml:"tugboat_completed"`     // Completion flag from Tugboat
+	LastSyncedAt     time.Time `json:"last_synced_at" yaml:"last_synced_at"`           // Last sync from Tugboat API
 	Framework        string    `json:"framework,omitempty" yaml:"framework,omitempty"` // SOC2, ISO27001, etc.
 
 	// Local evidence state
-	LocalState LocalEvidenceState    `json:"local_state" yaml:"local_state"` // Overall local state
+	LocalState LocalEvidenceState     `json:"local_state" yaml:"local_state"` // Overall local state
 	Windows    map[string]WindowState `json:"windows" yaml:"windows"`         // Evidence by window (2025-Q4 → state)
 
 	// Automation capability
-	AutomationLevel AutomationCapability `json:"automation_level" yaml:"automation_level"`   // Level of automation available
-	ApplicableTools []string             `json:"applicable_tools" yaml:"applicable_tools"`   // Tools that can generate this evidence
+	AutomationLevel AutomationCapability `json:"automation_level" yaml:"automation_level"` // Level of automation available
+	ApplicableTools []string             `json:"applicable_tools" yaml:"applicable_tools"` // Tools that can generate this evidence
 
 	// Timestamps
 	LastGeneratedAt *time.Time `json:"last_generated_at,omitempty" yaml:"last_generated_at,omitempty"` // Most recent generation
@@ -51,21 +51,21 @@ type WindowState struct {
 	Window string `json:"window" yaml:"window"` // "2025-Q4", "2025", "2025-10", etc.
 
 	// File inventory
-	FileCount  int                `json:"file_count" yaml:"file_count"`     // Number of evidence files
-	TotalBytes int64              `json:"total_bytes" yaml:"total_bytes"`   // Total size in bytes
-	OldestFile *time.Time         `json:"oldest_file,omitempty" yaml:"oldest_file,omitempty"` // Earliest file timestamp
-	NewestFile *time.Time         `json:"newest_file,omitempty" yaml:"newest_file,omitempty"` // Latest file timestamp
-	Files      []FileState        `json:"files,omitempty" yaml:"files,omitempty"`             // Individual file details
+	FileCount  int         `json:"file_count" yaml:"file_count"`                       // Number of evidence files
+	TotalBytes int64       `json:"total_bytes" yaml:"total_bytes"`                     // Total size in bytes
+	OldestFile *time.Time  `json:"oldest_file,omitempty" yaml:"oldest_file,omitempty"` // Earliest file timestamp
+	NewestFile *time.Time  `json:"newest_file,omitempty" yaml:"newest_file,omitempty"` // Latest file timestamp
+	Files      []FileState `json:"files,omitempty" yaml:"files,omitempty"`             // Individual file details
 
 	// Generation metadata (from .generation/metadata.yaml)
-	HasGenerationMeta bool       `json:"has_generation_meta" yaml:"has_generation_meta"` // .generation/metadata.yaml exists
+	HasGenerationMeta bool       `json:"has_generation_meta" yaml:"has_generation_meta"`                 // .generation/metadata.yaml exists
 	GenerationMethod  string     `json:"generation_method,omitempty" yaml:"generation_method,omitempty"` // tool_coordination, ai_generation, manual
 	GeneratedAt       *time.Time `json:"generated_at,omitempty" yaml:"generated_at,omitempty"`           // When evidence was generated
 	GeneratedBy       string     `json:"generated_by,omitempty" yaml:"generated_by,omitempty"`           // Who/what generated (claude-code-assisted, grctool-cli, manual)
 	ToolsUsed         []string   `json:"tools_used,omitempty" yaml:"tools_used,omitempty"`               // Tools used to generate evidence
 
 	// Submission metadata (from .submission/submission.yaml)
-	HasSubmissionMeta bool       `json:"has_submission_meta" yaml:"has_submission_meta"` // .submission/submission.yaml exists
+	HasSubmissionMeta bool       `json:"has_submission_meta" yaml:"has_submission_meta"`                 // .submission/submission.yaml exists
 	SubmissionStatus  string     `json:"submission_status,omitempty" yaml:"submission_status,omitempty"` // draft, validated, submitted, accepted, rejected
 	SubmittedAt       *time.Time `json:"submitted_at,omitempty" yaml:"submitted_at,omitempty"`           // When evidence was submitted
 	SubmissionID      string     `json:"submission_id,omitempty" yaml:"submission_id,omitempty"`         // Tugboat submission ID
@@ -73,11 +73,11 @@ type WindowState struct {
 
 // FileState represents metadata for a single evidence file
 type FileState struct {
-	Filename    string    `json:"filename" yaml:"filename"`         // Just the filename, not full path
-	SizeBytes   int64     `json:"size_bytes" yaml:"size_bytes"`     // File size
-	Checksum    string    `json:"checksum,omitempty" yaml:"checksum,omitempty"`     // SHA256 checksum if available
-	ModifiedAt  time.Time `json:"modified_at" yaml:"modified_at"`   // File modification timestamp
-	IsGenerated bool      `json:"is_generated" yaml:"is_generated"` // From tool vs manually added
+	Filename    string    `json:"filename" yaml:"filename"`                     // Just the filename, not full path
+	SizeBytes   int64     `json:"size_bytes" yaml:"size_bytes"`                 // File size
+	Checksum    string    `json:"checksum,omitempty" yaml:"checksum,omitempty"` // SHA256 checksum if available
+	ModifiedAt  time.Time `json:"modified_at" yaml:"modified_at"`               // File modification timestamp
+	IsGenerated bool      `json:"is_generated" yaml:"is_generated"`             // From tool vs manually added
 }
 
 // LocalEvidenceState represents the overall state of local evidence for a task
@@ -191,8 +191,8 @@ func DetermineAutomationCapability(applicableTools []string, taskDescription str
 // StateCache represents the cached state data structure
 // This is saved to .state/evidence_state.yaml for performance
 type StateCache struct {
-	LastScan time.Time                       `json:"last_scan" yaml:"last_scan"` // When the cache was last updated
-	Tasks    map[string]*EvidenceTaskState   `json:"tasks" yaml:"tasks"`         // Task ref → state
+	LastScan time.Time                     `json:"last_scan" yaml:"last_scan"` // When the cache was last updated
+	Tasks    map[string]*EvidenceTaskState `json:"tasks" yaml:"tasks"`         // Task ref → state
 }
 
 // NewStateCache creates a new empty state cache
