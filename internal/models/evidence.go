@@ -164,6 +164,29 @@ type GeneratedEvidence struct {
 	Conversation    []ConversationEntry `json:"conversation"` // Full conversation history
 }
 
+// Provenance captures the origin and context of evidence collection
+type Provenance struct {
+	GitCommitSHA  string    `json:"git_commit_sha,omitempty"` // Full 40-character commit SHA
+	GitBranch     string    `json:"git_branch,omitempty"`     // Current branch name
+	GitTags       []string  `json:"git_tags,omitempty"`       // Tags pointing to this commit
+	GitRemoteURL  string    `json:"git_remote_url,omitempty"` // Origin remote URL (sanitized)
+	CollectedAt   time.Time `json:"collected_at"`             // UTC timestamp of collection
+	ToolVersion   string    `json:"tool_version,omitempty"`   // GRCTool version used
+	CollectorHost string    `json:"collector_host,omitempty"` // Hostname where evidence was collected
+	WorkingDir    string    `json:"working_dir,omitempty"`    // Working directory (relative path)
+}
+
+// SourceFileRef represents a reference to a source file included with evidence
+type SourceFileRef struct {
+	OriginalPath   string    `json:"original_path"`             // Relative path from git root or data dir
+	CopiedPath     string    `json:"copied_path,omitempty"`     // Relative path within evidence folder
+	LineRange      string    `json:"line_range,omitempty"`      // e.g., "45-67" or "123"
+	Snippet        string    `json:"snippet,omitempty"`         // Extracted code block
+	ChecksumSHA256 string    `json:"checksum_sha256,omitempty"` // SHA256 of original file
+	SizeBytes      int64     `json:"size_bytes,omitempty"`      // File size in bytes
+	LastModified   time.Time `json:"last_modified,omitempty"`   // File modification time
+}
+
 // EvidenceSource tracks what sources were used to generate evidence
 type EvidenceSource struct {
 	Type        string                 `json:"type"`      // terraform, github, google_docs
@@ -171,7 +194,9 @@ type EvidenceSource struct {
 	Content     string                 `json:"content"`   // extracted content
 	Relevance   float64                `json:"relevance"` // 0.0-1.0 relevance score
 	ExtractedAt time.Time              `json:"extracted_at"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"` // Additional source-specific data
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`     // Additional source-specific data
+	Provenance  *Provenance            `json:"provenance,omitempty"`   // Provenance information
+	SourceFiles []SourceFileRef        `json:"source_files,omitempty"` // Referenced source files
 }
 
 // ClaudeRequest represents a request to Claude for evidence generation
