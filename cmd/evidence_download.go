@@ -74,7 +74,7 @@ func init() {
 	evidenceDownloadCmd.Flags().String("end-date", "", "end of date range (YYYY-MM-DD)")
 	evidenceDownloadCmd.Flags().String("window", "", "collection window (e.g., 2025-Q3)")
 	evidenceDownloadCmd.Flags().Bool("list-only", false, "list submissions without downloading")
-	evidenceDownloadCmd.Flags().String("type", "", "filter by attachment type: file or url")
+	evidenceDownloadCmd.Flags().String("type", "", "filter by attachment type: file, url, or text")
 	evidenceDownloadCmd.Flags().String("output", "table", "output format: table, json, quiet")
 	evidenceDownloadCmd.Flags().Bool("all", false, "download for all tasks")
 	evidenceDownloadCmd.Flags().Bool("force", false, "re-download existing files")
@@ -92,12 +92,13 @@ func init() {
 
 // downloadStats tracks download progress
 type downloadStats struct {
-	TasksProcessed int
-	Downloaded     int
-	Skipped        int
-	URLReferences  int
-	Errors         int
-	TotalBytes     int64
+	TasksProcessed  int
+	Downloaded      int
+	Skipped         int
+	URLReferences   int
+	TextSubmissions int
+	Errors          int
+	TotalBytes      int64
 }
 
 func runEvidenceDownload(cmd *cobra.Command, args []string) error {
@@ -114,8 +115,8 @@ func runEvidenceDownload(cmd *cobra.Command, args []string) error {
 	search, _ := cmd.Flags().GetString("search")
 
 	// Validate flags
-	if typeFilter != "" && typeFilter != "file" && typeFilter != "url" {
-		return fmt.Errorf("invalid type filter: %s (must be 'file' or 'url')", typeFilter)
+	if typeFilter != "" && typeFilter != "file" && typeFilter != "url" && typeFilter != "text" {
+		return fmt.Errorf("invalid type filter: %s (must be 'file', 'url', or 'text')", typeFilter)
 	}
 
 	if category != "" {
@@ -238,6 +239,7 @@ func runEvidenceDownload(cmd *cobra.Command, args []string) error {
 			stats.Downloaded += taskStats.Downloaded
 			stats.Skipped += taskStats.Skipped
 			stats.URLReferences += taskStats.URLReferences
+			stats.TextSubmissions += taskStats.TextSubmissions
 			stats.Errors += taskStats.Errors
 			stats.TotalBytes += taskStats.TotalBytes
 		}
@@ -256,7 +258,10 @@ func runEvidenceDownload(cmd *cobra.Command, args []string) error {
 				cmd.Printf("Files skipped (existing): %d\n", stats.Skipped)
 			}
 			if stats.URLReferences > 0 {
-				cmd.Printf("URL references saved: %d\n", stats.URLReferences)
+				cmd.Printf("URL content downloaded: %d\n", stats.URLReferences)
+			}
+			if stats.TextSubmissions > 0 {
+				cmd.Printf("Text submissions saved: %d\n", stats.TextSubmissions)
 			}
 			if stats.Errors > 0 {
 				cmd.Printf("Errors: %d\n", stats.Errors)
@@ -300,12 +305,27 @@ func filterTasks(tasks []domain.EvidenceTask, category, search string, all bool)
 	return filtered
 }
 
-// filterAttachmentsByType filters attachments by type (file or url)
+// filterAttachmentsByType filters attachments by type (file, url, or text)
 func filterAttachmentsByType(attachments []tugboatModels.EvidenceAttachment, typeFilter string) []tugboatModels.EvidenceAttachment {
 	var filtered []tugboatModels.EvidenceAttachment
 	for _, att := range attachments {
-		if att.Type == typeFilter {
-			filtered = append(filtered, att)
+		switch typeFilter {
+		case "file":
+			// File attachments can have type="file" or type="automated"
+			if att.Attachment != nil {
+				filtered = append(filtered, att)
+			}
+		case "url":
+			if att.Type == "url" && att.URL != "" {
+				filtered = append(filtered, att)
+			}
+		case "text":
+			// Text-only submissions: no file attachment and no URL, but has notes
+			hasFile := att.Attachment != nil
+			hasURL := att.Type == "url" && att.URL != ""
+			if !hasFile && !hasURL && att.Notes != "" {
+				filtered = append(filtered, att)
+			}
 		}
 	}
 	return filtered
@@ -349,39 +369,52 @@ func windowToDateRange(window string) (string, string) {
 func displaySubmissions(cmd *cobra.Command, attachments []tugboatModels.EvidenceAttachment, format string) {
 	fileCount := 0
 	urlCount := 0
+	textCount := 0
 
 	if format == "table" {
-		cmd.Printf("\n  %-8s %-6s %-12s %-40s %s\n", "ID", "Type", "Collected", "Filename", "Size")
+		cmd.Printf("\n  %-8s %-6s %-12s %-40s %s\n", "ID", "Type", "Collected", "Filename/Description", "Size")
 		cmd.Printf("  %-8s %-6s %-12s %-40s %s\n", "--------", "------", "------------", "----------------------------------------", "--------")
 	}
 
 	for _, att := range attachments {
-		if att.Type == "file" {
+		if att.Attachment != nil {
+			// File attachment (type can be "file", "automated", or other)
 			fileCount++
-			filename := "unknown"
-			size := "-"
-			if att.Attachment != nil {
-				filename = att.Attachment.OriginalFilename
-				if len(filename) > 40 {
-					filename = filename[:37] + "..."
-				}
+			filename := att.Attachment.OriginalFilename
+			if filename == "" {
+				filename = "unknown"
+			}
+			if len(filename) > 40 {
+				filename = filename[:37] + "..."
 			}
 			if format == "table" {
-				cmd.Printf("  %-8d %-6s %-12s %-40s %s\n", att.ID, att.Type, att.Collected, filename, size)
+				cmd.Printf("  %-8d %-6s %-12s %-40s %s\n", att.ID, "file", att.Collected, filename, "-")
 			}
-		} else if att.Type == "url" {
+		} else if att.Type == "url" && att.URL != "" {
 			urlCount++
 			url := att.URL
 			if len(url) > 40 {
 				url = url[:37] + "..."
 			}
 			if format == "table" {
-				cmd.Printf("  %-8d %-6s %-12s %-40s %s\n", att.ID, att.Type, att.Collected, url, "-")
+				cmd.Printf("  %-8d %-6s %-12s %-40s %s\n", att.ID, "url", att.Collected, url, "-")
+			}
+		} else if att.Notes != "" {
+			textCount++
+			notes := att.Notes
+			// Clean up notes for display: remove newlines and truncate
+			notes = strings.ReplaceAll(notes, "\n", " ")
+			notes = strings.ReplaceAll(notes, "\r", " ")
+			if len(notes) > 40 {
+				notes = notes[:37] + "..."
+			}
+			if format == "table" {
+				cmd.Printf("  %-8d %-6s %-12s %-40s %s\n", att.ID, "text", att.Collected, notes, "-")
 			}
 		}
 	}
 
-	cmd.Printf("\n  Total: %d submissions (%d files, %d URLs)\n", len(attachments), fileCount, urlCount)
+	cmd.Printf("\n  Total: %d submissions (%d files, %d URLs, %d text)\n", len(attachments), fileCount, urlCount, textCount)
 }
 
 // downloadAttachments downloads all attachments for a task
@@ -410,7 +443,8 @@ func downloadAttachments(ctx context.Context, cmd *cobra.Command, cfg *config.Co
 		}
 
 		for i, att := range windowAttachments {
-			if att.Type == "file" && att.Attachment != nil {
+			if att.Attachment != nil {
+				// File attachment (type can be "file", "automated", or other)
 				filename := att.Attachment.OriginalFilename
 				if filename == "" {
 					filename = fmt.Sprintf("attachment_%d", att.ID)
@@ -453,26 +487,69 @@ func downloadAttachments(ctx context.Context, cmd *cobra.Command, cfg *config.Co
 
 				stats.Downloaded++
 
-			} else if att.Type == "url" {
-				// Save URL reference
-				filename := fmt.Sprintf("url_reference_%d.txt", att.ID)
+			} else if att.Type == "url" && att.URL != "" {
+				// Download content from URL
+				fallbackName := fmt.Sprintf("url_%d", att.ID)
+
+				if format != "quiet" {
+					cmd.Printf("     [%d/%d] %s", i+1, len(windowAttachments), att.URL)
+				}
+
+				result, err := client.DownloadFromURL(ctx, att.URL, evidenceDir, fallbackName)
+				if err != nil {
+					if format != "quiet" {
+						cmd.Printf(" ❌ %v\n", err)
+					}
+					// Fall back to saving URL reference file
+					refFilename := fmt.Sprintf("url_reference_%d.txt", att.ID)
+					refPath := filepath.Join(evidenceDir, refFilename)
+					urlContent := fmt.Sprintf("URL: %s\nNotes: %s\nCollected: %s\nDownload Error: %v\n", att.URL, att.Notes, att.Collected, err)
+					if writeErr := os.WriteFile(refPath, []byte(urlContent), 0644); writeErr == nil {
+						stats.URLReferences++
+					} else {
+						stats.Errors++
+					}
+					continue
+				}
+
+				stats.TotalBytes += result.BytesWritten
+				if format != "quiet" {
+					cmd.Printf(" → %s ✓ %s\n", result.Filename, formatDownloadBytes(result.BytesWritten))
+				}
+				stats.URLReferences++
+			} else if att.Notes != "" {
+				// Text-only submission - save notes as markdown
+				filename := fmt.Sprintf("submission_%d.md", att.ID)
 				destPath := filepath.Join(evidenceDir, filename)
 
 				// Check if file exists
 				if !force {
 					if _, err := os.Stat(destPath); err == nil {
+						if format != "quiet" {
+							cmd.Printf("     [%d/%d] %s (skipped - exists)\n", i+1, len(windowAttachments), filename)
+						}
 						stats.Skipped++
 						continue
 					}
 				}
 
-				urlContent := fmt.Sprintf("URL: %s\nNotes: %s\nCollected: %s\n", att.URL, att.Notes, att.Collected)
-				if err := os.WriteFile(destPath, []byte(urlContent), 0644); err != nil {
+				if format != "quiet" {
+					cmd.Printf("     [%d/%d] %s", i+1, len(windowAttachments), filename)
+				}
+
+				content := buildSubmissionMarkdown(&att)
+				if err := os.WriteFile(destPath, []byte(content), 0644); err != nil {
+					if format != "quiet" {
+						cmd.Printf(" (error: %v)\n", err)
+					}
 					stats.Errors++
 					continue
 				}
 
-				stats.URLReferences++
+				if format != "quiet" {
+					cmd.Println(" (text)")
+				}
+				stats.TextSubmissions++
 			}
 		}
 	}
@@ -517,4 +594,69 @@ func formatDownloadBytes(bytes int64) string {
 		exp++
 	}
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
+}
+
+// buildSubmissionMarkdown creates a markdown file for a text-only submission
+func buildSubmissionMarkdown(att *tugboatModels.EvidenceAttachment) string {
+	var sb strings.Builder
+
+	sb.WriteString("# Evidence Submission\n\n")
+
+	// Submitter info
+	if att.Owner != nil {
+		sb.WriteString(fmt.Sprintf("**Submitted by:** %s\n", att.Owner.DisplayName))
+	}
+
+	// Dates
+	if att.Created != "" {
+		// Parse and format the created date
+		if t, err := time.Parse(time.RFC3339, att.Created); err == nil {
+			sb.WriteString(fmt.Sprintf("**Submitted on:** %s\n", t.Format("2006-01-02")))
+		} else {
+			sb.WriteString(fmt.Sprintf("**Submitted on:** %s\n", att.Created))
+		}
+	}
+	if att.Collected != "" {
+		sb.WriteString(fmt.Sprintf("**Collected:** %s\n", att.Collected))
+	}
+
+	// Integration info if present
+	if att.IntegrationType != "" {
+		sb.WriteString(fmt.Sprintf("**Source:** %s", att.IntegrationType))
+		if att.IntegrationSubtype != "" {
+			sb.WriteString(fmt.Sprintf(" (%s)", att.IntegrationSubtype))
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("\n---\n\n")
+
+	// Notes content
+	sb.WriteString("## Notes\n\n")
+	if att.Notes != "" {
+		sb.WriteString(att.Notes)
+	} else {
+		sb.WriteString("*No notes provided*")
+	}
+	sb.WriteString("\n\n")
+
+	// URL if present
+	if att.URL != "" {
+		sb.WriteString("---\n\n")
+		sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", att.URL))
+	}
+
+	sb.WriteString("---\n\n")
+	sb.WriteString(fmt.Sprintf("*Submission ID: %d*\n", att.ID))
+
+	return sb.String()
+}
+
+// isTextOnlySubmission checks if a submission has no downloadable file or URL but has content
+func isTextOnlySubmission(att *tugboatModels.EvidenceAttachment) bool {
+	hasFile := att.Type == "file" && att.Attachment != nil
+	hasURL := att.Type == "url" && att.URL != ""
+	hasContent := att.Notes != ""
+
+	return !hasFile && !hasURL && hasContent
 }
