@@ -216,8 +216,10 @@ func (c *Client) DownloadAttachment(ctx context.Context, attachmentID int, destP
 		return fmt.Errorf("download failed with status %d", resp.StatusCode)
 	}
 
-	// Create destination file
-	outFile, err := os.Create(destPath)
+	// Create destination file with path validation
+	destDir := filepath.Dir(destPath)
+	destFilename := filepath.Base(destPath)
+	outFile, _, err := safeCreateFile(destDir, destFilename)
 	if err != nil {
 		return fmt.Errorf("failed to create destination file: %w", err)
 	}
@@ -321,7 +323,7 @@ func (c *Client) downloadPolicyContent(ctx context.Context, policyID string, des
 
 	// Write file
 	destPath := filepath.Join(destDir, filename)
-	if err := os.WriteFile(destPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(destPath, []byte(content), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write policy file: %w", err)
 	}
 
@@ -354,7 +356,7 @@ func (c *Client) downloadControlContent(ctx context.Context, controlID string, d
 
 	// Write file
 	destPath := filepath.Join(destDir, filename)
-	if err := os.WriteFile(destPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(destPath, []byte(content), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write control file: %w", err)
 	}
 
@@ -387,7 +389,7 @@ func (c *Client) downloadEvidenceTaskContent(ctx context.Context, taskID string,
 
 	// Write file
 	destPath := filepath.Join(destDir, filename)
-	if err := os.WriteFile(destPath, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(destPath, []byte(content), 0600); err != nil {
 		return nil, fmt.Errorf("failed to write evidence task file: %w", err)
 	}
 
@@ -429,11 +431,8 @@ func (c *Client) downloadDirectURL(ctx context.Context, sourceURL string, destDi
 	// Determine filename
 	filename := extractFilenameFromResponse(resp, sourceURL, fallbackName)
 
-	// Create destination path
-	destPath := filepath.Join(destDir, filename)
-
-	// Create destination file
-	outFile, err := os.Create(destPath)
+	// Create destination file with path validation
+	outFile, safePath, err := safeCreateFile(destDir, filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create file: %w", err)
 	}
@@ -445,14 +444,17 @@ func (c *Client) downloadDirectURL(ctx context.Context, sourceURL string, destDi
 		return nil, fmt.Errorf("failed to write content: %w", err)
 	}
 
+	// Use the sanitized filename from the safe path
+	safeFilename := filepath.Base(safePath)
+
 	result := &URLDownloadResult{
-		Filename:     filename,
+		Filename:     safeFilename,
 		ContentType:  resp.Header.Get("Content-Type"),
 		BytesWritten: written,
 	}
 
 	c.logger.Debug("URL download completed",
-		logger.String("filename", filename),
+		logger.String("filename", safeFilename),
 		logger.Int("bytes_written", int(written)))
 
 	return result, nil
@@ -677,4 +679,43 @@ func sanitizeFilename(name string) string {
 		"|", "_",
 	)
 	return replacer.Replace(name)
+}
+
+// safeCreateFile creates a file at the given path after validating it's within the base directory.
+// This prevents path traversal attacks (G304).
+func safeCreateFile(basePath, filename string) (*os.File, string, error) {
+	// Clean and sanitize the filename
+	cleanFilename := sanitizeFilename(filepath.Base(filename))
+	if cleanFilename == "" || cleanFilename == "." || cleanFilename == ".." {
+		return nil, "", fmt.Errorf("invalid filename: %q", filename)
+	}
+
+	// Construct the full path
+	fullPath := filepath.Join(basePath, cleanFilename)
+
+	// Clean the path to resolve any .. or . components
+	fullPath = filepath.Clean(fullPath)
+
+	// Verify the path is still within the base directory
+	absBase, err := filepath.Abs(basePath)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get absolute base path: %w", err)
+	}
+	absPath, err := filepath.Abs(fullPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Ensure the path starts with the base directory
+	if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) && absPath != absBase {
+		return nil, "", fmt.Errorf("path traversal detected: %q is outside %q", fullPath, basePath)
+	}
+
+	// Create the file (G304 is a false positive here since we validated the path)
+	file, err := os.Create(fullPath) // #nosec G304 -- path is validated above
+	if err != nil {
+		return nil, "", err
+	}
+
+	return file, fullPath, nil
 }
