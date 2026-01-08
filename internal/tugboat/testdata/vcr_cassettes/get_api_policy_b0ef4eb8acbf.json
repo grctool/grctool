@@ -4,7 +4,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/?embeds=tags\u0026embeds=assignees\u0026embeds=current_version_status\u0026embeds=read_time\u0026embeds=reviewers\u0026org=999999\u0026page=1\u0026page_size=25\u0026framework=SOC2",
+        "url": "https://api-my.tugboatlogic.com/api/policy/?embeds=tags&embeds=assignees&embeds=current_version_status&embeds=read_time&embeds=reviewers&org=12345&page=1&page_size=25&framework=SOC2",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
