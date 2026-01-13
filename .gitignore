@@ -40,8 +40,7 @@ test/integration/data_protection_evidence.json
 test/integration/security_assessment.json
 test/integration/terraform/index.json.gz
 
-# VCR Cassettes with API responses (contain test data)
-internal/tugboat/testdata/vcr_cassettes/
+# VCR Cassettes - now committed for CI (sanitized of secrets)
 
 # Backup files
 *.bak
