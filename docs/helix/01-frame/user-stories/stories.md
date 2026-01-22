@@ -5,7 +5,7 @@ category: "requirements"
 tags: ["user-stories", "personas", "use-cases", "requirements"]
 related: ["product-requirements", "compliance-requirements"]
 created: 2025-01-10
-updated: 2025-01-22
+updated: 2026-01-21
 helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehensive gap analysis additions"
 ---
 
@@ -29,6 +29,16 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
   > "I need to prepare SOC 2 evidence for our quarterly audit. I want to run `grctool sync` to get the latest requirements, then use `grctool evidence generate` to create comprehensive evidence packages that I can review and submit with confidence."
 
   **Value**: Reduces audit preparation from weeks to days
+
+- **Audit Request Intake & Triage**
+  > "When auditors request evidence, I want to capture the request, auto-split it into tasks with owners, and track status so we can respond quickly and consistently."
+
+  **Acceptance Criteria**:
+  - Capture auditor request metadata (framework, period, due date)
+  - Convert requests into evidence tasks with required sources
+  - Route tasks to responsible teams with clear ownership and SLAs
+  - Track status from triage to audit-ready
+  - Provide a dashboard for open auditor requests
 
 - **Automated User Access Reports**
   > "I want automated user access reports so that I can demonstrate access control compliance without manually collecting data from multiple systems."
@@ -87,6 +97,7 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
   - Track evidence review status and approvals
   - Assign evidence collection tasks to team members
   - Generate evidence collection progress reports
+  - Mark evidence as audit-ready and bundle for auditor handoff
 
 ### Security Engineer
 
@@ -104,6 +115,15 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
   > "I need to prove that our access control implementations meet CC6.1 requirements. I want grctool to analyze our Terraform configurations and GitHub workflows, then generate evidence showing how our IAM policies enforce least privilege access."
 
   **Value**: Technical evidence generation from actual infrastructure
+
+- **Evidence Task Ownership**
+  > "I want evidence tasks routed to me with control context and required data sources so I can produce accurate evidence quickly and move it to review."
+
+  **Acceptance Criteria**:
+  - Task includes mapped controls, evidence window, and required sources
+  - Prefill evidence context from Terraform/GitHub when available
+  - Attach outputs and mark evidence ready for review
+  - Track due dates, status, and reviewer feedback
 
 - **Automated Vulnerability Evidence**
   > "I want automated vulnerability evidence so that I can demonstrate security posture without manually collecting scan results from multiple tools."
@@ -170,6 +190,15 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
 
   **Value**: Automated compliance checking in CI/CD pipelines
 
+- **Audit-Ready Pipeline Evidence**
+  > "I want evidence generated in CI/CD to land in a review queue so compliance can approve and package it for auditors."
+
+  **Acceptance Criteria**:
+  - Tag evidence with pipeline metadata and run context
+  - Route outputs to a review queue with owners and due dates
+  - Support reruns and versioning for evidence packages
+  - Notify compliance when evidence is ready for review
+
 - **Bulk Evidence Collection Scheduling**
   > "I want to schedule automated evidence collection so that compliance data is gathered continuously without manual intervention."
 
@@ -201,6 +230,15 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
   - Access evidence quality scores and validation results
   - Download evidence in standard audit formats (PDF, Excel)
   - Verify evidence authenticity and integrity
+
+- **Follow-up Q&A Workflow**
+  > "I want to request clarifications and receive responses linked to the original evidence so I can close audit questions efficiently."
+
+  **Acceptance Criteria**:
+  - Submit questions tied to specific evidence items or controls
+  - Track response status, timestamps, and owners
+  - View evidence revisions with change history
+  - Export a Q&A log with final resolutions
 
 - **Audit Trail Analysis**
   > "I want comprehensive audit trails so that I can trace all compliance activities and validate that controls are operating effectively."

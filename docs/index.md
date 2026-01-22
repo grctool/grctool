@@ -21,6 +21,7 @@ GRCTool automates the collection, analysis, and generation of evidence for secur
 
 **First time using GRCTool?**
 - [[reference/cli-commands|🚀 CLI Reference]] - Essential commands and workflows
+- [[helix/01-frame/prd/requirements|📌 Product Requirements (PRD)]] - Vision, goals, and success metrics
 - [[helix/01-frame/user-stories|👥 User Stories]] - See how GRCTool helps different roles
 - [[helix/05-deploy/deployment-operations|📦 Installation]] - Get up and running
 

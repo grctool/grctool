@@ -29,6 +29,7 @@ A CLI application for managing security program compliance through Tugboat Logic
 ### User Documentation
 - **Quick Start** - See [Installation](#installation) and [Initial Setup](#initial-setup) sections below
 - **[User Guide](docs/)** - Full documentation for configuration and usage
+- **[Product Requirements (PRD)](docs/helix/01-frame/prd/requirements.md)** - Vision, goals, and success metrics
 - **[Feature Documentation](docs/features/)** - Evidence collection, integrations, and AI assistance
 
 ### Developer Documentation
