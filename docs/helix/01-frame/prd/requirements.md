@@ -5,7 +5,7 @@ category: "requirements"
 tags: ["product", "vision", "goals", "compliance", "grctool"]
 related: ["user-stories", "compliance-requirements", "security-requirements"]
 created: 2025-01-10
-updated: 2025-01-10
+updated: 2026-01-21
 helix_mapping: "Consolidated from 00-Overview/product-overview.md"
 ---
 
@@ -13,7 +13,7 @@ helix_mapping: "Consolidated from 00-Overview/product-overview.md"
 
 ## Product Summary
 
-**GRCTool** is a command-line application that automates security program compliance through intelligent integration with Tugboat Logic. It bridges the gap between manual compliance processes and modern infrastructure automation, making compliance evidence generation efficient, accurate, and auditable.
+**GRCTool** is an agentic governance, risk, and compliance (GRC) command-line application that automates and coordinates compliance workflows through intelligent integration with Tugboat Logic. It bridges the gap between manual compliance processes and modern infrastructure automation, making evidence generation efficient, accurate, auditable, and easy to hand off between internal teams and auditors.
 
 ## Core Problem Statement
 
@@ -22,6 +22,7 @@ Manual compliance evidence collection is:
 - **Error-prone**: Human mistakes in data collection and formatting
 - **Scattered**: Information spread across tools, documentation, and systems
 - **Difficult to maintain**: Keeping alignment between policies, controls, and evidence
+- **Hard to coordinate**: Evidence requests and auditor questions bounce between teams without a shared workflow
 
 ## Solution Architecture
 
@@ -31,6 +32,14 @@ GRCTool provides:
 - **Infrastructure-aware analysis** with Terraform and GitHub integration
 - **Relationship mapping** between policies, controls, and evidence tasks
 - **Auditable, traceable outputs** with reasoning and source attribution
+- **Agentic workflow orchestration** for evidence intake, review, and auditor-ready packaging
+
+## Key Workflows
+
+- **Evidence intake and triage**: Convert audit requests into owned tasks with required sources.
+- **Evidence collection and enrichment**: Pull data from systems and generate AI-assisted drafts.
+- **Review and approval**: Internal teams review, redact, and approve evidence packages.
+- **Auditor handoff and Q&A**: Deliver audit-ready bundles with traceability and respond to follow-ups.
 
 ## Target Audience
 
@@ -71,6 +80,7 @@ GRCTool provides:
 - **🛡️ Security Control Mapping** - Automated mapping of infrastructure to compliance controls
 - **📄 Multiple Output Formats** - Generate evidence in CSV or Markdown formats
 - **💾 Local Data Storage** - JSON-based storage for offline access and analysis
+- **🤝 Collaboration and audit handoffs** - Track owners, review status, and audit-ready approvals
 
 ### Technology Integration
 - **Terraform Analysis** for infrastructure compliance
@@ -89,6 +99,7 @@ GRCTool provides:
 - **Time savings**: ≥60% reduction in manual evidence preparation time
 - **Quality improvement**: ≥90% of generated evidence accepted after single review
 - **Audit efficiency**: Time-to-audit-readiness reduced from days to hours
+- **Audit response time**: Follow-up questions answered within one business day when evidence is available
 
 ### Technical Performance
 - **Response time**: CLI commands complete within seconds
