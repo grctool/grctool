@@ -40,7 +40,7 @@ GRCTool is a Go-based CLI application designed for SOC2 compliance evidence coll
 ## Technology Stack
 
 ### Core Technologies
-- **Language**: Go 1.23+
+- **Language**: Go 1.24+
 - **CLI Framework**: [Cobra](https://cobra.dev/) for command structure and flags
 - **Configuration**: [Viper](https://github.com/spf13/viper) with YAML + environment variables
 - **HTTP Client**: Standard `net/http` with custom transport layer

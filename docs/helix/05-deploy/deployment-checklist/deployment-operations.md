@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
 
       - name: Run tests
         run: make test-ci
@@ -170,7 +170,7 @@ sudo yum install -y https://packagecloud.io/yourorg/grctool/packages/el/7/grctoo
 #### Container Distribution
 ```dockerfile
 # Dockerfile for containerized distribution
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24.12-alpine AS builder
 
 WORKDIR /app
 COPY . .

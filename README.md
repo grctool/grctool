@@ -1,7 +1,7 @@
 # GRC Tool - Tugboat Logic Security Program Manager
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](go.mod)
+[![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?logo=go)](go.mod)
 [![Go Report Card](https://goreportcard.com/badge/github.com/grctool/grctool)](https://goreportcard.com/report/github.com/grctool/grctool)
 [![GitHub Release](https://img.shields.io/github/v/release/grctool/grctool)](https://github.com/grctool/grctool/releases)
 [![codecov](https://codecov.io/gh/grctool/grctool/branch/main/graph/badge.svg)](https://codecov.io/gh/grctool/grctool)
@@ -62,7 +62,7 @@ A CLI application for managing security program compliance through Tugboat Logic
 
 ### Prerequisites
 
-- Go 1.21 or later
+- Go 1.24 or later
 - macOS (for automated browser authentication)
 - Access to Tugboat Logic account
 - Claude AI API key (for evidence generation)
@@ -451,7 +451,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: '1.24.12'
       
       - name: Run Tests
         run: |
@@ -477,7 +477,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
-          go-version: '1.21'
+          go-version: '1.24.12'
       
       - name: Build Security Manager
         run: |

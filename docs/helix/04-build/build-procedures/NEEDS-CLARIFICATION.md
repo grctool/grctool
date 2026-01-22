@@ -71,7 +71,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
-          go-version: '1.21'
+          go-version: '1.24.12'
 
       # Quality Gates
       - name: Run linting
@@ -221,7 +221,7 @@ echo "All quality gates passed!"
 ## Build Environment Requirements
 
 ### Development Environment
-- **Go Version**: Go 1.21 or later
+- **Go Version**: Go 1.24 or later
 - **Build Tools**: Make, Git, Docker (for integration testing)
 - **Quality Tools**: golangci-lint, gosec, govulncheck
 - **Testing Tools**: testify, testcontainers, bats

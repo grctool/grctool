@@ -3,7 +3,7 @@
 This document consolidates our coding, testing, security, and operational best practices for contributors and AI coding agents working in this repository.
 
 Scope
-- Language: Go 1.23+
+- Language: Go 1.24+
 - App: grctool — a Go CLI integrating with Tugboat Logic for compliance automation and evidence generation
 - Domains: API clients, local JSON storage, CLI commands (Cobra), AI assistance (Claude), Terraform parsing
 

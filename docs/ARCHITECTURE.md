@@ -20,7 +20,7 @@ GRCTool is a CLI application for automating compliance evidence collection throu
 
 ### Key Characteristics
 
-- **Language**: Go 1.21+
+- **Language**: Go 1.24+
 - **Architecture**: Hexagonal (Ports & Adapters)
 - **CLI Framework**: Cobra
 - **Storage**: JSON-based local storage with caching

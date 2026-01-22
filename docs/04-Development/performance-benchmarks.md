@@ -5,7 +5,7 @@
 **Benchmark Environment:**
 - **CPU:** AMD Ryzen 9 5950X 16-Core Processor
 - **RAM:** 125 GiB
-- **Go Version:** go1.24.7 linux/amd64
+- **Go Version:** go1.24.12 linux/amd64
 - **OS:** Linux 6.16.9-200.fc42.x86_64
 
 ## Overview
