@@ -34,6 +34,15 @@ GRCTool provides:
 - **Auditable, traceable outputs** with reasoning and source attribution
 - **Agentic workflow orchestration** for evidence intake, review, and auditor-ready packaging
 
+## Agentic Workflow Overview
+
+GRCTool coordinates compliance work across teams and auditors using a predictable flow:
+- **Intake**: Capture audit requests and map them to evidence tasks with ownership.
+- **Collect**: Pull source data, generate drafts, and assemble evidence context.
+- **Review**: Route evidence for internal approval, redaction, and quality checks.
+- **Package**: Produce audit-ready bundles with traceability and metadata.
+- **Respond**: Track auditor follow-ups and link clarifications to evidence history.
+
 ## Key Workflows
 
 - **Evidence intake and triage**: Convert audit requests into owned tasks with required sources.
