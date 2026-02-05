@@ -1,0 +1,66 @@
+{
+  "name": "get_api_org_evidence_attachment_05fac6dbc52a.json",
+  "interactions": [
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence_attachment/?org_evidence=328032&observation_period=2013-01-01,2025-12-31&ordering=-collected,-created&page=1&page_size=100&embeds=attachment&embeds=org_members&embeds=collected_in_window&embeds=org_evidence_subtask",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 200,
+        "status": "200 OK",
+        "headers": {
+          "Allow": "GET, POST, HEAD, OPTIONS",
+          "Content-Length": "3414",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Tue, 06 Jan 2026 06:29:41 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"max_page_size\":200,\"page_size\":100,\"num_pages\":1,\"page_number\":1,\"count\":3,\"next\":null,\"previous\":null,\"results\":[{\"id\":3298231,\"__entity_role__\":null,\"__entity_type__\":\"org_evidence_attachment\",\"__permissions__\":[\"org_evidence_attachment:view_details\",\"org_evidence_attachment:delete\",\"org_evidence_attachment:edit\"],\"created\":\"2025-10-30T04:09:17.880568Z\",\"notes\":\"2025-10-30 - Risk Assessment - Default Risks Report\",\"url\":null,\"collected\":\"2025-10-30\",\"deleted\":false,\"org_id\":12345,\"org_evidence_id\":328032,\"org_evidence_subtask_id\":null,\"owner_id\":null,\"attachment_id\":3358658,\"automated_ref\":null,\"automated_metadata\":null,\"integration_type\":\"risk_assessment\",\"integration_subtype\":\"risk_assessment_report\",\"type\":\"automated\",\"attachment\":{\"id\":3358658,\"__entity_role__\":null,\"__entity_type__\":\"attachment\",\"__permissions__\":[],\"created\":\"2025-10-30T04:09:17.735406Z\",\"updated\":\"2025-10-30T04:09:17.735424Z\",\"mime_type\":\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"attachment_type\":\"org_evidence\",\"original_filename\":\"2025-10-30-risk-assessment-default-risks-report.xlsx\",\"org_id\":12345,\"deleted\":false,\"url\":\"\"},\"owner\":null,\"collected_in_window\":true,\"org_evidence_subtask\":null},{\"id\":2656935,\"__entity_role__\":null,\"__entity_type__\":\"org_evidence_attachment\",\"__permissions__\":[\"org_evidence_attachment:view_details\",\"org_evidence_attachment:delete\",\"org_evidence_attachment:edit\"],\"created\":\"2024-10-11T03:01:38.110489Z\",\"notes\":\"2024-10-11 - Risk Assessment - Default Risks Report\",\"url\":null,\"collected\":\"2024-10-11\",\"deleted\":false,\"org_id\":12345,\"org_evidence_id\":328032,\"org_evidence_subtask_id\":null,\"owner_id\":null,\"attachment_id\":2718972,\"automated_ref\":null,\"automated_metadata\":null,\"integration_type\":\"risk_assessment\",\"integration_subtype\":\"risk_assessment_report\",\"type\":\"automated\",\"attachment\":{\"id\":2718972,\"__entity_role__\":null,\"__entity_type__\":\"attachment\",\"__permissions__\":[],\"created\":\"2024-10-11T03:01:37.942133Z\",\"updated\":\"2024-10-11T03:01:37.942151Z\",\"mime_type\":\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"attachment_type\":\"org_evidence\",\"original_filename\":\"2024-10-11-risk-assessment-default-risks-report.xlsx\",\"org_id\":12345,\"deleted\":false,\"url\":\"\"},\"owner\":null,\"collected_in_window\":true,\"org_evidence_subtask\":null},{\"id\":2656930,\"__entity_role__\":null,\"__entity_type__\":\"org_evidence_attachment\",\"__permissions__\":[\"org_evidence_attachment:view_details\",\"org_evidence_attachment:delete\",\"org_evidence_attachment:edit\"],\"created\":\"2024-10-11T02:58:25.807069Z\",\"notes\":\"2024-10-11 - Risk Assessment - Default Risks Report\",\"url\":null,\"collected\":\"2024-10-11\",\"deleted\":false,\"org_id\":12345,\"org_evidence_id\":328032,\"org_evidence_subtask_id\":null,\"owner_id\":null,\"attachment_id\":2718967,\"automated_ref\":null,\"automated_metadata\":null,\"integration_type\":\"risk_assessment\",\"integration_subtype\":\"risk_assessment_report\",\"type\":\"automated\",\"attachment\":{\"id\":2718967,\"__entity_role__\":null,\"__entity_type__\":\"attachment\",\"__permissions__\":[],\"created\":\"2024-10-11T02:58:25.666158Z\",\"updated\":\"2024-10-11T02:58:25.666175Z\",\"mime_type\":\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"attachment_type\":\"org_evidence\",\"original_filename\":\"2024-10-11-risk-assessment-default-risks-report.xlsx\",\"org_id\":12345,\"deleted\":false,\"url\":\"\"},\"owner\":null,\"collected_in_window\":true,\"org_evidence_subtask\":null}]}"
+      },
+      "timestamp": "2026-01-06T01:29:41.848288-05:00"
+    },
+    {
+      "request": {
+        "method": "GET",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence_attachment/?org_evidence=328032&observation_period=2013-01-01,2025-12-31&ordering=-collected,-created&page=1&page_size=100&embeds=attachment&embeds=org_members&embeds=collected_in_window&embeds=org_evidence_subtask",
+        "headers": {
+          "Accept": "application/json",
+          "Authorization": "[REDACTED]",
+          "Content-Type": "application/json",
+          "User-Agent": "grctool/1.0.0"
+        }
+      },
+      "response": {
+        "status_code": 200,
+        "status": "200 OK",
+        "headers": {
+          "Allow": "GET, POST, HEAD, OPTIONS",
+          "Content-Length": "3414",
+          "Content-Type": "application/json",
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Date": "Tue, 06 Jan 2026 06:36:16 GMT",
+          "Referrer-Policy": "same-origin",
+          "Server": "nginx",
+          "Vary": "Origin, Cookie",
+          "X-Content-Type-Options": "nosniff",
+          "X-Frame-Options": "DENY"
+        },
+        "body": "{\"max_page_size\":200,\"page_size\":100,\"num_pages\":1,\"page_number\":1,\"count\":3,\"next\":null,\"previous\":null,\"results\":[{\"id\":3298231,\"__entity_role__\":null,\"__entity_type__\":\"org_evidence_attachment\",\"__permissions__\":[\"org_evidence_attachment:delete\",\"org_evidence_attachment:edit\",\"org_evidence_attachment:view_details\"],\"created\":\"2025-10-30T04:09:17.880568Z\",\"notes\":\"2025-10-30 - Risk Assessment - Default Risks Report\",\"url\":null,\"collected\":\"2025-10-30\",\"deleted\":false,\"org_id\":12345,\"org_evidence_id\":328032,\"org_evidence_subtask_id\":null,\"owner_id\":null,\"attachment_id\":3358658,\"automated_ref\":null,\"automated_metadata\":null,\"integration_type\":\"risk_assessment\",\"integration_subtype\":\"risk_assessment_report\",\"type\":\"automated\",\"attachment\":{\"id\":3358658,\"__entity_role__\":null,\"__entity_type__\":\"attachment\",\"__permissions__\":[],\"created\":\"2025-10-30T04:09:17.735406Z\",\"updated\":\"2025-10-30T04:09:17.735424Z\",\"mime_type\":\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"attachment_type\":\"org_evidence\",\"original_filename\":\"2025-10-30-risk-assessment-default-risks-report.xlsx\",\"org_id\":12345,\"deleted\":false,\"url\":\"\"},\"owner\":null,\"collected_in_window\":true,\"org_evidence_subtask\":null},{\"id\":2656935,\"__entity_role__\":null,\"__entity_type__\":\"org_evidence_attachment\",\"__permissions__\":[\"org_evidence_attachment:delete\",\"org_evidence_attachment:edit\",\"org_evidence_attachment:view_details\"],\"created\":\"2024-10-11T03:01:38.110489Z\",\"notes\":\"2024-10-11 - Risk Assessment - Default Risks Report\",\"url\":null,\"collected\":\"2024-10-11\",\"deleted\":false,\"org_id\":12345,\"org_evidence_id\":328032,\"org_evidence_subtask_id\":null,\"owner_id\":null,\"attachment_id\":2718972,\"automated_ref\":null,\"automated_metadata\":null,\"integration_type\":\"risk_assessment\",\"integration_subtype\":\"risk_assessment_report\",\"type\":\"automated\",\"attachment\":{\"id\":2718972,\"__entity_role__\":null,\"__entity_type__\":\"attachment\",\"__permissions__\":[],\"created\":\"2024-10-11T03:01:37.942133Z\",\"updated\":\"2024-10-11T03:01:37.942151Z\",\"mime_type\":\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"attachment_type\":\"org_evidence\",\"original_filename\":\"2024-10-11-risk-assessment-default-risks-report.xlsx\",\"org_id\":12345,\"deleted\":false,\"url\":\"\"},\"owner\":null,\"collected_in_window\":true,\"org_evidence_subtask\":null},{\"id\":2656930,\"__entity_role__\":null,\"__entity_type__\":\"org_evidence_attachment\",\"__permissions__\":[\"org_evidence_attachment:delete\",\"org_evidence_attachment:edit\",\"org_evidence_attachment:view_details\"],\"created\":\"2024-10-11T02:58:25.807069Z\",\"notes\":\"2024-10-11 - Risk Assessment - Default Risks Report\",\"url\":null,\"collected\":\"2024-10-11\",\"deleted\":false,\"org_id\":12345,\"org_evidence_id\":328032,\"org_evidence_subtask_id\":null,\"owner_id\":null,\"attachment_id\":2718967,\"automated_ref\":null,\"automated_metadata\":null,\"integration_type\":\"risk_assessment\",\"integration_subtype\":\"risk_assessment_report\",\"type\":\"automated\",\"attachment\":{\"id\":2718967,\"__entity_role__\":null,\"__entity_type__\":\"attachment\",\"__permissions__\":[],\"created\":\"2024-10-11T02:58:25.666158Z\",\"updated\":\"2024-10-11T02:58:25.666175Z\",\"mime_type\":\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\"attachment_type\":\"org_evidence\",\"original_filename\":\"2024-10-11-risk-assessment-default-risks-report.xlsx\",\"org_id\":12345,\"deleted\":false,\"url\":\"\"},\"owner\":null,\"collected_in_window\":true,\"org_evidence_subtask\":null}]}"
+      },
+      "timestamp": "2026-01-06T01:36:16.174059-05:00"
+    }
+  ],
+  "recorded_at": "2026-01-06T01:29:41.848352-05:00"
+}

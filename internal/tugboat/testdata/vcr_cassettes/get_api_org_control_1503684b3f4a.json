@@ -4,7 +4,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/org_control/?embeds=framework_codes\u0026embeds=org_scope\u0026embeds=assignees\u0026embeds=tags\u0026embeds=audit_projects\u0026embeds=jira_issues\u0026org=999999\u0026page=1\u0026page_size=25\u0026framework=SOC2",
+        "url": "https://api-my.tugboatlogic.com/api/org_control/?embeds=framework_codes&embeds=org_scope&embeds=assignees&embeds=tags&embeds=audit_projects&embeds=jira_issues&org=12345&page=1&page_size=25&framework=SOC2",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
