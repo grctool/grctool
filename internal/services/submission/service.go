@@ -18,10 +18,12 @@ package submission
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/grctool/grctool/internal/domain"
+	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/services/validation"
 	"github.com/grctool/grctool/internal/storage"
@@ -31,13 +33,15 @@ import (
 // SubmissionService handles evidence submission to Tugboat
 type SubmissionService struct {
 	storage       *storage.Storage
-	tugboatClient *tugboat.Client
+	tugboatClient *tugboat.Client               // legacy direct client (used if submitter is nil)
+	submitter     interfaces.EvidenceSubmitter   // preferred: resolved from provider registry
 	validator     *validation.EvidenceValidationService
 	orgID         string
 	collectorURLs map[string]string // TaskRef -> Collector URL mapping
 }
 
-// NewSubmissionService creates a new submission service
+// NewSubmissionService creates a new submission service using a direct Tugboat client.
+// Prefer NewSubmissionServiceWithRegistry for new code.
 func NewSubmissionService(
 	storage *storage.Storage,
 	tugboatClient *tugboat.Client,
@@ -51,6 +55,31 @@ func NewSubmissionService(
 		orgID:         orgID,
 		collectorURLs: collectorURLs,
 	}
+}
+
+// NewSubmissionServiceWithRegistry creates a submission service that resolves
+// its EvidenceSubmitter from a ProviderRegistry. Falls back to legacy behavior
+// if the named provider doesn't implement EvidenceSubmitter.
+func NewSubmissionServiceWithRegistry(
+	st *storage.Storage,
+	registry interfaces.ProviderRegistry,
+	providerName string,
+	collectorURLs map[string]string,
+) (*SubmissionService, error) {
+	provider, err := registry.Get(providerName)
+	if err != nil {
+		return nil, fmt.Errorf("provider %q not registered: %w", providerName, err)
+	}
+	submitter, ok := provider.(interfaces.EvidenceSubmitter)
+	if !ok {
+		return nil, fmt.Errorf("provider %q does not support evidence submission", providerName)
+	}
+	return &SubmissionService{
+		storage:       st,
+		submitter:     submitter,
+		validator:     validation.NewEvidenceValidationService(st),
+		collectorURLs: collectorURLs,
+	}, nil
 }
 
 // SubmitRequest defines a submission request
@@ -113,9 +142,10 @@ func (s *SubmissionService) Submit(ctx context.Context, req *SubmitRequest) (*Su
 		return nil, fmt.Errorf("failed to prepare submission: %w", err)
 	}
 
-	// Step 4: Submit to Tugboat (if client is configured)
-	if s.tugboatClient != nil {
-		tugboatResp, err := s.submitToTugboat(ctx, submission, task)
+	// Step 4: Submit evidence via provider interface or legacy client
+	canSubmit := s.submitter != nil || s.tugboatClient != nil
+	if canSubmit {
+		tugboatResp, err := s.doSubmit(ctx, submission, task)
 		if err != nil {
 			// Mark submission as failed
 			submission.Status = "submission_failed"
@@ -242,6 +272,81 @@ func filterPreferPDF(files []models.EvidenceFileRef) []models.EvidenceFileRef {
 	}
 
 	return result
+}
+
+// doSubmit dispatches to the provider-based or legacy submission path.
+func (s *SubmissionService) doSubmit(
+	ctx context.Context,
+	submission *models.EvidenceSubmission,
+	task *domain.EvidenceTask,
+) (*models.TugboatSubmissionResponse, error) {
+	if s.submitter != nil {
+		return s.submitViaProvider(ctx, submission, task)
+	}
+	return s.submitToTugboat(ctx, submission, task)
+}
+
+// submitViaProvider submits evidence files through the EvidenceSubmitter interface.
+func (s *SubmissionService) submitViaProvider(
+	ctx context.Context,
+	submission *models.EvidenceSubmission,
+	task *domain.EvidenceTask,
+) (*models.TugboatSubmissionResponse, error) {
+	baseDir := s.storage.GetBaseDir()
+	submittedFiles := 0
+	failedFiles := []string{}
+
+	for _, fileRef := range submission.EvidenceFiles {
+		filePath := filepath.Join(baseDir, fileRef.RelativePath)
+		f, err := os.Open(filePath)
+		if err != nil {
+			failedFiles = append(failedFiles, fmt.Sprintf("%s: %v", fileRef.Filename, err))
+			continue
+		}
+
+		meta := interfaces.SubmissionMetadata{
+			CollectedDate: time.Now().Format("2006-01-02"),
+			Filename:      fileRef.Filename,
+			ContentType:   s.getContentType(fileRef.Filename),
+			Window:        submission.Window,
+			Notes:         submission.Notes,
+		}
+
+		err = s.submitter.SubmitEvidence(ctx, task.ID, f, meta)
+		f.Close()
+		if err != nil {
+			failedFiles = append(failedFiles, fmt.Sprintf("%s: %v", fileRef.Filename, err))
+			continue
+		}
+		submittedFiles++
+	}
+
+	if submittedFiles == 0 {
+		if len(failedFiles) > 0 {
+			return nil, fmt.Errorf("all %d file(s) failed submission:\n  - %s", len(failedFiles), failedFiles[0])
+		}
+		return nil, fmt.Errorf("no evidence files to submit")
+	}
+
+	message := fmt.Sprintf("Successfully submitted %d file(s)", submittedFiles)
+	if len(failedFiles) > 0 {
+		message = fmt.Sprintf("Submitted %d file(s), %d failed", submittedFiles, len(failedFiles))
+	}
+
+	response := &models.TugboatSubmissionResponse{
+		SubmissionID: fmt.Sprintf("batch-%d-files-%d", time.Now().Unix(), submittedFiles),
+		Status:       "submitted",
+		Message:      message,
+		ReceivedAt:   time.Now(),
+		Metadata: map[string]interface{}{
+			"files_submitted": submittedFiles,
+			"files_failed":    len(failedFiles),
+		},
+	}
+	if len(failedFiles) > 0 {
+		response.Metadata["failed_files"] = failedFiles
+	}
+	return response, nil
 }
 
 // submitToTugboat submits evidence to Tugboat Custom Evidence Integration API

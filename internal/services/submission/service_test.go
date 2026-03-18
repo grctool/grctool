@@ -3,13 +3,17 @@ package submission
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/grctool/grctool/internal/config"
+	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/providers"
 	"github.com/grctool/grctool/internal/storage"
+	"github.com/grctool/grctool/internal/testhelpers"
 	"github.com/grctool/grctool/internal/tugboat"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -313,6 +317,37 @@ func TestNewSubmissionService(t *testing.T) {
 	require.NotNil(t, svc)
 	assert.Equal(t, "test-org", svc.orgID)
 	assert.Equal(t, collectorURLs, svc.collectorURLs)
+}
+
+func TestNewSubmissionServiceWithRegistry_Success(t *testing.T) {
+	t.Parallel()
+
+	reg := newStubRegistry(t, "test-submitter", true)
+	collectorURLs := map[string]string{"ET-0001": "https://example.com/collector/1"}
+
+	svc, err := NewSubmissionServiceWithRegistry(nil, reg, "test-submitter", collectorURLs)
+	require.NoError(t, err)
+	require.NotNil(t, svc)
+	assert.NotNil(t, svc.submitter, "submitter should be resolved from registry")
+	assert.Nil(t, svc.tugboatClient, "legacy client should be nil")
+}
+
+func TestNewSubmissionServiceWithRegistry_ProviderNotFound(t *testing.T) {
+	t.Parallel()
+
+	reg := newStubRegistry(t, "other", true)
+	_, err := NewSubmissionServiceWithRegistry(nil, reg, "missing", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not registered")
+}
+
+func TestNewSubmissionServiceWithRegistry_NotEvidenceSubmitter(t *testing.T) {
+	t.Parallel()
+
+	reg := newStubRegistry(t, "read-only", false)
+	_, err := NewSubmissionServiceWithRegistry(nil, reg, "read-only", nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not support evidence submission")
 }
 
 // ---------------------------------------------------------------------------
@@ -636,4 +671,49 @@ func TestSubmit_ThenGetHistory(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, history)
 	assert.GreaterOrEqual(t, len(history.Entries), 1)
+}
+
+// ---------------------------------------------------------------------------
+// Registry-based submission helpers
+// ---------------------------------------------------------------------------
+
+// stubSubmitterProvider wraps StubDataProvider with EvidenceSubmitter support.
+type stubSubmitterProvider struct {
+	*testhelpers.StubDataProvider
+	submissions []interfaces.SubmissionMetadata
+	submitErr   error
+}
+
+var _ interfaces.EvidenceSubmitter = (*stubSubmitterProvider)(nil)
+
+func (s *stubSubmitterProvider) SubmitEvidence(_ context.Context, taskID string, file io.Reader, meta interfaces.SubmissionMetadata) error {
+	if s.submitErr != nil {
+		return s.submitErr
+	}
+	s.submissions = append(s.submissions, meta)
+	// Drain the reader
+	_, _ = io.ReadAll(file)
+	return nil
+}
+
+func (s *stubSubmitterProvider) ListAttachments(_ context.Context, _ string, _ interfaces.ListOptions) ([]interfaces.Attachment, int, error) {
+	return nil, 0, nil
+}
+
+func (s *stubSubmitterProvider) DownloadAttachment(_ context.Context, _ string) (io.ReadCloser, string, error) {
+	return nil, "", nil
+}
+
+// newStubRegistry creates a registry with a single provider.
+// If withSubmitter is true, the provider implements EvidenceSubmitter.
+func newStubRegistry(t *testing.T, name string, withSubmitter bool) interfaces.ProviderRegistry {
+	t.Helper()
+	reg := providers.NewProviderRegistry()
+	if withSubmitter {
+		p := &stubSubmitterProvider{StubDataProvider: testhelpers.NewStubDataProvider(name)}
+		require.NoError(t, reg.Register(p))
+	} else {
+		require.NoError(t, reg.Register(testhelpers.NewStubDataProvider(name)))
+	}
+	return reg
 }
