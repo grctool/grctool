@@ -209,18 +209,18 @@ func (csgt *ControlSummaryGeneratorTool) Execute(ctx context.Context, params map
 	"success": true,
 	"summary_text": %q,
 	"structured_summary": {
-		"control_id": %d,
+		"control_id": %q,
 		"control_name": %q,
-		"task_id": %d,
+		"task_id": %q,
 		"task_name": %q,
 		"summary": %q,
 		"key_requirements": %s,
 		"verification_points": %s
 	},
 	"summary_metadata": {
-		"task_id": %d,
+		"task_id": %q,
 		"task_reference_id": %q,
-		"control_id": %d,
+		"control_id": %q,
 		"output_format": %q,
 		"generated_at": %q,
 		"generation_mode": "template-based"
@@ -245,7 +245,7 @@ func (csgt *ControlSummaryGeneratorTool) Execute(ctx context.Context, params map
 	// Create evidence source
 	source := &models.EvidenceSource{
 		Type:        "control_summary",
-		Resource:    fmt.Sprintf("Control summary for %d in context of task %s", control.ID, task.ReferenceID),
+		Resource:    fmt.Sprintf("Control summary for %s in context of task %s", control.ID, task.ReferenceID),
 		Content:     summaryText,
 		Relevance:   csgt.calculateRelevance(task, control),
 		ExtractedAt: time.Now(),
@@ -320,7 +320,7 @@ func (csgt *ControlSummaryGeneratorTool) generateBasicSummary(context *models.Co
 	var summary strings.Builder
 
 	summary.WriteString(fmt.Sprintf("# Control Summary: %s\n\n", context.Control.Name))
-	summary.WriteString(fmt.Sprintf("**Control ID:** %d\n", context.Control.ID))
+	summary.WriteString(fmt.Sprintf("**Control ID:** %s\n", context.Control.ID))
 	summary.WriteString(fmt.Sprintf("**Evidence Task:** %s (%s)\n", context.Task.Name, context.Task.ReferenceID))
 
 	if context.Control.Category != "" {
@@ -407,7 +407,7 @@ func (csgt *ControlSummaryGeneratorTool) saveSummaryToFile(summaryText string, t
 	sanitizedControlName := baseFormatter.SanitizeFilename(control.Name)
 
 	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("control_summary_%s_%d_%s_%s_%s.md",
+	filename := fmt.Sprintf("control_summary_%s_%s_%s_%s_%s.md",
 		task.ReferenceID,
 		control.ID,
 		sanitizedTaskName,
@@ -431,16 +431,16 @@ func (csgt *ControlSummaryGeneratorTool) saveSummaryToFile(summaryText string, t
 
 // Helper methods
 
-func (csgt *ControlSummaryGeneratorTool) parseTaskReference(taskRef string) (int, error) {
+func (csgt *ControlSummaryGeneratorTool) parseTaskReference(taskRef string) (string, error) {
 	validator := NewValidator(csgt.config.Storage.DataDir)
 
 	result, err := validator.ValidateTaskReference(taskRef)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	if !result.Valid {
-		return 0, fmt.Errorf("invalid task reference format")
+		return "", fmt.Errorf("invalid task reference format")
 	}
 
 	normalizedRef := result.Normalized["task_ref"]
@@ -448,12 +448,17 @@ func (csgt *ControlSummaryGeneratorTool) parseTaskReference(taskRef string) (int
 		normalizedRef = taskRef
 	}
 
-	taskID, err := strconv.Atoi(normalizedRef)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert task reference to numeric ID: %w", err)
+	// If numeric, return as-is; otherwise return the normalized ref
+	if _, err := strconv.Atoi(normalizedRef); err == nil {
+		return normalizedRef, nil
 	}
 
-	return taskID, nil
+	// For non-numeric references like "ET-0001", the validator should have resolved to a task_id
+	if taskID, exists := result.Normalized["task_id"]; exists && taskID != "" {
+		return taskID, nil
+	}
+
+	return normalizedRef, nil
 }
 
 func (csgt *ControlSummaryGeneratorTool) parseControlID(controlID string) (string, error) {

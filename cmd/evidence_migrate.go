@@ -58,7 +58,7 @@ type migrationRecord struct {
 	OldPath string
 	NewPath string
 	TaskRef string
-	TaskID  int
+	TaskID  string
 	Success bool
 	Error   string
 }
@@ -131,7 +131,7 @@ func runEvidenceMigrate(cmd *cobra.Command, args []string) error {
 			}
 		} else {
 			// Generate new directory name
-			newDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
+			newDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%s", task.ID))
 			oldPath := filepath.Join(evidenceDir, dirName)
 			newPath := filepath.Join(evidenceDir, newDirName)
 

@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,7 +105,7 @@ func (m *MockEvidenceService) SaveEvidenceToFile(outputDir string, record interf
 // Test helper to create test evidence tasks
 func createTestEvidenceTask(id int, refID string, name string, completed bool) domain.EvidenceTask {
 	return domain.EvidenceTask{
-		ID:          id,
+		ID: strconv.Itoa(id),
 		ReferenceID: refID,
 		Name:        name,
 		Description: fmt.Sprintf("Test description for %s", name),

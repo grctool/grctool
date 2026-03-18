@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"strconv"
 	"time"
 
 	"github.com/grctool/grctool/internal/domain"
@@ -27,7 +28,7 @@ import (
 func TestEvidenceTaskFormatterWithControlDetails(t *testing.T) {
 	// Create a sample evidence task with control relationships
 	evidenceTask := &domain.EvidenceTask{
-		ID:                 327992,
+		ID: "327992",
 		ReferenceID:        "ET1",
 		Name:               "Access Control / Registration and De-registration Process Document",
 		Description:        "Provide user registration and de-registration process document/Access Control policy or procedure reviewed by management.",
@@ -43,7 +44,7 @@ func TestEvidenceTaskFormatterWithControlDetails(t *testing.T) {
 	// Create related controls
 	controls := []domain.Control{
 		{
-			ID:          778771,
+			ID: "778771",
 			ReferenceID: "AC1",
 			Name:        "Access Provisioning and Approval",
 			Description: "Access to in-scope system components requires documented access request and approval from management prior to access provisioning.",
@@ -55,7 +56,7 @@ func TestEvidenceTaskFormatterWithControlDetails(t *testing.T) {
 			},
 		},
 		{
-			ID:          778805,
+			ID: "778805",
 			ReferenceID: "AA1",
 			Name:        "Unique IDs and Strong Passwords - Infrastructure",
 			Description: "Unique user IDs and strong passwords are required to gain access to infrastructure supporting the application.",
@@ -154,7 +155,7 @@ func TestEvidenceTaskFormatterWithControlDetails(t *testing.T) {
 
 		// Create evidence task with controls that don't have details
 		taskWithUnknownControls := &domain.EvidenceTask{
-			ID:       12345,
+			ID: "12345",
 			Name:     "Test Task",
 			Controls: []string{"999999", "888888"}, // Unknown control IDs
 		}
@@ -186,7 +187,7 @@ func TestEvidenceTaskFormatterControlRelationshipExamples(t *testing.T) {
 	}
 
 	control := domain.Control{
-		ID:          778805,
+		ID: "778805",
 		ReferenceID: "AA1",
 		Name:        "Unique IDs and Strong Passwords - Infrastructure",
 		Description: "Unique user IDs and strong passwords are required to gain access to infrastructure supporting the application.",
@@ -200,7 +201,7 @@ func TestEvidenceTaskFormatterControlRelationshipExamples(t *testing.T) {
 	// Test each evidence task shows the control relationship
 	for i, taskID := range relatedEvidenceTasks {
 		evidenceTask := &domain.EvidenceTask{
-			ID:       327992 + i, // Incremental IDs
+			ID:       strconv.Itoa(327992 + i), // Incremental IDs
 			Name:     fmt.Sprintf("Evidence Task %d", i+1),
 			Controls: []string{"778805"}, // All relate to AA1 control
 		}

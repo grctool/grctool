@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -361,7 +360,7 @@ func (lds *LocalDataStore) GetPolicySummary() (*domain.PolicySummary, error) {
 func (lds *LocalDataStore) SaveControl(control *domain.Control) error {
 	filename := lds.filenameGenerator.GenerateFilename(
 		control.ReferenceID,
-		strconv.Itoa(control.ID),
+		control.ID,
 		control.Name,
 		"json",
 	)
@@ -375,9 +374,8 @@ func (lds *LocalDataStore) GetControl(id string) (*domain.Control, error) {
 		return nil, err
 	}
 
-	numID, _ := strconv.Atoi(id)
 	for _, control := range controls {
-		if control.ID == numID {
+		if control.ID == id {
 			return &control, nil
 		}
 	}
@@ -459,7 +457,7 @@ func (lds *LocalDataStore) GetControlSummary() (*domain.ControlSummary, error) {
 func (lds *LocalDataStore) SaveEvidenceTask(task *domain.EvidenceTask) error {
 	filename := lds.filenameGenerator.GenerateFilename(
 		task.ReferenceID,
-		strconv.Itoa(task.ID),
+		task.ID,
 		task.Name,
 		"json",
 	)
@@ -473,9 +471,8 @@ func (lds *LocalDataStore) GetEvidenceTask(id string) (*domain.EvidenceTask, err
 		return nil, err
 	}
 
-	numID, _ := strconv.Atoi(id)
 	for _, task := range tasks {
-		if task.ID == numID {
+		if task.ID == id {
 			return &task, nil
 		}
 	}
@@ -571,7 +568,7 @@ func (lds *LocalDataStore) GetEvidenceRecord(id string) (*domain.EvidenceRecord,
 	return &record, nil
 }
 
-func (lds *LocalDataStore) GetEvidenceRecordsByTaskID(taskID int) ([]domain.EvidenceRecord, error) {
+func (lds *LocalDataStore) GetEvidenceRecordsByTaskID(taskID string) ([]domain.EvidenceRecord, error) {
 	var records []domain.EvidenceRecord
 
 	files, err := lds.fileStorage.List("evidence_records")

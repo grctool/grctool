@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ type EvidenceScanner interface {
 
 // Storage interface for loading task metadata
 type Storage interface {
-	GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTask, error)
+	GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTask, error)
 }
 
 // evidenceScannerImpl implements the EvidenceScanner interface
@@ -144,7 +145,7 @@ func (s *evidenceScannerImpl) ScanTask(ctx context.Context, taskRef string) (*mo
 
 	// Try to load task from storage for metadata
 	var task *domain.EvidenceTask
-	if s.storage != nil && taskID > 0 {
+	if s.storage != nil && taskID != "" {
 		task, err = s.storage.GetEvidenceTask(ctx, taskID)
 		if err != nil {
 			s.logger.Warn("Failed to load task from storage",
@@ -671,17 +672,18 @@ func (s *evidenceScannerImpl) detectApplicableTools(task *domain.EvidenceTask, w
 
 // Helper functions
 
-// extractTaskIDFromRef extracts the numeric task ID from a reference (ET-0001 -> 1)
-func extractTaskIDFromRef(taskRef string) int {
+// extractTaskIDFromRef extracts the numeric task ID from a reference (ET-0001 -> "1")
+// Returns "" if the reference format is not recognized
+func extractTaskIDFromRef(taskRef string) string {
 	re := regexp.MustCompile(`^ET-(\d+)$`)
 	matches := re.FindStringSubmatch(taskRef)
 	if len(matches) < 2 {
-		return 0
+		return ""
 	}
 
 	var id int
 	fmt.Sscanf(matches[1], "%d", &id)
-	return id
+	return strconv.Itoa(id)
 }
 
 // isWindowDirectory checks if a directory name looks like a window (2025-Q4, 2025, 2025-10, 2025-H1)

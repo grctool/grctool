@@ -10,10 +10,10 @@ import (
 
 func TestNewEvaluationResult(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+	er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 
 	assert.Equal(t, "ET-0001", er.TaskRef)
-	assert.Equal(t, 1, er.TaskID)
+	assert.Equal(t, "1", er.TaskID)
 	assert.Equal(t, "2025-Q4", er.Window)
 	assert.Equal(t, "", er.Subfolder)
 	assert.Equal(t, float64(0), er.OverallScore)
@@ -34,7 +34,7 @@ func TestNewEvaluationResult(t *testing.T) {
 
 func TestNewEvaluationResult_WithSubfolder(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0002", 2, "2025-Q4", ".submitted")
+	er := NewEvaluationResult("ET-0002", "2", "2025-Q4", ".submitted")
 	assert.Equal(t, ".submitted", er.Subfolder)
 }
 
@@ -43,7 +43,7 @@ func TestEvaluationResult_CalculateOverallScore(t *testing.T) {
 
 	t.Run("weighted average", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.Completeness.Score = 80
 		er.RequirementsMatch.Score = 90
 		er.QualityScore.Score = 70
@@ -58,14 +58,14 @@ func TestEvaluationResult_CalculateOverallScore(t *testing.T) {
 
 	t.Run("all zeros", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.CalculateOverallScore()
 		assert.Equal(t, float64(0), er.OverallScore)
 	})
 
 	t.Run("all perfect scores", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.Completeness.Score = 100
 		er.RequirementsMatch.Score = 100
 		er.QualityScore.Score = 100
@@ -93,7 +93,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("critical issue forces fail", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.OverallScore = 95 // Would pass normally
 		er.AddIssue(IssueCritical, "completeness", "Missing required file", "", "Add file")
 		er.DetermineStatus()
@@ -102,7 +102,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("score above threshold passes", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.OverallScore = 85
 		er.DetermineStatus()
 		assert.Equal(t, EvaluationPass, er.OverallStatus)
@@ -110,7 +110,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("score at threshold passes", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.OverallScore = 70
 		er.DetermineStatus()
 		assert.Equal(t, EvaluationPass, er.OverallStatus)
@@ -118,7 +118,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("score between 60pct and threshold is warning", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		// PassThreshold = 70, so warning range is 42..69.99
 		er.OverallScore = 50
 		er.DetermineStatus()
@@ -127,7 +127,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("score below 60pct of threshold is fail", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		// PassThreshold = 70, 60% of 70 = 42
 		er.OverallScore = 30
 		er.DetermineStatus()
@@ -136,7 +136,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("high severity downgrades pass to warning", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.OverallScore = 85
 		er.AddIssue(IssueHigh, "quality", "Poor formatting", "", "Reformat")
 		er.DetermineStatus()
@@ -145,7 +145,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("medium severity does not downgrade pass", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.OverallScore = 85
 		er.AddIssue(IssueMedium, "quality", "Minor issue", "", "Fix later")
 		er.DetermineStatus()
@@ -154,7 +154,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 	t.Run("critical checked before score", func(t *testing.T) {
 		t.Parallel()
-		er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+		er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 		er.OverallScore = 100
 		er.AddIssue(IssueCritical, "completeness", "Fatal error", "", "")
 		er.DetermineStatus()
@@ -164,7 +164,7 @@ func TestEvaluationResult_DetermineStatus(t *testing.T) {
 
 func TestEvaluationResult_AddIssue(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+	er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 	assert.Empty(t, er.Issues)
 
 	er.AddIssue(IssueHigh, "completeness", "Missing file", "evidence.md", "Add file")
@@ -181,7 +181,7 @@ func TestEvaluationResult_AddIssue(t *testing.T) {
 
 func TestEvaluationResult_AddRecommendation(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+	er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 	assert.Empty(t, er.Recommendations)
 
 	er.AddRecommendation("Add more detail")
@@ -194,7 +194,7 @@ func TestEvaluationResult_AddRecommendation(t *testing.T) {
 
 func TestEvaluationResult_GetCriticalIssueCount(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+	er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 	assert.Equal(t, 0, er.GetCriticalIssueCount())
 
 	er.AddIssue(IssueCritical, "a", "msg1", "", "")
@@ -206,7 +206,7 @@ func TestEvaluationResult_GetCriticalIssueCount(t *testing.T) {
 
 func TestEvaluationResult_GetHighIssueCount(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0001", 1, "2025-Q4", "")
+	er := NewEvaluationResult("ET-0001", "1", "2025-Q4", "")
 	assert.Equal(t, 0, er.GetHighIssueCount())
 
 	er.AddIssue(IssueHigh, "a", "msg1", "", "")
@@ -218,7 +218,7 @@ func TestEvaluationResult_GetHighIssueCount(t *testing.T) {
 
 func TestEvaluationResult_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
-	er := NewEvaluationResult("ET-0001", 1, "2025-Q4", ".submitted")
+	er := NewEvaluationResult("ET-0001", "1", "2025-Q4", ".submitted")
 	er.Completeness.Score = 80
 	er.RequirementsMatch.Score = 90
 	er.QualityScore.Score = 70

@@ -223,7 +223,7 @@ func (e *EvidenceGeneratorTool) Category() string {
 
 // EvidenceGenerationResult represents the result of evidence generation
 type EvidenceGenerationResult struct {
-	TaskID      int                     `json:"task_id"`
+	TaskID      string                  `json:"task_id"`
 	Content     string                  `json:"content"`
 	Format      string                  `json:"format"`
 	GeneratedAt time.Time               `json:"generated_at"`
@@ -366,11 +366,11 @@ func (e *EvidenceGeneratorTool) generateFromTaskRef(ctx context.Context, taskRef
 }
 
 // coordinateSubTools coordinates execution of sub-tools to gather evidence
-func (e *EvidenceGeneratorTool) coordinateSubTools(ctx context.Context, taskID int, prompt string, tools []string) ([]models.EvidenceSource, string, error) {
+func (e *EvidenceGeneratorTool) coordinateSubTools(ctx context.Context, taskID string, prompt string, tools []string) ([]models.EvidenceSource, string, error) {
 	sources := make([]models.EvidenceSource, 0, len(tools))
 	var synthesisBuilder strings.Builder
 
-	synthesisBuilder.WriteString(fmt.Sprintf("Evidence synthesis for task %d using tools: %s\n\n", taskID, strings.Join(tools, ", ")))
+	synthesisBuilder.WriteString(fmt.Sprintf("Evidence synthesis for task %s using tools: %s\n\n", taskID, strings.Join(tools, ", ")))
 
 	// Capture git hash for terraform repository if configured
 	var terraformGitHash string
@@ -452,7 +452,7 @@ func (e *EvidenceGeneratorTool) resolveToolName(genericName string) (string, err
 }
 
 // executeTool executes a specific sub-tool
-func (e *EvidenceGeneratorTool) executeTool(ctx context.Context, toolName string, taskID int, prompt string, terraformGitHash string) (models.EvidenceSource, error) {
+func (e *EvidenceGeneratorTool) executeTool(ctx context.Context, toolName string, taskID string, prompt string, terraformGitHash string) (models.EvidenceSource, error) {
 	// Resolve generic tool name to actual registered tool name
 	resolvedToolName, err := e.resolveToolName(toolName)
 	if err != nil {
@@ -505,12 +505,12 @@ func (e *EvidenceGeneratorTool) executeTool(ctx context.Context, toolName string
 }
 
 // generateFinalEvidence creates the final evidence content from all sources
-func (e *EvidenceGeneratorTool) generateFinalEvidence(ctx context.Context, taskID int, prompt string, sources []models.EvidenceSource, synthesis string, format string) (string, error) {
+func (e *EvidenceGeneratorTool) generateFinalEvidence(ctx context.Context, taskID string, prompt string, sources []models.EvidenceSource, synthesis string, format string) (string, error) {
 	var contentBuilder strings.Builder
 
 	switch format {
 	case "markdown":
-		contentBuilder.WriteString(fmt.Sprintf("# Evidence for Task %d\n\n", taskID))
+		contentBuilder.WriteString(fmt.Sprintf("# Evidence for Task %s\n\n", taskID))
 		contentBuilder.WriteString(fmt.Sprintf("**Generated:** %s\n\n", time.Now().Format("2006-01-02 15:04:05")))
 
 		if prompt != "" {
@@ -590,7 +590,7 @@ func (e *EvidenceGeneratorTool) isPathSafe(path string) bool {
 	return strings.HasPrefix(absPath, dataDir)
 }
 
-func (e *EvidenceGeneratorTool) extractTaskIDFromPrompt(prompt string) int {
+func (e *EvidenceGeneratorTool) extractTaskIDFromPrompt(prompt string) string {
 	// Try to extract task ID from prompt content
 	// Look for patterns like "ET1", "task 123", "ID: 123", etc.
 
@@ -603,7 +603,7 @@ func (e *EvidenceGeneratorTool) extractTaskIDFromPrompt(prompt string) int {
 				if strings.HasPrefix(strings.ToUpper(word), "ET") {
 					if numStr := strings.TrimPrefix(strings.ToUpper(word), "ET"); numStr != "" {
 						if num, err := strconv.Atoi(numStr); err == nil {
-							return 327991 + num // Convert ET reference to internal ID
+							return strconv.Itoa(327991 + num) // Convert ET reference to internal ID
 						}
 					}
 				}
@@ -611,13 +611,13 @@ func (e *EvidenceGeneratorTool) extractTaskIDFromPrompt(prompt string) int {
 		}
 	}
 
-	return 0 // Unknown task ID
+	return "" // Unknown task ID
 }
 
-func (e *EvidenceGeneratorTool) resolveTaskID(ctx context.Context, taskRef string) (int, error) {
-	// First try to parse as integer
-	if taskID, err := strconv.Atoi(taskRef); err == nil {
-		return taskID, nil
+func (e *EvidenceGeneratorTool) resolveTaskID(ctx context.Context, taskRef string) (string, error) {
+	// First try to parse as numeric string (keep as-is)
+	if _, err := strconv.Atoi(taskRef); err == nil {
+		return taskRef, nil
 	}
 
 	// Try to parse as reference ID (e.g., "ET1", "ET42")
@@ -625,7 +625,7 @@ func (e *EvidenceGeneratorTool) resolveTaskID(ctx context.Context, taskRef strin
 		// Get all tasks to find by reference ID
 		tasks, err := e.dataService.GetAllEvidenceTasks(ctx)
 		if err != nil {
-			return 0, fmt.Errorf("failed to get evidence tasks: %w", err)
+			return "", fmt.Errorf("failed to get evidence tasks: %w", err)
 		}
 
 		// Search for matching reference ID
@@ -635,10 +635,10 @@ func (e *EvidenceGeneratorTool) resolveTaskID(ctx context.Context, taskRef strin
 				return task.ID, nil
 			}
 		}
-		return 0, fmt.Errorf("evidence task with reference ID %s not found", taskRef)
+		return "", fmt.Errorf("evidence task with reference ID %s not found", taskRef)
 	}
 
-	return 0, fmt.Errorf("invalid task identifier: %s", taskRef)
+	return "", fmt.Errorf("invalid task identifier: %s", taskRef)
 }
 
 func (e *EvidenceGeneratorTool) saveEvidenceToFile(result *EvidenceGenerationResult, outputDir string) (string, error) {
@@ -658,7 +658,7 @@ func (e *EvidenceGeneratorTool) saveEvidenceToFile(result *EvidenceGenerationRes
 		ext = ".csv"
 	}
 
-	filename := fmt.Sprintf("evidence_task_%d_%s%s",
+	filename := fmt.Sprintf("evidence_task_%s_%s%s",
 		result.TaskID,
 		result.GeneratedAt.Format("20060102_150405"),
 		ext)

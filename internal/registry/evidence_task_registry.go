@@ -31,14 +31,14 @@ import (
 // EvidenceTaskRegistry manages the mapping between evidence task IDs and their reference codes
 type EvidenceTaskRegistry struct {
 	filePath   string
-	entries    map[int]*RegistryEntry // Maps task ID to registry entry
-	references map[string]int         // Maps reference (ET1, ET2, etc.) to task ID
+	entries    map[string]*RegistryEntry // Maps task ID to registry entry
+	references map[string]string         // Maps reference (ET1, ET2, etc.) to task ID
 	nextRefNum int                    // Next available reference number
 }
 
 // RegistryEntry represents a single entry in the evidence task registry
 type RegistryEntry struct {
-	TaskID    int    `json:"task_id"`
+	TaskID    string `json:"task_id"`
 	Reference string `json:"reference"`
 	Name      string `json:"name"`
 	Framework string `json:"framework"`
@@ -50,8 +50,8 @@ func NewEvidenceTaskRegistry(dataDir string) *EvidenceTaskRegistry {
 	registryPath := filepath.Join(dataDir, "docs", "evidence_task_registry.csv")
 	return &EvidenceTaskRegistry{
 		filePath:   registryPath,
-		entries:    make(map[int]*RegistryEntry),
-		references: make(map[string]int),
+		entries:    make(map[string]*RegistryEntry),
+		references: make(map[string]string),
 		nextRefNum: 1,
 	}
 }
@@ -102,9 +102,9 @@ func (r *EvidenceTaskRegistry) LoadRegistry() error {
 			continue // Skip malformed rows
 		}
 
-		taskID, err := strconv.Atoi(record[0])
-		if err != nil {
-			continue // Skip rows with invalid task ID
+		taskID := strings.TrimSpace(record[0])
+		if taskID == "" {
+			continue // Skip rows with empty task ID
 		}
 
 		entry := &RegistryEntry{
@@ -165,7 +165,7 @@ func (r *EvidenceTaskRegistry) SaveRegistry() error {
 	// Write entries
 	for _, entry := range entries {
 		record := []string{
-			strconv.Itoa(entry.TaskID),
+			entry.TaskID,
 			entry.Reference,
 			entry.Name,
 			entry.Framework,
@@ -209,7 +209,7 @@ func (r *EvidenceTaskRegistry) RegisterTask(task *domain.EvidenceTask) string {
 }
 
 // GetReference returns the reference for a given task ID
-func (r *EvidenceTaskRegistry) GetReference(taskID int) (string, bool) {
+func (r *EvidenceTaskRegistry) GetReference(taskID string) (string, bool) {
 	entry, exists := r.entries[taskID]
 	if !exists {
 		return "", false
@@ -218,13 +218,13 @@ func (r *EvidenceTaskRegistry) GetReference(taskID int) (string, bool) {
 }
 
 // GetTaskID returns the task ID for a given reference
-func (r *EvidenceTaskRegistry) GetTaskID(reference string) (int, bool) {
+func (r *EvidenceTaskRegistry) GetTaskID(reference string) (string, bool) {
 	taskID, exists := r.references[reference]
 	return taskID, exists
 }
 
 // GetEntry returns the full registry entry for a given task ID
-func (r *EvidenceTaskRegistry) GetEntry(taskID int) (*RegistryEntry, bool) {
+func (r *EvidenceTaskRegistry) GetEntry(taskID string) (*RegistryEntry, bool) {
 	entry, exists := r.entries[taskID]
 	return entry, exists
 }
@@ -255,7 +255,7 @@ func (r *EvidenceTaskRegistry) UpdateTaskInfo(task *domain.EvidenceTask) {
 }
 
 // RemoveTask removes a task from the registry (use with caution)
-func (r *EvidenceTaskRegistry) RemoveTask(taskID int) bool {
+func (r *EvidenceTaskRegistry) RemoveTask(taskID string) bool {
 	entry, exists := r.entries[taskID]
 	if !exists {
 		return false
@@ -295,15 +295,19 @@ func (r *EvidenceTaskRegistry) extractReferenceNumber(reference string) int {
 	return num
 }
 
-// getHighestTaskID returns the highest task ID in the registry
-func (r *EvidenceTaskRegistry) getHighestTaskID() int {
+// getHighestTaskID returns the highest task ID in the registry (as string)
+func (r *EvidenceTaskRegistry) getHighestTaskID() string {
 	highest := 0
+	highestStr := ""
 	for taskID := range r.entries {
-		if taskID > highest {
-			highest = taskID
+		if num, err := strconv.Atoi(taskID); err == nil && num > highest {
+			highest = num
+			highestStr = taskID
+		} else if highestStr == "" {
+			highestStr = taskID
 		}
 	}
-	return highest
+	return highestStr
 }
 
 // InitializeFromTasks creates initial registry from existing evidence tasks
@@ -313,6 +317,12 @@ func (r *EvidenceTaskRegistry) InitializeFromTasks(tasks []domain.EvidenceTask) 
 	copy(tasksCopy, tasks)
 
 	sort.Slice(tasksCopy, func(i, j int) bool {
+		// Try numeric comparison first, fall back to string comparison
+		numI, errI := strconv.Atoi(tasksCopy[i].ID)
+		numJ, errJ := strconv.Atoi(tasksCopy[j].ID)
+		if errI == nil && errJ == nil {
+			return numI < numJ
+		}
 		return tasksCopy[i].ID < tasksCopy[j].ID
 	})
 

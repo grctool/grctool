@@ -486,7 +486,7 @@ func TestApplyTemplateVariables(t *testing.T) {
 	t.Parallel()
 
 	task := &domain.EvidenceTask{
-		ID:          327992,
+	ID: "327992",
 		ReferenceID: "ET-0001",
 		Name:        "Access Control Evidence",
 	}
@@ -1026,8 +1026,8 @@ func TestFormatControlsList(t *testing.T) {
 		t.Parallel()
 		now := time.Now()
 		controls := []*domain.Control{
-			{ID: 1, Name: "Access Control", Category: "Security", Framework: "SOC2", Status: "implemented", ImplementedDate: &now},
-			{ID: 2, Name: "Risk Assessment", Category: "Risk", Framework: "ISO27001", Status: "planned"},
+			{ID: "1", Name: "Access Control", Category: "Security", Framework: "SOC2", Status: "implemented", ImplementedDate: &now},
+			{ID: "2", Name: "Risk Assessment", Category: "Risk", Framework: "ISO27001", Status: "planned"},
 		}
 
 		// Use nil interpolator — formatter can handle it
@@ -1052,9 +1052,9 @@ func TestFormatControlsListSummary(t *testing.T) {
 	t.Run("with controls", func(t *testing.T) {
 		t.Parallel()
 		controls := []*domain.Control{
-			{ID: 1, Name: "Access Control", Category: "Security", Status: "implemented"},
-			{ID: 2, Name: "Risk Assessment", Category: "Risk", Status: "implemented"},
-			{ID: 3, Name: "Draft Policy", Category: "Compliance", Status: "draft"},
+			{ID: "1", Name: "Access Control", Category: "Security", Status: "implemented"},
+			{ID: "2", Name: "Risk Assessment", Category: "Risk", Status: "implemented"},
+			{ID: "3", Name: "Draft Policy", Category: "Compliance", Status: "draft"},
 		}
 
 		result := formatControlsListSummary(controls, nil)
@@ -1075,7 +1075,7 @@ func TestCreateControlMetadataView(t *testing.T) {
 
 	now := time.Now()
 	control := &domain.Control{
-		ID:              1,
+	ID: "1",
 		Name:            "Access Control",
 		Category:        "Security",
 		Framework:       "SOC2",
@@ -1102,7 +1102,7 @@ func TestCreateControlDetailsSection(t *testing.T) {
 	t.Parallel()
 
 	control := &domain.Control{
-		ID:                       1,
+	ID: "1",
 		MasterControlID:         100,
 		MasterVersionNum:        2,
 		OrgID:                   999,
@@ -1656,7 +1656,7 @@ func TestSaveAssemblyContext(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	task := &domain.EvidenceTask{
-		ID:          327992,
+	ID: "327992",
 		ReferenceID: "ET-0001",
 		Name:        "Access Control Evidence",
 	}
@@ -1698,7 +1698,7 @@ func TestSaveEvidenceContext(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	task := &domain.EvidenceTask{
-		ID:          327992,
+	ID: "327992",
 		ReferenceID: "ET-0001",
 		Name:        "Access Control Evidence",
 	}
@@ -1843,7 +1843,7 @@ func TestDisplayEvidenceMapWithData(t *testing.T) {
 
 	mapResult := &evidence.EvidenceMapResult{
 		Tasks: []domain.EvidenceTask{
-			{ID: 1, ReferenceID: "ET-0001", Name: "Test Task"},
+			{ID: "1", ReferenceID: "ET-0001", Name: "Test Task"},
 		},
 		Summary: &evidence.EvidenceMapSummary{
 			TotalTasks:      1,
@@ -1852,7 +1852,7 @@ func TestDisplayEvidenceMapWithData(t *testing.T) {
 			FrameworkCounts: map[string]int{"SOC2": 1},
 		},
 		FrameworkGroups: map[string][]domain.EvidenceTask{
-			"SOC2": {{ID: 1, ReferenceID: "ET-0001", Name: "Test Task"}},
+			"SOC2": {{ID: "1", ReferenceID: "ET-0001", Name: "Test Task"}},
 		},
 	}
 

@@ -20,7 +20,7 @@ import "time"
 // EvidenceSubmission represents a single task's evidence submission
 type EvidenceSubmission struct {
 	// Identity
-	TaskID  int    `yaml:"task_id" json:"task_id"`
+	TaskID  string `yaml:"task_id" json:"task_id"`
 	TaskRef string `yaml:"task_ref" json:"task_ref"` // ET-0001
 	Window  string `yaml:"window" json:"window"`     // 2025-Q4
 
@@ -175,7 +175,7 @@ type ValidationCheck struct {
 
 // SubmitEvidenceRequest is the submission payload for Tugboat
 type SubmitEvidenceRequest struct {
-	TaskID           int                    `json:"task_id"`
+	TaskID           string                 `json:"task_id"`
 	Content          string                 `json:"content"`           // Main evidence content
 	ContentType      string                 `json:"content_type"`      // markdown, json, csv
 	CollectionWindow string                 `json:"collection_window"` // 2025-Q4
@@ -206,7 +206,7 @@ type SubmitEvidenceResponse struct {
 	SubmissionID string                 `json:"submission_id"`
 	Status       string                 `json:"status"` // accepted, pending_review, rejected
 	Message      string                 `json:"message,omitempty"`
-	TaskID       int                    `json:"task_id"`
+	TaskID       string                 `json:"task_id"`
 	ReceivedAt   time.Time              `json:"received_at"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
@@ -214,7 +214,7 @@ type SubmitEvidenceResponse struct {
 // SubmissionStatusResponse provides submission status from Tugboat
 type SubmissionStatusResponse struct {
 	SubmissionID string     `json:"submission_id"`
-	TaskID       int        `json:"task_id"`
+	TaskID       string     `json:"task_id"`
 	Status       string     `json:"status"` // pending, accepted, rejected
 	SubmittedAt  time.Time  `json:"submitted_at"`
 	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
@@ -232,7 +232,7 @@ type FileUploadResponse struct {
 
 // SubmissionListResponse lists submissions for a task
 type SubmissionListResponse struct {
-	TaskID      int                        `json:"task_id"`
+	TaskID      string                     `json:"task_id"`
 	Total       int                        `json:"total"`
 	Submissions []SubmissionStatusResponse `json:"submissions"`
 }

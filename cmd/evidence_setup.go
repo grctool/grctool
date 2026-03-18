@@ -82,7 +82,7 @@ func runEvidenceSetup(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	cmd.Printf("📋 Task: %s (ID: %d)\n", taskRef, taskID)
+	cmd.Printf("  Task ID: %s\n", taskID)
 
 	// Get collector URL (prompt if not provided)
 	if collectorURL == "" {
@@ -159,25 +159,25 @@ func runEvidenceSetup(cmd *cobra.Command, args []string) error {
 }
 
 // resolveTaskIdentifier resolves a task identifier (ET reference or numeric ID) to both formats
-func resolveTaskIdentifier(stor *storage.Storage, cfg *config.Config, identifier string) (taskRef string, taskID int, err error) {
+func resolveTaskIdentifier(stor *storage.Storage, cfg *config.Config, identifier string) (taskRef string, taskID string, err error) {
 	// Use existing storage.GetEvidenceTask which handles:
 	// - "327992" (numeric)
 	// - "ET-0001" (reference with dash)
 	// - "ET0001" (reference without dash)
 	task, err := stor.GetEvidenceTask(identifier)
 	if err != nil {
-		return "", 0, fmt.Errorf("task not found: %w\n\nPossible solutions:\n  • Run: grctool sync\n  • Verify task exists in Tugboat Logic\n  • List tasks: grctool evidence list", err)
+		return "", "", fmt.Errorf("task not found: %w\n\nPossible solutions:\n  • Run: grctool sync\n  • Verify task exists in Tugboat Logic\n  • List tasks: grctool evidence list", err)
 	}
 
 	// Get ET reference from registry
 	evidenceRegistry := registry.NewEvidenceTaskRegistry(cfg.Storage.DataDir)
 	if err := evidenceRegistry.LoadRegistry(); err != nil {
-		return "", 0, fmt.Errorf("failed to load registry: %w", err)
+		return "", "", fmt.Errorf("failed to load registry: %w", err)
 	}
 
 	ref, ok := evidenceRegistry.GetReference(task.ID)
 	if !ok {
-		return "", 0, fmt.Errorf("task %d has no reference mapping - run 'grctool sync'", task.ID)
+		return "", "", fmt.Errorf("task %s has no reference mapping - run 'grctool sync'", task.ID)
 	}
 
 	return ref, task.ID, nil

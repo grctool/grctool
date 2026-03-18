@@ -95,7 +95,7 @@ func TestStorage_GetControl_ByUnderscoreFormat(t *testing.T) {
 	// The code does: strings.ReplaceAll(id, "_", ".")
 	// CC-06.1 has a dot already. Let's test with a control that has dots from underscores.
 	control2 := &domain.Control{
-		ID: 2002, ReferenceID: "CC1.1", Name: "Test CC Control",
+		ID: "2002", ReferenceID: "CC1.1", Name: "Test CC Control",
 		Framework: "SOC2", Status: "implemented",
 	}
 	require.NoError(t, s.SaveControl(control2))
@@ -266,15 +266,15 @@ func TestStorage_GetEvidenceRecordsByTaskID(t *testing.T) {
 	s := newTestStorage(t)
 
 	rec1 := &domain.EvidenceRecord{
-		ID: "rec-1", TaskID: 100, Title: "Record 1",
+		ID: "rec-1", TaskID: "100", Title: "Record 1",
 		Format: "markdown", Source: "test", CollectedAt: time.Now(),
 	}
 	rec2 := &domain.EvidenceRecord{
-		ID: "rec-2", TaskID: 100, Title: "Record 2",
+		ID: "rec-2", TaskID: "100", Title: "Record 2",
 		Format: "markdown", Source: "test", CollectedAt: time.Now(),
 	}
 	rec3 := &domain.EvidenceRecord{
-		ID: "rec-3", TaskID: 200, Title: "Record 3",
+		ID: "rec-3", TaskID: "200", Title: "Record 3",
 		Format: "markdown", Source: "test", CollectedAt: time.Now(),
 	}
 
@@ -282,15 +282,15 @@ func TestStorage_GetEvidenceRecordsByTaskID(t *testing.T) {
 	require.NoError(t, s.SaveEvidenceRecord(rec2))
 	require.NoError(t, s.SaveEvidenceRecord(rec3))
 
-	records, err := s.GetEvidenceRecordsByTaskID(100)
+	records, err := s.GetEvidenceRecordsByTaskID("100")
 	require.NoError(t, err)
 	assert.Len(t, records, 2)
 
-	records, err = s.GetEvidenceRecordsByTaskID(200)
+	records, err = s.GetEvidenceRecordsByTaskID("200")
 	require.NoError(t, err)
 	assert.Len(t, records, 1)
 
-	records, err = s.GetEvidenceRecordsByTaskID(999)
+	records, err = s.GetEvidenceRecordsByTaskID("999")
 	require.NoError(t, err)
 	assert.Empty(t, records)
 }
@@ -323,7 +323,7 @@ func TestStorage_GetControlSummary(t *testing.T) {
 
 	c1 := testhelpers.SampleControl()
 	c2 := &domain.Control{
-		ID: 2002, ReferenceID: "AC-02", Name: "Network",
+		ID: "2002", ReferenceID: "AC-02", Name: "Network",
 		Framework: "SOC2", Category: "Infrastructure", Status: "planned",
 	}
 	require.NoError(t, s.SaveControl(c1))
@@ -344,15 +344,15 @@ func TestStorage_GetEvidenceTaskSummary(t *testing.T) {
 	farAway := time.Now().Add(30 * 24 * time.Hour)
 
 	t1 := &domain.EvidenceTask{
-		ID: 1, ReferenceID: "ET-0001", Name: "Overdue Task",
+		ID: "1", ReferenceID: "ET-0001", Name: "Overdue Task",
 		Status: "pending", Priority: "high", NextDue: &overdue,
 	}
 	t2 := &domain.EvidenceTask{
-		ID: 2, ReferenceID: "ET-0002", Name: "Due Soon Task",
+		ID: "2", ReferenceID: "ET-0002", Name: "Due Soon Task",
 		Status: "in_progress", Priority: "medium", NextDue: &dueSoon,
 	}
 	t3 := &domain.EvidenceTask{
-		ID: 3, ReferenceID: "ET-0003", Name: "Future Task",
+		ID: "3", ReferenceID: "ET-0003", Name: "Future Task",
 		Status: "pending", Priority: "low", NextDue: &farAway,
 	}
 
@@ -430,23 +430,23 @@ func TestStorage_ParseTaskID_Formats(t *testing.T) {
 	require.NoError(t, s.SaveEvidenceTask(task))
 
 	// Pure numeric
-	assert.Equal(t, 327992, s.parseTaskID("327992"))
+	assert.Equal(t, "327992", s.parseTaskID("327992"))
 
 	// ET-XXXX format
-	assert.Equal(t, 327992, s.parseTaskID("ET-0047"))
+	assert.Equal(t, "327992", s.parseTaskID("ET-0047"))
 
 	// ETXXXX format
-	assert.Equal(t, 327992, s.parseTaskID("ET0047"))
+	assert.Equal(t, "327992", s.parseTaskID("ET0047"))
 
 	// lowercase
-	assert.Equal(t, 327992, s.parseTaskID("et-0047"))
+	assert.Equal(t, "327992", s.parseTaskID("et-0047"))
 
 	// Non-matching reference
-	assert.Equal(t, 0, s.parseTaskID("ET-9999"))
+	assert.Equal(t, "", s.parseTaskID("ET-9999"))
 
 	// Invalid format
-	assert.Equal(t, 0, s.parseTaskID("INVALID"))
+	assert.Equal(t, "", s.parseTaskID("INVALID"))
 
 	// Whitespace trimmed
-	assert.Equal(t, 327992, s.parseTaskID("  327992  "))
+	assert.Equal(t, "327992", s.parseTaskID("  327992  "))
 }

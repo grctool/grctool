@@ -532,7 +532,7 @@ func (e *EvidenceValidatorTool) validateEvidenceRecord(record interface{}, index
 	})
 }
 
-func (e *EvidenceValidatorTool) validateTaskCompleteness(ctx context.Context, taskID int, recordCount int, result *EvidenceValidationResult) {
+func (e *EvidenceValidatorTool) validateTaskCompleteness(ctx context.Context, taskID string, recordCount int, result *EvidenceValidationResult) {
 	// Get task details to check completeness requirements
 	task, err := e.dataService.GetEvidenceTask(ctx, taskID)
 	if err != nil {
@@ -563,7 +563,7 @@ func (e *EvidenceValidatorTool) validateTaskCompleteness(ctx context.Context, ta
 	}
 }
 
-func (e *EvidenceValidatorTool) validateTaskCompliance(ctx context.Context, taskID int, recordCount int, result *EvidenceValidationResult) {
+func (e *EvidenceValidatorTool) validateTaskCompliance(ctx context.Context, taskID string, recordCount int, result *EvidenceValidationResult) {
 	// Perform comprehensive compliance validation
 	result.Recommendations = append(result.Recommendations,
 		"Perform manual compliance review for comprehensive validation",
@@ -708,7 +708,7 @@ func (e *EvidenceValidatorTool) detectFormat(filePath, content string) string {
 	}
 }
 
-func (e *EvidenceValidatorTool) extractTaskIDFromContent(content string) int {
+func (e *EvidenceValidatorTool) extractTaskIDFromContent(content string) string {
 	// Try to extract task ID from content
 	// Look for patterns like "ET1", "task 123", "ID: 123", etc.
 
@@ -720,19 +720,19 @@ func (e *EvidenceValidatorTool) extractTaskIDFromContent(content string) int {
 			matches := re.FindStringSubmatch(strings.ToUpper(line))
 			if len(matches) > 1 {
 				if num := parseIntSafe(matches[1]); num > 0 {
-					return 327991 + num // Convert ET reference to internal ID
+					return strconv.Itoa(327991 + num) // Convert ET reference to internal ID
 				}
 			}
 		}
 	}
 
-	return 0 // Unknown task ID
+	return "" // Unknown task ID
 }
 
-func (e *EvidenceValidatorTool) resolveTaskID(ctx context.Context, taskRef string) (int, error) {
-	// First try to parse as integer
-	if taskID := parseIntSafe(taskRef); taskID > 0 {
-		return taskID, nil
+func (e *EvidenceValidatorTool) resolveTaskID(ctx context.Context, taskRef string) (string, error) {
+	// First try to parse as numeric string (keep as-is)
+	if _, err := strconv.Atoi(taskRef); err == nil {
+		return taskRef, nil
 	}
 
 	// Try to parse as reference ID (e.g., "ET1", "ET42")
@@ -740,7 +740,7 @@ func (e *EvidenceValidatorTool) resolveTaskID(ctx context.Context, taskRef strin
 		// Get all tasks to find by reference ID
 		tasks, err := e.dataService.GetAllEvidenceTasks(ctx)
 		if err != nil {
-			return 0, fmt.Errorf("failed to get evidence tasks: %w", err)
+			return "", fmt.Errorf("failed to get evidence tasks: %w", err)
 		}
 
 		// Search for matching reference ID
@@ -750,10 +750,10 @@ func (e *EvidenceValidatorTool) resolveTaskID(ctx context.Context, taskRef strin
 				return task.ID, nil
 			}
 		}
-		return 0, fmt.Errorf("evidence task with reference ID %s not found", taskRef)
+		return "", fmt.Errorf("evidence task with reference ID %s not found", taskRef)
 	}
 
-	return 0, fmt.Errorf("invalid task identifier: %s", taskRef)
+	return "", fmt.Errorf("invalid task identifier: %s", taskRef)
 }
 
 // Helper functions

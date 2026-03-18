@@ -223,7 +223,7 @@ func TestExecuteToolForDataCollection_UnknownTool(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 
@@ -258,7 +258,7 @@ func TestExecuteToolForDataCollection_DisabledTool(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 
@@ -307,7 +307,7 @@ func TestGenerateDataPackage_Structure(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Generate evidence for SOC2 compliance",
 	}
 
@@ -324,7 +324,7 @@ func TestGenerateDataPackage_Structure(t *testing.T) {
 	require.NotNil(t, pkg)
 
 	// Verify package structure
-	assert.Equal(t, 123, pkg.TaskID)
+	assert.Equal(t, "123", pkg.TaskID)
 	assert.Equal(t, prompt.PromptText, pkg.Prompt)
 	assert.NotZero(t, pkg.GeneratedAt)
 	assert.NotNil(t, pkg.ToolOutputs)
@@ -369,7 +369,7 @@ func TestGenerateDataPackage_MaxToolCallsLimit(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 
@@ -401,7 +401,7 @@ func TestGenerateDataPackage_EmptyToolList(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 
@@ -439,7 +439,7 @@ func TestGenerateDataPackage_ContextCancellation(t *testing.T) {
 	cancel() // Cancel immediately
 
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 
@@ -477,7 +477,7 @@ func TestExecuteToolForDataCollection_Aliases(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 
@@ -547,7 +547,7 @@ func TestGenerateDataPackage_ToolCounterIncrement(t *testing.T) {
 
 	ctx := context.Background()
 	prompt := &models.EvidencePrompt{
-		TaskID:     123,
+		TaskID: "123",
 		PromptText: "Test prompt",
 	}
 

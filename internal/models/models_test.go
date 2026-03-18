@@ -129,7 +129,7 @@ func TestEvidenceContext_JSONMarshaling(t *testing.T) {
 	ctx := EvidenceContext{
 		Task: EvidenceTaskDetails{
 			EvidenceTask: EvidenceTask{
-				ID:          123,
+				ID: "123",
 				Name:        "Test Task",
 				Description: "Test description",
 				Created:     now,
@@ -256,7 +256,7 @@ func TestGitHubAccessControlMatrix_JSONMarshaling(t *testing.T) {
 		Collaborators: []GitHubCollaborator{
 			{
 				Login: "user1",
-				ID:    123,
+				ID: 123,
 				Type:  "User",
 				Permissions: GitHubPermissions{
 					Permission: "admin",
@@ -268,7 +268,7 @@ func TestGitHubAccessControlMatrix_JSONMarshaling(t *testing.T) {
 		},
 		Teams: []GitHubTeam{
 			{
-				ID:   456,
+				ID: 456,
 				Name: "Engineering",
 				Slug: "engineering",
 			},
@@ -304,7 +304,7 @@ func TestGitHubAccessControlMatrix_JSONMarshaling(t *testing.T) {
 func TestGeneratedEvidence_JSONMarshaling(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	evidence := GeneratedEvidence{
-		TaskID:          123,
+		TaskID: "123",
 		GeneratedAt:     now,
 		GeneratedBy:     "claude-3-5-sonnet",
 		EvidenceFormat:  "csv",
@@ -696,7 +696,7 @@ func TestInfrastructureTopology_JSONMarshaling(t *testing.T) {
 func TestEvidenceDataPackage_JSONMarshaling(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	pkg := EvidenceDataPackage{
-		TaskID:      123,
+		TaskID: "123",
 		GeneratedAt: now,
 		Prompt:      "Generate SOC2 compliance evidence",
 		ToolOutputs: []ToolOutput{

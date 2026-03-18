@@ -112,7 +112,7 @@ func SamplePolicy() *domain.Policy {
 // SampleControl returns a valid test Control with realistic compliance data.
 func SampleControl() *domain.Control {
 	return &domain.Control{
-		ID:          1001,
+		ID:          "1001",
 		ReferenceID: "CC-06.1",
 		Name:        "Logical Access Security",
 		Description: "The entity implements logical access security software, infrastructure, and architectures over protected information assets.",
@@ -128,7 +128,7 @@ func SampleControl() *domain.Control {
 func SampleEvidenceTask() *domain.EvidenceTask {
 	now := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
 	return &domain.EvidenceTask{
-		ID:                 327992,
+		ID:                 "327992",
 		ReferenceID:        "ET-0047",
 		Name:               "GitHub Repository Access Controls",
 		Description:        "Provide evidence of repository access controls including team permissions, branch protections, and code review requirements.",
@@ -150,7 +150,7 @@ func SampleEvidenceTask() *domain.EvidenceTask {
 func SampleEvidenceRecord() *domain.EvidenceRecord {
 	return &domain.EvidenceRecord{
 		ID:          "rec-001",
-		TaskID:      327992,
+		TaskID:      "327992",
 		Title:       "GitHub Repository Access Controls - Q1 2025",
 		Description: "Automated evidence collection of GitHub repository access controls.",
 		Content:     "Repository: org/main-app\nTeams with access: engineering (write), security (admin), devops (maintain)",

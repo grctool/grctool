@@ -213,7 +213,7 @@ func TestStateCache_GetSetTask(t *testing.T) {
 	// Set and get
 	state := &EvidenceTaskState{
 		TaskRef:  "ET-0001",
-		TaskID:   1,
+		TaskID: "1",
 		TaskName: "Test Task",
 	}
 	cache.SetTask("ET-0001", state)
@@ -221,7 +221,7 @@ func TestStateCache_GetSetTask(t *testing.T) {
 	got, exists := cache.GetTask("ET-0001")
 	require.True(t, exists)
 	assert.Equal(t, "ET-0001", got.TaskRef)
-	assert.Equal(t, 1, got.TaskID)
+	assert.Equal(t, "1", got.TaskID)
 
 	// SetTask updates LastScan
 	beforeSet := cache.LastScan
@@ -314,7 +314,7 @@ func TestEvidenceTaskState_JSONRoundTrip(t *testing.T) {
 
 	state := EvidenceTaskState{
 		TaskRef:          "ET-0001",
-		TaskID:           1,
+		TaskID: "1",
 		TaskName:         "Test Task",
 		TugboatStatus:    "in_progress",
 		TugboatCompleted: false,
@@ -401,7 +401,7 @@ func TestStateCache_JSONRoundTrip(t *testing.T) {
 	cache := NewStateCache()
 	cache.SetTask("ET-0001", &EvidenceTaskState{
 		TaskRef:    "ET-0001",
-		TaskID:     1,
+		TaskID: "1",
 		LocalState: StateGenerated,
 	})
 

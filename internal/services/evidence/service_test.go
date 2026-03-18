@@ -24,13 +24,13 @@ type stubDataService struct {
 	policies []domain.Policy
 }
 
-func (s *stubDataService) GetEvidenceTask(_ context.Context, taskID int) (*domain.EvidenceTask, error) {
+func (s *stubDataService) GetEvidenceTask(_ context.Context, taskID string) (*domain.EvidenceTask, error) {
 	for _, t := range s.tasks {
 		if t.ID == taskID {
 			return &t, nil
 		}
 	}
-	return nil, fmt.Errorf("task not found: %d", taskID)
+	return nil, fmt.Errorf("task not found: %s", taskID)
 }
 
 func (s *stubDataService) GetAllEvidenceTasks(_ context.Context) ([]domain.EvidenceTask, error) {
@@ -43,7 +43,7 @@ func (s *stubDataService) FilterEvidenceTasks(_ context.Context, _ domain.Eviden
 
 func (s *stubDataService) GetControl(_ context.Context, controlID string) (*domain.Control, error) {
 	for _, c := range s.controls {
-		if fmt.Sprintf("%d", c.ID) == controlID {
+		if fmt.Sprintf("%s", c.ID) == controlID {
 			return &c, nil
 		}
 	}
@@ -75,7 +75,7 @@ func (s *stubDataService) SaveEvidenceRecord(_ context.Context, _ *domain.Eviden
 	return nil
 }
 
-func (s *stubDataService) GetEvidenceRecords(_ context.Context, _ int) ([]domain.EvidenceRecord, error) {
+func (s *stubDataService) GetEvidenceRecords(_ context.Context, _ string) ([]domain.EvidenceRecord, error) {
 	return nil, nil
 }
 
@@ -151,8 +151,8 @@ func TestListEvidenceTasks(t *testing.T) {
 	t.Parallel()
 	ds := &stubDataService{
 		tasks: []domain.EvidenceTask{
-			{ID: 1, ReferenceID: "ET0001", Name: "Task A", Framework: "SOC2", Status: "pending"},
-			{ID: 2, ReferenceID: "ET0002", Name: "Task B", Framework: "SOC2", Status: "completed"},
+			{ID: "1", ReferenceID: "ET0001", Name: "Task A", Framework: "SOC2", Status: "pending"},
+			{ID: "2", ReferenceID: "ET0002", Name: "Task B", Framework: "SOC2", Status: "completed"},
 		},
 	}
 	svc := newTestService(t, ds)
@@ -180,8 +180,8 @@ func TestGetEvidenceTaskSummary(t *testing.T) {
 	t.Parallel()
 	ds := &stubDataService{
 		tasks: []domain.EvidenceTask{
-			{ID: 1, Status: "pending", Priority: "high"},
-			{ID: 2, Status: "completed", Priority: "medium"},
+			{ID: "1", Status: "pending", Priority: "high"},
+			{ID: "2", Status: "completed", Priority: "medium"},
 		},
 	}
 	svc := newTestService(t, ds)
@@ -211,11 +211,11 @@ func TestMapEvidenceRelationships_WithData(t *testing.T) {
 	t.Parallel()
 	ds := &stubDataService{
 		tasks: []domain.EvidenceTask{
-			{ID: 1, Framework: "SOC2", Status: "pending", Priority: "high"},
-			{ID: 2, Framework: "ISO27001", Status: "completed", Priority: "medium"},
+			{ID: "1", Framework: "SOC2", Status: "pending", Priority: "high"},
+			{ID: "2", Framework: "ISO27001", Status: "completed", Priority: "medium"},
 		},
 		controls: []domain.Control{
-			{ID: 1001, Name: "Control A"},
+			{ID: "1001", Name: "Control A"},
 		},
 		policies: []domain.Policy{
 			{ID: "1", Name: "Policy A"},
@@ -242,7 +242,7 @@ func sampleEvidenceContext() *models.EvidenceContext {
 	return &models.EvidenceContext{
 		Task: models.EvidenceTaskDetails{
 			EvidenceTask: models.EvidenceTask{
-				ID:                 327992,
+	ID: "327992",
 				ReferenceID:        "ET-0047",
 				Name:               "GitHub Repository Access Controls",
 				Description:        "Provide evidence of repository access controls.",
@@ -255,7 +255,7 @@ func sampleEvidenceContext() *models.EvidenceContext {
 		},
 		Controls: []models.Control{
 			{
-				ID:       1001,
+	ID: "1001",
 				Name:     "Logical Access Security",
 				Category: "Common Criteria",
 				Status:   "implemented",
@@ -279,7 +279,7 @@ func sampleEvidenceContext() *models.EvidenceContext {
 			{Name: "github-permissions", Enabled: true},
 			{Name: "terraform-security-analyzer", Enabled: true},
 		},
-		ControlSummaries: make(map[int]models.AIControlSummary),
+		ControlSummaries: make(map[string]models.AIControlSummary),
 		PolicySummaries:  make(map[string]models.AIPolicySummary),
 	}
 }
@@ -580,7 +580,7 @@ func TestResolveTaskID_NumericID(t *testing.T) {
 
 	id, err := svc.ResolveTaskID(context.Background(), "327992")
 	require.NoError(t, err)
-	assert.Equal(t, 327992, id)
+	assert.Equal(t, "327992", id)
 }
 
 func TestResolveTaskID_ReferenceID(t *testing.T) {
@@ -588,15 +588,15 @@ func TestResolveTaskID_ReferenceID(t *testing.T) {
 	svc := &ServiceImpl{
 		dataService: &stubDataService{
 			tasks: []domain.EvidenceTask{
-				{ID: 100, ReferenceID: "ET0001"},
-				{ID: 200, ReferenceID: "ET0002"},
+				{ID: "100", ReferenceID: "ET0001"},
+				{ID: "200", ReferenceID: "ET0002"},
 			},
 		},
 	}
 
 	id, err := svc.ResolveTaskID(context.Background(), "ET0002")
 	require.NoError(t, err)
-	assert.Equal(t, 200, id)
+	assert.Equal(t, "200", id)
 }
 
 func TestResolveTaskID_ReferenceID_NotFound(t *testing.T) {
@@ -604,7 +604,7 @@ func TestResolveTaskID_ReferenceID_NotFound(t *testing.T) {
 	svc := &ServiceImpl{
 		dataService: &stubDataService{
 			tasks: []domain.EvidenceTask{
-				{ID: 100, ReferenceID: "ET0001"},
+				{ID: "100", ReferenceID: "ET0001"},
 			},
 		},
 	}
@@ -630,14 +630,14 @@ func TestResolveTaskID_LowerCaseET(t *testing.T) {
 	svc := &ServiceImpl{
 		dataService: &stubDataService{
 			tasks: []domain.EvidenceTask{
-				{ID: 100, ReferenceID: "ET0001"},
+				{ID: "100", ReferenceID: "ET0001"},
 			},
 		},
 	}
 
 	id, err := svc.ResolveTaskID(context.Background(), "et0001")
 	require.NoError(t, err)
-	assert.Equal(t, 100, id)
+	assert.Equal(t, "100", id)
 }
 
 // ---------------------------------------------------------------------------
@@ -650,7 +650,7 @@ func TestConvertToModelsTask(t *testing.T) {
 	now := time.Now()
 
 	task := &domain.EvidenceTask{
-		ID:                 327992,
+	ID: "327992",
 		ReferenceID:        "ET-0047",
 		Name:               "GitHub Repository Access Controls",
 		Description:        "Provide evidence.",
@@ -663,7 +663,7 @@ func TestConvertToModelsTask(t *testing.T) {
 	}
 
 	result := svc.convertToModelsTask(task)
-	assert.Equal(t, 327992, result.ID)
+	assert.Equal(t, "327992", result.ID)
 	assert.Equal(t, "ET-0047", result.ReferenceID)
 	assert.Equal(t, "GitHub Repository Access Controls", result.Name)
 	assert.NotNil(t, result.LastCollected)
@@ -674,7 +674,7 @@ func TestConvertToModelsTask_NilLastCollected(t *testing.T) {
 	svc := &ServiceImpl{}
 
 	task := &domain.EvidenceTask{
-		ID:            1,
+	ID: "1",
 		LastCollected: nil,
 	}
 
@@ -688,7 +688,7 @@ func TestConvertToModelsControls(t *testing.T) {
 
 	controls := []domain.Control{
 		{
-			ID:          1001,
+	ID: "1001",
 			Name:        "Logical Access",
 			Description: "Access security.",
 			Category:    "Common Criteria",
@@ -701,7 +701,7 @@ func TestConvertToModelsControls(t *testing.T) {
 
 	result := svc.convertToModelsControls(controls)
 	require.Len(t, result, 1)
-	assert.Equal(t, 1001, result[0].ID)
+	assert.Equal(t, "1001", result[0].ID)
 	assert.Equal(t, "Access security.", result[0].Body)
 	assert.Len(t, result[0].FrameworkCodes, 1)
 }
@@ -712,10 +712,10 @@ func TestConvertToModelsControls_WithOrgScope(t *testing.T) {
 
 	controls := []domain.Control{
 		{
-			ID:   1001,
+	ID: "1001",
 			Name: "Test Control",
 			OrgScope: &domain.OrgScope{
-				ID:          42,
+	ID: 42,
 				Name:        "Production",
 				Type:        "environment",
 				Description: "Prod scope",
@@ -773,21 +773,21 @@ func TestCalculateMapSummary(t *testing.T) {
 
 	tasks := []domain.EvidenceTask{
 		{
-			ID:        1,
+	ID: "1",
 			Framework: "SOC2",
 			Status:    "pending",
 			Priority:  "high",
 			NextDue:   &pastDue,
 		},
 		{
-			ID:        2,
+	ID: "2",
 			Framework: "SOC2",
 			Status:    "completed",
 			Priority:  "medium",
 			NextDue:   &futureDue,
 		},
 		{
-			ID:        3,
+	ID: "3",
 			Framework: "ISO27001",
 			Status:    "pending",
 			Priority:  "high",
@@ -796,8 +796,8 @@ func TestCalculateMapSummary(t *testing.T) {
 	}
 
 	controls := []domain.Control{
-		{ID: 1001, Name: "Control A"},
-		{ID: 1002, Name: "Control B"},
+		{ID: "1001", Name: "Control A"},
+		{ID: "1002", Name: "Control B"},
 	}
 
 	policies := []domain.Policy{
@@ -904,8 +904,8 @@ func TestEnrichTasksWithURLs_WithBaseURL(t *testing.T) {
 	}
 
 	tasks := []domain.EvidenceTask{
-		{ID: 100, OrgID: 42},
-		{ID: 200, OrgID: 0}, // Will use config OrgID
+		{ID: "100", OrgID: 42},
+		{ID: "200", OrgID: 0}, // Will use config OrgID
 	}
 
 	svc.enrichTasksWithURLs(tasks)
@@ -927,7 +927,7 @@ func TestEnrichTasksWithURLs_EmptyBaseURL(t *testing.T) {
 	}
 
 	tasks := []domain.EvidenceTask{
-		{ID: 100, OrgID: 42},
+		{ID: "100", OrgID: 42},
 	}
 
 	svc.enrichTasksWithURLs(tasks)
@@ -946,7 +946,7 @@ func TestEnrichTasksWithURLs_ZeroID(t *testing.T) {
 	}
 
 	tasks := []domain.EvidenceTask{
-		{ID: 0, OrgID: 42}, // Zero ID, should not generate URL
+		{ID: "", OrgID: 42}, // Zero ID, should not generate URL
 	}
 
 	svc.enrichTasksWithURLs(tasks)
@@ -965,7 +965,7 @@ func TestEnrichTasksWithURLs_ZeroOrgID(t *testing.T) {
 	}
 
 	tasks := []domain.EvidenceTask{
-		{ID: 100, OrgID: 0}, // Zero org on task, non-parseable config org
+		{ID: "100", OrgID: 0}, // Zero org on task, non-parseable config org
 	}
 
 	svc.enrichTasksWithURLs(tasks)

@@ -133,7 +133,7 @@ func TestStorage_SaveControl(t *testing.T) {
 	}{
 		"valid control": {
 			control: &domain.Control{
-				ID:          778805,
+	ID: "778805",
 				ReferenceID: "AC-01",
 				Name:        "Access Control",
 				Description: "Control description",
@@ -145,7 +145,7 @@ func TestStorage_SaveControl(t *testing.T) {
 		},
 		"control without reference ID": {
 			control: &domain.Control{
-				ID:          778806,
+	ID: "778806",
 				Name:        "Another Control",
 				Description: "Control description",
 			},
@@ -186,7 +186,7 @@ func TestStorage_SaveEvidenceTask(t *testing.T) {
 	}{
 		"valid evidence task": {
 			task: &domain.EvidenceTask{
-				ID:                 327992,
+	ID: "327992",
 				ReferenceID:        "ET-0001",
 				Name:               "Test Evidence Task",
 				Description:        "Task description",
@@ -197,7 +197,7 @@ func TestStorage_SaveEvidenceTask(t *testing.T) {
 		},
 		"task with details": {
 			task: &domain.EvidenceTask{
-				ID:          327993,
+	ID: "327993",
 				ReferenceID: "ET-0002",
 				Name:        "Detailed Task",
 				Description: "Task with details",
@@ -283,13 +283,13 @@ func TestStorage_GetAllControls(t *testing.T) {
 	// Save some test controls
 	controls := []*domain.Control{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "AC-01",
 			Name:        "Control 1",
 			Description: "Description 1",
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "AC-02",
 			Name:        "Control 2",
 			Description: "Description 2",
@@ -315,13 +315,13 @@ func TestStorage_GetAllEvidenceTasks(t *testing.T) {
 	// Save some test tasks
 	tasks := []*domain.EvidenceTask{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "ET-0001",
 			Name:        "Task 1",
 			Description: "Description 1",
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "ET-0002",
 			Name:        "Task 2",
 			Description: "Description 2",
@@ -376,7 +376,7 @@ func TestStorage_GetControlByReferenceAndID(t *testing.T) {
 
 	// Save a test control
 	control := &domain.Control{
-		ID:          778805,
+	ID: "778805",
 		ReferenceID: "AC-01",
 		Name:        "Access Control",
 		Description: "Control description",
@@ -404,7 +404,7 @@ func TestStorage_SaveEvidenceRecord(t *testing.T) {
 
 	record := &domain.EvidenceRecord{
 		ID:          "rec-001",
-		TaskID:      327992,
+		TaskID: "327992",
 		Title:       "Test Evidence",
 		Description: "Evidence description",
 		Content:     "Evidence content",
@@ -469,12 +469,12 @@ func TestStorage_ClearData(t *testing.T) {
 		UpdatedAt:   time.Now(),
 	}
 	control := &domain.Control{
-		ID:          1,
+	ID: "1",
 		ReferenceID: "AC-01",
 		Name:        "Test Control",
 	}
 	task := &domain.EvidenceTask{
-		ID:          1,
+	ID: "1",
 		ReferenceID: "ET-0001",
 		Name:        "Test Task",
 	}
@@ -543,7 +543,7 @@ func TestStorage_GetStatistics(t *testing.T) {
 
 	for i := 1; i <= 2; i++ {
 		control := &domain.Control{
-			ID:          i,
+			ID: strconv.Itoa(i),
 			ReferenceID: fmt.Sprintf("AC-%02d", i),
 			Name:        fmt.Sprintf("Control %d", i),
 		}

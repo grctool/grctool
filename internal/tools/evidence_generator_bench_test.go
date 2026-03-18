@@ -116,7 +116,7 @@ func BenchmarkEvidenceGenerator_CoordinateSubTools(b *testing.B) {
 	ctx := context.Background()
 	generator := setupBenchmarkEvidenceGenerator(b)
 
-	taskID := 327992 // Sample task ID
+	taskID := "327992" // Sample task ID
 	prompt := "Generate evidence for access control implementation"
 	tools := []string{"terraform", "github", "docs"}
 
@@ -136,7 +136,7 @@ func BenchmarkEvidenceGenerator_GenerateFinalEvidence(b *testing.B) {
 	ctx := context.Background()
 	generator := setupBenchmarkEvidenceGenerator(b)
 
-	taskID := 327992
+	taskID := "327992"
 	prompt := "Generate evidence for access control implementation"
 	sources := createMockEvidenceSources(5) // 5 mock sources
 	synthesis := "Evidence synthesis summary with detailed analysis of findings"
@@ -190,7 +190,7 @@ Requirements:
 
 	for i := 0; i < b.N; i++ {
 		taskID := generator.extractTaskIDFromPrompt(promptContent)
-		if taskID == 0 {
+		if taskID == "" {
 			b.Fatal("Failed to extract task ID from prompt")
 		}
 	}
@@ -223,7 +223,7 @@ func BenchmarkEvidenceGenerator_FileOperations(b *testing.B) {
 	tempDir := b.TempDir()
 
 	result := &EvidenceGenerationResult{
-		TaskID:      327992,
+		TaskID: "327992",
 		Content:     createLargeEvidenceContent(5000), // 5KB of content
 		Format:      "markdown",
 		GeneratedAt: time.Now(),
@@ -245,7 +245,7 @@ func BenchmarkEvidenceGenerator_JSONSerialization(b *testing.B) {
 	ctx := context.Background()
 	generator := setupBenchmarkEvidenceGenerator(b)
 
-	taskID := 327992
+	taskID := "327992"
 	prompt := "Generate evidence for access control implementation"
 	sources := createMockEvidenceSources(10)                                            // 10 mock sources for larger JSON
 	synthesis := strings.Repeat("Detailed analysis with comprehensive findings. ", 100) // Large synthesis

@@ -40,9 +40,8 @@ type storageAdapterEvaluate struct {
 	storage *storage.Storage
 }
 
-func (sa *storageAdapterEvaluate) GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTask, error) {
-	idStr := fmt.Sprintf("%d", taskID)
-	return sa.storage.GetEvidenceTask(idStr)
+func (sa *storageAdapterEvaluate) GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTask, error) {
+	return sa.storage.GetEvidenceTask(taskID)
 }
 
 var evidenceEvaluateCmd = &cobra.Command{

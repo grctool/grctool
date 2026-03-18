@@ -17,7 +17,6 @@ package tools
 
 import (
 	"context"
-	"strconv"
 
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/storage"
@@ -26,9 +25,9 @@ import (
 // DataServiceInterface defines the interface for data access operations
 // This avoids circular imports with the services package
 type DataServiceInterface interface {
-	GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTaskDetails, error)
+	GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTaskDetails, error)
 	GetAllEvidenceTasks(ctx context.Context) ([]domain.EvidenceTask, error)
-	GetEvidenceRecords(ctx context.Context, taskID int) ([]domain.EvidenceRecord, error)
+	GetEvidenceRecords(ctx context.Context, taskID string) ([]domain.EvidenceRecord, error)
 	GetPolicy(ctx context.Context, policyID string) (*domain.Policy, error)
 	GetControl(ctx context.Context, controlID string) (*domain.Control, error)
 }
@@ -38,10 +37,8 @@ type SimpleDataService struct {
 	storage *storage.Storage
 }
 
-func (s *SimpleDataService) GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTaskDetails, error) {
-	// Convert int to string for storage call
-	taskIDStr := strconv.Itoa(taskID)
-	basicTask, err := s.storage.GetEvidenceTask(taskIDStr)
+func (s *SimpleDataService) GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTaskDetails, error) {
+	basicTask, err := s.storage.GetEvidenceTask(taskID)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +51,7 @@ func (s *SimpleDataService) GetAllEvidenceTasks(ctx context.Context) ([]domain.E
 	return s.storage.GetAllEvidenceTasks()
 }
 
-func (s *SimpleDataService) GetEvidenceRecords(ctx context.Context, taskID int) ([]domain.EvidenceRecord, error) {
+func (s *SimpleDataService) GetEvidenceRecords(ctx context.Context, taskID string) ([]domain.EvidenceRecord, error) {
 	// This would be implemented when evidence records are stored
 	return []domain.EvidenceRecord{}, nil
 }

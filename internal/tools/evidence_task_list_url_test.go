@@ -37,8 +37,8 @@ func TestEvidenceTaskListTool_enrichTasksWithURLs(t *testing.T) {
 			baseURL: "https://api-my.tugboatlogic.com",
 			orgID:   "13888",
 			tasks: []domain.EvidenceTask{
-				{ID: 327992, OrgID: 13888, ReferenceID: "ET-001", Name: "Test Task 1"},
-				{ID: 12345, OrgID: 13888, ReferenceID: "ET-002", Name: "Test Task 2"},
+				{ID: "327992", OrgID: 13888, ReferenceID: "ET-001", Name: "Test Task 1"},
+				{ID: "12345", OrgID: 13888, ReferenceID: "ET-002", Name: "Test Task 2"},
 			},
 			wantURLs: []string{
 				"https://my.tugboatlogic.com/org/13888/evidence/tasks/327992",
@@ -53,11 +53,11 @@ func TestEvidenceTaskListTool_enrichTasksWithURLs(t *testing.T) {
 			wantURLs: []string{},
 		},
 		{
-			name:    "skips tasks with zero ID",
+			name:    "skips tasks with empty ID",
 			baseURL: "https://api-my.tugboatlogic.com",
 			orgID:   "13888",
 			tasks: []domain.EvidenceTask{
-				{ID: 0, OrgID: 13888, ReferenceID: "ET-001", Name: "Test Task"},
+				{ID: "", OrgID: 13888, ReferenceID: "ET-001", Name: "Test Task"},
 			},
 			wantURLs: []string{""},
 		},
@@ -66,7 +66,7 @@ func TestEvidenceTaskListTool_enrichTasksWithURLs(t *testing.T) {
 			baseURL: "https://app.tugboatlogic.com",
 			orgID:   "13888",
 			tasks: []domain.EvidenceTask{
-				{ID: 100, OrgID: 13888, ReferenceID: "ET-001", Name: "Test Task"},
+				{ID: "100", OrgID: 13888, ReferenceID: "ET-001", Name: "Test Task"},
 			},
 			wantURLs: []string{
 				"https://app.tugboatlogic.com/org/13888/evidence/tasks/100",
@@ -76,7 +76,7 @@ func TestEvidenceTaskListTool_enrichTasksWithURLs(t *testing.T) {
 			name:     "handles empty base URL gracefully",
 			baseURL:  "",
 			orgID:    "13888",
-			tasks:    []domain.EvidenceTask{{ID: 100, OrgID: 13888, ReferenceID: "ET-001"}},
+			tasks:    []domain.EvidenceTask{{ID: "100", OrgID: 13888, ReferenceID: "ET-001"}},
 			wantURLs: []string{""},
 		},
 		{
@@ -84,7 +84,7 @@ func TestEvidenceTaskListTool_enrichTasksWithURLs(t *testing.T) {
 			baseURL: "https://api-my.tugboatlogic.com",
 			orgID:   "54321",
 			tasks: []domain.EvidenceTask{
-				{ID: 100, OrgID: 0, ReferenceID: "ET-001", Name: "Test Task"},
+				{ID: "100", OrgID: 0, ReferenceID: "ET-001", Name: "Test Task"},
 			},
 			wantURLs: []string{
 				"https://my.tugboatlogic.com/org/54321/evidence/tasks/100",

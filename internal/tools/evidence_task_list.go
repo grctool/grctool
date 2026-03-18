@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -437,7 +438,12 @@ func (e *EvidenceTaskListTool) enrichTasksWithURLs(tasks []domain.EvidenceTask) 
 	}
 
 	for i := range tasks {
-		if tasks[i].ID > 0 {
+		if tasks[i].ID != "" {
+			// Convert string ID to int for URL building (Tugboat API uses int)
+			taskIDInt, err := strconv.Atoi(tasks[i].ID)
+			if err != nil {
+				continue
+			}
 			// Use task's org ID if available, otherwise use config org ID
 			orgID := tasks[i].OrgID
 			if orgID == 0 {
@@ -447,7 +453,7 @@ func (e *EvidenceTaskListTool) enrichTasksWithURLs(tasks []domain.EvidenceTask) 
 			}
 
 			if orgID > 0 {
-				tasks[i].TugboatURL = tugboat.BuildEvidenceTaskURL(e.config.Tugboat.BaseURL, orgID, tasks[i].ID)
+				tasks[i].TugboatURL = tugboat.BuildEvidenceTaskURL(e.config.Tugboat.BaseURL, orgID, taskIDInt)
 			}
 		}
 	}

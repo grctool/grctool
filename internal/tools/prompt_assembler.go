@@ -207,7 +207,7 @@ func (pat *PromptAssemblerTool) Execute(ctx context.Context, params map[string]i
 	"success": true,
 	"prompt_text": %q,
 	"prompt_metadata": {
-		"task_id": %d,
+		"task_id": %q,
 		"reference_id": %q,
 		"context_level": %q,
 		"include_examples": %t,
@@ -280,7 +280,7 @@ func (pat *PromptAssemblerTool) buildBasicEvidenceContext(ctx context.Context, t
 		Task:             *modelsTask,
 		Controls:         []models.Control{}, // Simplified - not loading related controls
 		Policies:         []models.Policy{},  // Simplified - not loading related policies
-		ControlSummaries: make(map[int]models.AIControlSummary),
+		ControlSummaries: make(map[string]models.AIControlSummary),
 		PolicySummaries:  make(map[string]models.AIPolicySummary),
 		FrameworkReqs:    pat.extractBasicFrameworkRequirements(task),
 		PreviousEvidence: []string{}, // Could be enhanced to include past submissions
@@ -439,7 +439,7 @@ func (pat *PromptAssemblerTool) savePromptToFile(promptText string, task *domain
 	sanitizedName := baseFormatter.SanitizeFilename(task.Name)
 
 	timestamp := time.Now().Format("20060102_150405")
-	filename := fmt.Sprintf("prompt_%s_%d_%s_%s.md",
+	filename := fmt.Sprintf("prompt_%s_%s_%s_%s.md",
 		task.ReferenceID,
 		task.ID,
 		sanitizedName,
@@ -557,16 +557,16 @@ func (pat *PromptAssemblerTool) calculateRelevance(context *models.EvidenceConte
 	return base
 }
 
-func (pat *PromptAssemblerTool) parseTaskReference(taskRef string) (int, error) {
+func (pat *PromptAssemblerTool) parseTaskReference(taskRef string) (string, error) {
 	validator := NewValidator(pat.config.Storage.DataDir)
 
 	result, err := validator.ValidateTaskReference(taskRef)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	if !result.Valid {
-		return 0, fmt.Errorf("invalid task reference format")
+		return "", fmt.Errorf("invalid task reference format")
 	}
 
 	normalizedRef := result.Normalized["task_ref"]
@@ -574,12 +574,15 @@ func (pat *PromptAssemblerTool) parseTaskReference(taskRef string) (int, error) 
 		normalizedRef = taskRef
 	}
 
-	taskID, err := strconv.Atoi(normalizedRef)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert task reference to numeric ID: %w", err)
+	if _, err := strconv.Atoi(normalizedRef); err == nil {
+		return normalizedRef, nil
 	}
 
-	return taskID, nil
+	if taskID, exists := result.Normalized["task_id"]; exists && taskID != "" {
+		return taskID, nil
+	}
+
+	return normalizedRef, nil
 }
 
 func (pat *PromptAssemblerTool) Category() string {

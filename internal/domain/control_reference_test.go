@@ -110,23 +110,23 @@ func TestControlReferenceProcessor_ProcessControlReferences(t *testing.T) {
 	// Create test controls
 	controls := []Control{
 		{
-			ID:   1,
+	ID: "1",
 			Name: "AC1 - Access Provisioning and Approval",
 		},
 		{
-			ID:   2,
+	ID: "2",
 			Name: "AA2 - Unique IDs and Strong Passwords - Applications",
 		},
 		{
-			ID:   3,
+	ID: "3",
 			Name: "Security Awareness Training",
 		},
 		{
-			ID:   4,
+	ID: "4",
 			Name: "Backup and Recovery Procedures",
 		},
 		{
-			ID:   5,
+	ID: "5",
 			Name: "OM2 - Owners are involved in day-to-day operations",
 		},
 	}
@@ -140,29 +140,29 @@ func TestControlReferenceProcessor_ProcessControlReferences(t *testing.T) {
 	}
 
 	// Check that controls with existing reference IDs are processed correctly
-	expectedResults := map[int]struct {
+	expectedResults := map[string]struct {
 		refID string
 		name  string
 	}{
-		1: {"AC1", "Access Provisioning and Approval"},
-		2: {"AA2", "Unique IDs and Strong Passwords - Applications"},
-		3: {"C2", "Security Awareness Training"},    // "Security Awareness Training" alphabetically after "Backup and Recovery Procedures"
-		4: {"C1", "Backup and Recovery Procedures"}, // "Backup and Recovery Procedures" alphabetically first
-		5: {"OM2", "Owners are involved in day-to-day operations"},
+		"1": {"AC1", "Access Provisioning and Approval"},
+		"2": {"AA2", "Unique IDs and Strong Passwords - Applications"},
+		"3": {"C2", "Security Awareness Training"},    // "Security Awareness Training" alphabetically after "Backup and Recovery Procedures"
+		"4": {"C1", "Backup and Recovery Procedures"}, // "Backup and Recovery Procedures" alphabetically first
+		"5": {"OM2", "Owners are involved in day-to-day operations"},
 	}
 
 	for _, control := range processedControls {
 		expected, exists := expectedResults[control.ID]
 		if !exists {
-			t.Errorf("Unexpected control ID: %d", control.ID)
+			t.Errorf("Unexpected control ID: %s", control.ID)
 			continue
 		}
 
 		if control.ReferenceID != expected.refID {
-			t.Errorf("Control %d: ReferenceID = %v, expected %v", control.ID, control.ReferenceID, expected.refID)
+			t.Errorf("Control %s: ReferenceID = %v, expected %v", control.ID, control.ReferenceID, expected.refID)
 		}
 		if control.Name != expected.name {
-			t.Errorf("Control %d: Name = %v, expected %v", control.ID, control.Name, expected.name)
+			t.Errorf("Control %s: Name = %v, expected %v", control.ID, control.Name, expected.name)
 		}
 	}
 }

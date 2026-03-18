@@ -80,12 +80,11 @@ func (s *ServiceImpl) GetEvidenceTaskSummary(ctx context.Context) (*domain.Evide
 	return s.evidenceService.GetEvidenceTaskSummary(ctx)
 }
 
-// ResolveTaskID converts a task identifier (numeric ID or reference ID) to a numeric task ID
-func (s *ServiceImpl) ResolveTaskID(ctx context.Context, identifier string) (int, error) {
-	// First try to parse as integer
-	taskID, err := strconv.Atoi(identifier)
-	if err == nil {
-		return taskID, nil
+// ResolveTaskID converts a task identifier (numeric ID or reference ID) to a task ID string
+func (s *ServiceImpl) ResolveTaskID(ctx context.Context, identifier string) (string, error) {
+	// First try to parse as numeric string (keep as-is)
+	if _, err := strconv.Atoi(identifier); err == nil {
+		return identifier, nil
 	}
 
 	// Try to parse as reference ID (e.g., "ET1", "ET42")
@@ -93,7 +92,7 @@ func (s *ServiceImpl) ResolveTaskID(ctx context.Context, identifier string) (int
 		// Get all tasks to find by reference ID
 		tasks, err := s.dataService.GetAllEvidenceTasks(ctx)
 		if err != nil {
-			return 0, fmt.Errorf("failed to get evidence tasks: %w", err)
+			return "", fmt.Errorf("failed to get evidence tasks: %w", err)
 		}
 
 		// Search for matching reference ID
@@ -103,14 +102,14 @@ func (s *ServiceImpl) ResolveTaskID(ctx context.Context, identifier string) (int
 				return task.ID, nil
 			}
 		}
-		return 0, fmt.Errorf("evidence task with reference ID %s not found", identifier)
+		return "", fmt.Errorf("evidence task with reference ID %s not found", identifier)
 	}
 
-	return 0, fmt.Errorf("invalid task identifier: %s (must be numeric ID or reference ID like ET1)", identifier)
+	return "", fmt.Errorf("invalid task identifier: %s (must be numeric ID or reference ID like ET1)", identifier)
 }
 
 // AnalyzeEvidenceTask analyzes an evidence task and generates prompts
-func (s *ServiceImpl) AnalyzeEvidenceTask(ctx context.Context, taskID int) (*services.EvidenceAnalysisResult, error) {
+func (s *ServiceImpl) AnalyzeEvidenceTask(ctx context.Context, taskID string) (*services.EvidenceAnalysisResult, error) {
 	return s.evidenceService.AnalyzeEvidenceTask(ctx, taskID)
 }
 
@@ -189,8 +188,8 @@ func (s *ServiceImpl) GenerateTemplateBasedPrompt(context *models.EvidenceContex
 			switch tool.Name {
 			case "control-summary-generator":
 				if len(context.Controls) > 0 {
-					prompt.WriteString(fmt.Sprintf("```bash\n# Generate AI summary for control %d\n", context.Controls[0].ID))
-					prompt.WriteString(fmt.Sprintf("grctool tool control-summary-generator --task-ref %s --control-id %d\n```\n\n", context.Task.ReferenceID, context.Controls[0].ID))
+					prompt.WriteString(fmt.Sprintf("```bash\n# Generate AI summary for control %s\n", context.Controls[0].ID))
+					prompt.WriteString(fmt.Sprintf("grctool tool control-summary-generator --task-ref %s --control-id %s\n```\n\n", context.Task.ReferenceID, context.Controls[0].ID))
 				}
 			case "policy-summary-generator":
 				if len(context.Policies) > 0 {
@@ -248,7 +247,7 @@ func (s *ServiceImpl) GenerateTemplateBasedPrompt(context *models.EvidenceContex
 }
 
 // ProcessAnalysisForTask processes an evidence task and generates a prompt
-func (s *ServiceImpl) ProcessAnalysisForTask(ctx context.Context, taskID int, outputFormat string) (string, string, error) {
+func (s *ServiceImpl) ProcessAnalysisForTask(ctx context.Context, taskID string, outputFormat string) (string, string, error) {
 	// Get task details
 	task, err := s.dataService.GetEvidenceTask(ctx, taskID)
 	if err != nil {
@@ -278,7 +277,7 @@ func (s *ServiceImpl) ProcessAnalysisForTask(ctx context.Context, taskID int, ou
 		Task:             *s.convertToModelsTask(analysis.Task),
 		Controls:         s.convertToModelsControls(analysis.RelatedControls),
 		Policies:         s.convertToModelsPolicies(analysis.RelatedPolicies),
-		ControlSummaries: make(map[int]models.AIControlSummary),
+		ControlSummaries: make(map[string]models.AIControlSummary),
 		PolicySummaries:  make(map[string]models.AIPolicySummary),
 		FrameworkReqs:    []string{}, // Will be populated from controls
 		PreviousEvidence: []string{}, // Could be enhanced to include past submissions
@@ -326,7 +325,7 @@ func (s *ServiceImpl) ProcessAnalysisForTask(ctx context.Context, taskID int, ou
 	// Sanitize task name using the unified method
 	sanitizedName := baseFormatter.SanitizeFilename(task.Name)
 
-	filename := fmt.Sprintf("%s_%d_%s.md",
+	filename := fmt.Sprintf("%s_%s_%s.md",
 		task.ReferenceID,
 		taskID,
 		sanitizedName)
@@ -417,7 +416,7 @@ func (s *ServiceImpl) MapEvidenceRelationships(ctx context.Context) (*EvidenceMa
 	// Calculate total relationships
 	totalRelationships := 0
 	for _, task := range tasks {
-		relationships, err := s.dataService.GetRelationships(ctx, "evidence_task", strconv.Itoa(task.ID))
+		relationships, err := s.dataService.GetRelationships(ctx, "evidence_task", task.ID)
 		if err == nil {
 			totalRelationships += len(relationships)
 		}
@@ -642,7 +641,12 @@ func (s *ServiceImpl) enrichTasksWithURLs(tasks []domain.EvidenceTask) {
 	}
 
 	for i := range tasks {
-		if tasks[i].ID > 0 {
+		if tasks[i].ID != "" {
+			// Convert string ID to int for URL building (Tugboat API uses int)
+			taskIDInt, err := strconv.Atoi(tasks[i].ID)
+			if err != nil {
+				continue
+			}
 			// Use task's org ID if available, otherwise use config org ID
 			orgID := tasks[i].OrgID
 			if orgID == 0 {
@@ -652,7 +656,7 @@ func (s *ServiceImpl) enrichTasksWithURLs(tasks []domain.EvidenceTask) {
 			}
 
 			if orgID > 0 {
-				tasks[i].TugboatURL = tugboat.BuildEvidenceTaskURL(s.config.Tugboat.BaseURL, orgID, tasks[i].ID)
+				tasks[i].TugboatURL = tugboat.BuildEvidenceTaskURL(s.config.Tugboat.BaseURL, orgID, taskIDInt)
 			}
 		}
 	}

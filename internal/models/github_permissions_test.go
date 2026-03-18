@@ -177,7 +177,7 @@ func TestGitHubOrganizationInfo_JSONRoundTrip(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	org := GitHubOrganizationInfo{
 		Login:       "test-org",
-		ID:          12345,
+		ID: 12345,
 		Name:        "Test Organization",
 		Description: "A test org",
 		PublicRepos: 10,
@@ -246,11 +246,11 @@ func TestGitHubAccessSummary_JSONRoundTrip(t *testing.T) {
 func TestGitHubTeam_WithParent(t *testing.T) {
 	t.Parallel()
 	team := GitHubTeam{
-		ID:   100,
+		ID: 100,
 		Name: "Frontend",
 		Slug: "frontend",
 		Parent: &GitHubTeam{
-			ID:   50,
+			ID: 50,
 			Name: "Engineering",
 			Slug: "engineering",
 		},

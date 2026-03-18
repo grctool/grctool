@@ -350,7 +350,7 @@ func (v *DataValidatorImpl) ValidateControls(ctx context.Context) (*ControlValid
 			issues = append(issues, ValidationIssue{
 				Type:        "warning",
 				Category:    "control",
-				ID:          fmt.Sprintf("%d", control.ID),
+				ID:          fmt.Sprintf("%s", control.ID),
 				Description: fmt.Sprintf("Control '%s' has no description", control.Name),
 			})
 		} else {
@@ -371,7 +371,7 @@ func (v *DataValidatorImpl) ValidateControls(ctx context.Context) (*ControlValid
 			issues = append(issues, ValidationIssue{
 				Type:        "warning",
 				Category:    "control",
-				ID:          fmt.Sprintf("%d", control.ID),
+				ID:          fmt.Sprintf("%s", control.ID),
 				Description: fmt.Sprintf("Control '%s' has no policy links", control.Name),
 			})
 		}
@@ -402,7 +402,7 @@ func (v *DataValidatorImpl) ValidateEvidenceTasks(ctx context.Context) (*Evidenc
 			issues = append(issues, ValidationIssue{
 				Type:        "warning",
 				Category:    "evidence",
-				ID:          fmt.Sprintf("%d", task.ID),
+				ID:          fmt.Sprintf("%s", task.ID),
 				Description: fmt.Sprintf("Evidence task '%s' has no description", task.Name),
 			})
 		} else {

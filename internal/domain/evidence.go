@@ -16,6 +16,9 @@
 package domain
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -23,7 +26,7 @@ import (
 // EvidenceTask represents a comprehensive evidence collection task in the domain model
 type EvidenceTask struct {
 	// Basic fields
-	ID                 int        `json:"id"`
+	ID                 string     `json:"id"`
 	ReferenceID        string     `json:"reference_id,omitempty"` // ET1, ET2, etc.
 	Name               string     `json:"name"`
 	Description        string     `json:"description"`
@@ -79,6 +82,74 @@ type EvidenceTask struct {
 	Associations  *EvidenceTaskAssociations  `json:"associations,omitempty"`
 }
 
+// UnmarshalJSON implements custom unmarshaling for EvidenceTask to handle
+// both integer and string ID values for backward compatibility.
+func (et *EvidenceTask) UnmarshalJSON(data []byte) error {
+	type EvidenceTaskAlias EvidenceTask
+	var raw struct {
+		EvidenceTaskAlias
+		RawID json.RawMessage `json:"id"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*et = EvidenceTask(raw.EvidenceTaskAlias)
+
+	if raw.RawID != nil && string(raw.RawID) != "null" {
+		var strID string
+		if err := json.Unmarshal(raw.RawID, &strID); err == nil {
+			et.ID = strID
+		} else {
+			var intID int
+			if err := json.Unmarshal(raw.RawID, &intID); err == nil {
+				et.ID = strconv.Itoa(intID)
+			} else {
+				var floatID float64
+				if err := json.Unmarshal(raw.RawID, &floatID); err == nil {
+					et.ID = fmt.Sprintf("%.0f", floatID)
+				} else {
+					return fmt.Errorf("cannot unmarshal evidence task ID: %s", string(raw.RawID))
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// UnmarshalJSON implements custom unmarshaling for EvidenceRecord to handle
+// both integer and string TaskID values for backward compatibility.
+func (er *EvidenceRecord) UnmarshalJSON(data []byte) error {
+	type EvidenceRecordAlias EvidenceRecord
+	var raw struct {
+		EvidenceRecordAlias
+		RawTaskID json.RawMessage `json:"task_id"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*er = EvidenceRecord(raw.EvidenceRecordAlias)
+
+	if raw.RawTaskID != nil && string(raw.RawTaskID) != "null" {
+		var strID string
+		if err := json.Unmarshal(raw.RawTaskID, &strID); err == nil {
+			er.TaskID = strID
+		} else {
+			var intID int
+			if err := json.Unmarshal(raw.RawTaskID, &intID); err == nil {
+				er.TaskID = strconv.Itoa(intID)
+			} else {
+				var floatID float64
+				if err := json.Unmarshal(raw.RawTaskID, &floatID); err == nil {
+					er.TaskID = fmt.Sprintf("%.0f", floatID)
+				} else {
+					return fmt.Errorf("cannot unmarshal evidence record task_id: %s", string(raw.RawTaskID))
+				}
+			}
+		}
+	}
+	return nil
+}
+
 // EvidenceTaskSummary represents an aggregated view of evidence tasks
 type EvidenceTaskSummary struct {
 	Total      int            `json:"total"`
@@ -107,7 +178,7 @@ type EvidenceFilter struct {
 // EvidenceRecord represents an actual piece of evidence
 type EvidenceRecord struct {
 	ID          string                 `json:"id"`
-	TaskID      int                    `json:"task_id"`
+	TaskID      string                 `json:"task_id"`
 	Title       string                 `json:"title"`
 	Description string                 `json:"description"`
 	Content     string                 `json:"content"`

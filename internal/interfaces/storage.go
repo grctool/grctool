@@ -47,7 +47,7 @@ type StorageService interface {
 	// Evidence record operations
 	SaveEvidenceRecord(record *domain.EvidenceRecord) error
 	GetEvidenceRecord(id string) (*domain.EvidenceRecord, error)
-	GetEvidenceRecordsByTaskID(taskID int) ([]domain.EvidenceRecord, error)
+	GetEvidenceRecordsByTaskID(taskID string) ([]domain.EvidenceRecord, error)
 
 	// Statistics and metadata
 	GetStats() (map[string]interface{}, error)

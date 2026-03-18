@@ -160,7 +160,7 @@ func TestStubStorageService_EvidenceRecords(t *testing.T) {
 	assert.Len(t, byTask, 1)
 
 	// No records for a different task
-	byTask, err = s.GetEvidenceRecordsByTaskID(99999)
+	byTask, err = s.GetEvidenceRecordsByTaskID("99999")
 	require.NoError(t, err)
 	assert.Empty(t, byTask)
 }

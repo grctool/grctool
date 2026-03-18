@@ -85,7 +85,7 @@ func TestDataMappingImprovements(t *testing.T) {
 			AecStatus: "na", // String type
 			Assignees: []tugboatmodels.EvidenceAssignee{
 				{
-					ID:   57888, // Numeric ID
+					ID: "57888", // Numeric ID
 					Name: "Test User",
 				},
 			},

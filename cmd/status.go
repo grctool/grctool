@@ -338,10 +338,8 @@ type storageAdapter struct {
 	storage *storage.Storage
 }
 
-func (sa *storageAdapter) GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTask, error) {
-	// Convert int ID to string for storage lookup
-	idStr := fmt.Sprintf("%d", taskID)
-	return sa.storage.GetEvidenceTask(idStr)
+func (sa *storageAdapter) GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTask, error) {
+	return sa.storage.GetEvidenceTask(taskID)
 }
 
 // initializeScanner creates a new evidence scanner instance

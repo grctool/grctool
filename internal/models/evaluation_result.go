@@ -21,7 +21,7 @@ import "time"
 type EvaluationResult struct {
 	// Identification
 	TaskRef   string `json:"task_ref" yaml:"task_ref"`
-	TaskID    int    `json:"task_id" yaml:"task_id"`
+	TaskID    string `json:"task_id" yaml:"task_id"`
 	Window    string `json:"window" yaml:"window"`
 	Subfolder string `json:"subfolder,omitempty" yaml:"subfolder,omitempty"` // .submitted or archive
 
@@ -175,7 +175,7 @@ func (er *EvaluationResult) GetHighIssueCount() int {
 }
 
 // NewEvaluationResult creates a new evaluation result with default values
-func NewEvaluationResult(taskRef string, taskID int, window string, subfolder string) *EvaluationResult {
+func NewEvaluationResult(taskRef string, taskID string, window string, subfolder string) *EvaluationResult {
 	return &EvaluationResult{
 		TaskRef:       taskRef,
 		TaskID:        taskID,

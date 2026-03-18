@@ -105,7 +105,7 @@ func TestGitHubPullRequestAnalysis_JSONRoundTrip(t *testing.T) {
 				MergedAt: &mergedAt,
 				Reviews: []GitHubPRReview{
 					{
-						ID:    1,
+						ID: 1,
 						User:  GitHubUser{Login: "bob"},
 						State: "APPROVED",
 					},

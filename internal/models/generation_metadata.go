@@ -23,7 +23,7 @@ type GenerationMetadata struct {
 	GeneratedAt      time.Time      `yaml:"generated_at"`
 	GeneratedBy      string         `yaml:"generated_by"`      // "claude-code-assisted", "grctool-cli", "manual"
 	GenerationMethod string         `yaml:"generation_method"` // "tool_coordination", "manual_upload"
-	TaskID           int            `yaml:"task_id"`
+	TaskID           string         `yaml:"task_id"`
 	TaskRef          string         `yaml:"task_ref"`
 	Window           string         `yaml:"window"`
 	ToolsUsed        []string       `yaml:"tools_used,omitempty"`

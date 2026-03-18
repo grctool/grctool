@@ -18,6 +18,7 @@ package adapters
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/grctool/grctool/internal/domain"
@@ -134,7 +135,7 @@ func (t *TugboatToDomain) ConvertControl(apiControl interface{}) domain.Control 
 		}
 
 		return domain.Control{
-			ID:                c.ID,
+			ID:                strconv.Itoa(c.ID),
 			Name:              c.Name,
 			Description:       c.Body, // API uses "body" field
 			Category:          c.Category,
@@ -270,7 +271,7 @@ func (t *TugboatToDomain) ConvertEvidenceTask(apiTask interface{}) domain.Eviden
 		}
 
 		domainTask := domain.EvidenceTask{
-			ID:                 task.ID,
+			ID:                 strconv.Itoa(task.ID),
 			Name:               task.Name,
 			Description:        task.Description,
 			Guidance:           "", // Not available in simplified API model
@@ -328,7 +329,7 @@ func (t *TugboatToDomain) ConvertEvidenceTask(apiTask interface{}) domain.Eviden
 				// Convert tugboat Control to domain Control
 				domainControl := t.ConvertControl(tugboatControl)
 				relatedControls = append(relatedControls, domainControl)
-				controlIDs = append(controlIDs, fmt.Sprintf("%d", domainControl.ID))
+				controlIDs = append(controlIDs, domainControl.ID)
 			}
 		} else if task.Controls != nil {
 			// Fallback to legacy Controls interface{} field for backward compatibility
@@ -342,10 +343,10 @@ func (t *TugboatToDomain) ConvertEvidenceTask(apiTask interface{}) domain.Eviden
 					if ctrlMap, ok := ctrl.(map[string]interface{}); ok {
 						// Convert embedded control object to domain.Control
 						control := t.convertEmbeddedControl(ctrlMap)
-						if control.ID != 0 {
+						if control.ID != "" {
 							relatedControls = append(relatedControls, control)
 							// Also add the ID to controlIDs for backward compatibility
-							controlIDs = append(controlIDs, fmt.Sprintf("%d", control.ID))
+							controlIDs = append(controlIDs, control.ID)
 						}
 					}
 				}
@@ -989,7 +990,9 @@ func (t *TugboatToDomain) convertEmbeddedControl(ctrlMap map[string]interface{})
 
 	// Basic fields
 	if id, ok := ctrlMap["id"].(float64); ok {
-		control.ID = int(id)
+		control.ID = fmt.Sprintf("%.0f", id)
+	} else if id, ok := ctrlMap["id"].(string); ok {
+		control.ID = id
 	}
 	if name, ok := ctrlMap["name"].(string); ok {
 		control.Name = name
@@ -1090,7 +1093,7 @@ func (t *TugboatToDomain) convertEmbeddedEvidenceTasks(evidenceData interface{})
 		for _, item := range evidenceArray {
 			if taskMap, ok := item.(map[string]interface{}); ok {
 				task := t.convertEmbeddedEvidenceTask(taskMap)
-				if task.ID != 0 {
+				if task.ID != "" {
 					tasks = append(tasks, task)
 				}
 			}
@@ -1107,7 +1110,9 @@ func (t *TugboatToDomain) convertEmbeddedEvidenceTask(taskMap map[string]interfa
 
 	// Basic fields
 	if id, ok := taskMap["id"].(float64); ok {
-		task.ID = int(id)
+		task.ID = fmt.Sprintf("%.0f", id)
+	} else if id, ok := taskMap["id"].(string); ok {
+		task.ID = id
 	}
 	if name, ok := taskMap["name"].(string); ok {
 		task.Name = name

@@ -36,7 +36,7 @@ func TestEvidenceTaskBuilder(t *testing.T) {
 			},
 			validate: func(t *testing.T, result interface{}) {
 				task := result.(*EvidenceTaskBuilder).Build()
-				assert.Equal(t, 1001, task.ID)
+				assert.Equal(t, "1001", task.ID)
 				assert.Equal(t, "Test Evidence Task", task.Name)
 				assert.Equal(t, "quarterly", task.CollectionInterval)
 				assert.False(t, task.AdHoc)
@@ -46,14 +46,14 @@ func TestEvidenceTaskBuilder(t *testing.T) {
 		"builder with custom values": {
 			setup: func() *EvidenceTaskBuilder {
 				return NewEvidenceTaskBuilder().
-					WithID(2001).
+					WithID("2001").
 					WithName("Custom Task").
 					WithCollectionInterval("monthly").
 					WithSensitive(true)
 			},
 			validate: func(t *testing.T, result interface{}) {
 				task := result.(*EvidenceTaskBuilder).Build()
-				assert.Equal(t, 2001, task.ID)
+				assert.Equal(t, "2001", task.ID)
 				assert.Equal(t, "Custom Task", task.Name)
 				assert.Equal(t, "monthly", task.CollectionInterval)
 				assert.True(t, task.Sensitive)
@@ -120,14 +120,14 @@ func TestControlBuilder(t *testing.T) {
 	t.Parallel()
 
 	builder := NewControlBuilder().
-		WithID(3001).
+		WithID("3001").
 		WithName("Access Control").
 		WithCategory("Security").
 		WithAutoImplemented(true)
 
 	control := builder.Build()
 
-	assert.Equal(t, 3001, control.ID)
+	assert.Equal(t, "3001", control.ID)
 	assert.Equal(t, "Access Control", control.Name)
 	assert.Equal(t, "Security", control.Category)
 	assert.True(t, control.IsAutoImplemented)

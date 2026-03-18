@@ -52,7 +52,7 @@ type EvidenceService interface {
 	// Evidence record operations
 	SaveEvidenceRecord(record *domain.EvidenceRecord) error
 	GetEvidenceRecord(id string) (*domain.EvidenceRecord, error)
-	GetEvidenceRecordsByTaskID(taskID int) ([]domain.EvidenceRecord, error)
+	GetEvidenceRecordsByTaskID(taskID string) ([]domain.EvidenceRecord, error)
 }
 
 // SyncService provides synchronization operations with external systems

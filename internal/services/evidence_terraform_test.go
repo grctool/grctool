@@ -33,7 +33,7 @@ import (
 // mockDataService implements DataService interface for testing
 type mockDataService struct{}
 
-func (m *mockDataService) GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTask, error) {
+func (m *mockDataService) GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTask, error) {
 	return nil, nil
 }
 
@@ -69,7 +69,7 @@ func (m *mockDataService) SaveEvidenceRecord(ctx context.Context, record *domain
 	return nil
 }
 
-func (m *mockDataService) GetEvidenceRecords(ctx context.Context, taskID int) ([]domain.EvidenceRecord, error) {
+func (m *mockDataService) GetEvidenceRecords(ctx context.Context, taskID string) ([]domain.EvidenceRecord, error) {
 	return nil, nil
 }
 
@@ -143,7 +143,7 @@ resource "aws_appautoscaling_target" "ecs_target" {
 
 	// Create test evidence with terraform source
 	evidence := &models.GeneratedEvidence{
-		TaskID:          87,
+		TaskID: "87",
 		GeneratedAt:     time.Now(),
 		GeneratedBy:     "test",
 		EvidenceFormat:  "csv",
@@ -217,7 +217,7 @@ func TestSaveTerraformSnippets_NoTerraformContent(t *testing.T) {
 
 	// Create test evidence without terraform source
 	evidence := &models.GeneratedEvidence{
-		TaskID:          88,
+		TaskID: "88",
 		GeneratedAt:     time.Now(),
 		GeneratedBy:     "test",
 		EvidenceFormat:  "markdown",

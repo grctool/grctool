@@ -48,22 +48,22 @@ func newTestConfig(dir string) *config.Config {
 
 // stubDataService is a simple DataService stub that stores data in maps.
 type stubDataService struct {
-	tasks    map[int]*domain.EvidenceTask
+	tasks    map[string]*domain.EvidenceTask
 	controls map[string]*domain.Control
 	policies map[string]*domain.Policy
-	records  map[int][]domain.EvidenceRecord
+	records  map[string][]domain.EvidenceRecord
 }
 
 func newStubDataService() *stubDataService {
 	return &stubDataService{
-		tasks:    make(map[int]*domain.EvidenceTask),
+		tasks:    make(map[string]*domain.EvidenceTask),
 		controls: make(map[string]*domain.Control),
 		policies: make(map[string]*domain.Policy),
-		records:  make(map[int][]domain.EvidenceRecord),
+		records:  make(map[string][]domain.EvidenceRecord),
 	}
 }
 
-func (s *stubDataService) GetEvidenceTask(_ context.Context, taskID int) (*domain.EvidenceTask, error) {
+func (s *stubDataService) GetEvidenceTask(_ context.Context, taskID string) (*domain.EvidenceTask, error) {
 	if t, ok := s.tasks[taskID]; ok {
 		return t, nil
 	}
@@ -136,7 +136,7 @@ func (s *stubDataService) SaveEvidenceRecord(_ context.Context, record *domain.E
 	return nil
 }
 
-func (s *stubDataService) GetEvidenceRecords(_ context.Context, taskID int) ([]domain.EvidenceRecord, error) {
+func (s *stubDataService) GetEvidenceRecords(_ context.Context, taskID string) ([]domain.EvidenceRecord, error) {
 	return s.records[taskID], nil
 }
 
@@ -172,7 +172,7 @@ func TestDataServiceImpl_GetRelationships_EvidenceTask(t *testing.T) {
 
 	// Save a task with controls
 	task := &domain.EvidenceTask{
-		ID:          100,
+	ID: "100",
 		ReferenceID: "ET-0001",
 		Name:        "GitHub Access Controls",
 		Framework:   "SOC2",
@@ -218,7 +218,7 @@ func TestDataServiceImpl_GetRelationships_InvalidID(t *testing.T) {
 
 	_, err := svc.GetRelationships(context.Background(), "evidence_task", "not-a-number")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid evidence task ID")
+	assert.Contains(t, err.Error(), "invalid task ID format")
 }
 
 func TestDataServiceImpl_GetEvidenceRecords(t *testing.T) {
@@ -230,7 +230,7 @@ func TestDataServiceImpl_GetEvidenceRecords(t *testing.T) {
 	// Save some records
 	record := &domain.EvidenceRecord{
 		ID:          "rec-1",
-		TaskID:      42,
+		TaskID: "42",
 		Title:       "Test Record",
 		Content:     "content",
 		Format:      "markdown",
@@ -240,7 +240,7 @@ func TestDataServiceImpl_GetEvidenceRecords(t *testing.T) {
 	}
 	require.NoError(t, svc.SaveEvidenceRecord(context.Background(), record))
 
-	records, err := svc.GetEvidenceRecords(context.Background(), 42)
+	records, err := svc.GetEvidenceRecords(context.Background(), "42")
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(records), 1)
 }
@@ -669,11 +669,11 @@ func TestEvidenceEvaluator_EvaluateCompleteness_NoFiles(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:   1,
+	ID: "1",
 		Name: "Test Task",
 	}
 	window := &models.WindowState{FileCount: 0}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateCompleteness(task, window, result)
 
@@ -689,7 +689,7 @@ func TestEvidenceEvaluator_EvaluateCompleteness_WithFiles(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:          1,
+	ID: "1",
 		Name:        "Test Task",
 		Description: "A short description",
 	}
@@ -704,7 +704,7 @@ func TestEvidenceEvaluator_EvaluateCompleteness_WithFiles(t *testing.T) {
 			{Filename: "summary.md", SizeBytes: 1500},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateCompleteness(task, window, result)
 
@@ -717,7 +717,7 @@ func TestEvidenceEvaluator_EvaluateCompleteness_WithGenerationMeta(t *testing.T)
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:   1,
+	ID: "1",
 		Name: "Test Task",
 	}
 	now := time.Now()
@@ -731,7 +731,7 @@ func TestEvidenceEvaluator_EvaluateCompleteness_WithGenerationMeta(t *testing.T)
 			{Filename: "readme.md", SizeBytes: 1000},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateCompleteness(task, window, result)
 
@@ -744,9 +744,9 @@ func TestEvidenceEvaluator_EvaluateQuality_NoFiles(t *testing.T) {
 	t.Parallel()
 	evaluator, _ := newTestEvaluator(t)
 
-	task := &domain.EvidenceTask{ID: 1, Name: "Test"}
+	task := &domain.EvidenceTask{ID: "1", Name: "Test"}
 	window := &models.WindowState{FileCount: 0}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateQuality(task, window, result)
 
@@ -758,7 +758,7 @@ func TestEvidenceEvaluator_EvaluateQuality_HighQuality(t *testing.T) {
 	t.Parallel()
 	evaluator, _ := newTestEvaluator(t)
 
-	task := &domain.EvidenceTask{ID: 1, Name: "Test"}
+	task := &domain.EvidenceTask{ID: "1", Name: "Test"}
 	window := &models.WindowState{
 		FileCount: 3,
 		Files: []models.FileState{
@@ -767,7 +767,7 @@ func TestEvidenceEvaluator_EvaluateQuality_HighQuality(t *testing.T) {
 			{Filename: "evidence_summary.md", SizeBytes: 2000},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateQuality(task, window, result)
 
@@ -781,7 +781,7 @@ func TestEvidenceEvaluator_EvaluateQuality_PoorNaming(t *testing.T) {
 	t.Parallel()
 	evaluator, _ := newTestEvaluator(t)
 
-	task := &domain.EvidenceTask{ID: 1, Name: "Test"}
+	task := &domain.EvidenceTask{ID: "1", Name: "Test"}
 	window := &models.WindowState{
 		FileCount: 2,
 		Files: []models.FileState{
@@ -789,7 +789,7 @@ func TestEvidenceEvaluator_EvaluateQuality_PoorNaming(t *testing.T) {
 			{Filename: "B C.pdf", SizeBytes: 500},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateQuality(task, window, result)
 
@@ -802,7 +802,7 @@ func TestEvidenceEvaluator_EvaluateRequirementsMatch(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:          1,
+	ID: "1",
 		Name:        "GitHub Repository Access Controls",
 		Description: "Show team permissions and repository access controls for GitHub",
 		Guidance:    "Collect access control configuration from GitHub",
@@ -814,7 +814,7 @@ func TestEvidenceEvaluator_EvaluateRequirementsMatch(t *testing.T) {
 			{Filename: "access_control_matrix.json", SizeBytes: 3000},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateRequirementsMatch(task, window, result)
 
@@ -827,7 +827,7 @@ func TestEvidenceEvaluator_EvaluateRequirementsMatch_NoKeywords(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:          1,
+	ID: "1",
 		Name:        "Simple task",
 		Description: "Very basic task with no special keywords",
 	}
@@ -837,7 +837,7 @@ func TestEvidenceEvaluator_EvaluateRequirementsMatch_NoKeywords(t *testing.T) {
 			{Filename: "evidence.json", SizeBytes: 1000},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateRequirementsMatch(task, window, result)
 
@@ -850,12 +850,12 @@ func TestEvidenceEvaluator_EvaluateControlAlignment_NoControls(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:              1,
+	ID: "1",
 		Name:            "Test",
 		RelatedControls: nil,
 	}
 	window := &models.WindowState{FileCount: 1}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateControlAlignment(task, window, result)
 
@@ -868,7 +868,7 @@ func TestEvidenceEvaluator_EvaluateControlAlignment_WithControls(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:   1,
+	ID: "1",
 		Name: "Test",
 		RelatedControls: []domain.Control{
 			{Name: "Access Control Policies"},
@@ -882,7 +882,7 @@ func TestEvidenceEvaluator_EvaluateControlAlignment_WithControls(t *testing.T) {
 			{Filename: "security_scan.json", SizeBytes: 2000},
 		},
 	}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 
 	evaluator.evaluateControlAlignment(task, window, result)
 
@@ -895,12 +895,12 @@ func TestEvidenceEvaluator_GenerateRecommendations(t *testing.T) {
 	evaluator, _ := newTestEvaluator(t)
 
 	task := &domain.EvidenceTask{
-		ID:              1,
+	ID: "1",
 		Name:            "Test",
 		RelatedControls: []domain.Control{{Name: "C1"}, {Name: "C2"}},
 	}
 
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 	result.Completeness.Score = 50
 	result.RequirementsMatch.Score = 50
 	result.QualityScore.Score = 50
@@ -918,8 +918,8 @@ func TestEvidenceEvaluator_GenerateRecommendations_CriticalIssues(t *testing.T) 
 	t.Parallel()
 	evaluator, _ := newTestEvaluator(t)
 
-	task := &domain.EvidenceTask{ID: 1, Name: "Test"}
-	result := models.NewEvaluationResult("ET-0001", 1, "2025-Q1", "all")
+	task := &domain.EvidenceTask{ID: "1", Name: "Test"}
+	result := models.NewEvaluationResult("ET-0001", "1", "2025-Q1", "all")
 	result.Completeness.Score = 80
 	result.RequirementsMatch.Score = 80
 	result.QualityScore.Score = 80
@@ -1110,7 +1110,7 @@ func TestEvidenceEvaluator_GetTaskDetails(t *testing.T) {
 
 	// Save a task
 	task := &domain.EvidenceTask{
-		ID:          42,
+	ID: "42",
 		ReferenceID: "ET-0042",
 		Name:        "Test Task",
 	}
@@ -1137,7 +1137,7 @@ func TestEvidenceEvaluator_EvaluateWindow(t *testing.T) {
 
 	// Save a task for the evaluator to find
 	task := &domain.EvidenceTask{
-		ID:          1,
+	ID: "1",
 		ReferenceID: "ET-0001",
 		Name:        "GitHub Access Controls",
 		Description: "Collect GitHub access control evidence",
@@ -1493,8 +1493,8 @@ func TestEvidenceServiceSimple_NewEvidenceService(t *testing.T) {
 func TestEvidenceServiceSimple_GenerateEvidence_Markdown(t *testing.T) {
 	t.Parallel()
 	stub := newStubDataService()
-	stub.tasks[42] = &domain.EvidenceTask{
-		ID:          42,
+	stub.tasks["42"] = &domain.EvidenceTask{
+	ID: "42",
 		ReferenceID: "ET-0042",
 		Name:        "Test Task",
 		Description: "Task description",
@@ -1509,7 +1509,7 @@ func TestEvidenceServiceSimple_GenerateEvidence_Markdown(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &EvidenceGenerationRequest{
-		TaskID:      42,
+		TaskID: "42",
 		Title:       "Test Evidence",
 		Description: "Generated evidence",
 		Format:      "markdown",
@@ -1520,7 +1520,7 @@ func TestEvidenceServiceSimple_GenerateEvidence_Markdown(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.NotNil(t, result.Record)
-	assert.Equal(t, 42, result.Record.TaskID)
+	assert.Equal(t, "42", result.Record.TaskID)
 	assert.Contains(t, result.Record.Content, "# Evidence for Task: Test Task")
 	assert.Contains(t, result.Record.Content, "Collection Guidance")
 }
@@ -1528,8 +1528,8 @@ func TestEvidenceServiceSimple_GenerateEvidence_Markdown(t *testing.T) {
 func TestEvidenceServiceSimple_GenerateEvidence_CSV(t *testing.T) {
 	t.Parallel()
 	stub := newStubDataService()
-	stub.tasks[1] = &domain.EvidenceTask{
-		ID:   1,
+	stub.tasks["1"] = &domain.EvidenceTask{
+	ID: "1",
 		Name: "CSV Task",
 	}
 
@@ -1539,7 +1539,7 @@ func TestEvidenceServiceSimple_GenerateEvidence_CSV(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &EvidenceGenerationRequest{
-		TaskID: 1,
+		TaskID: "1",
 		Title:  "CSV Evidence",
 		Format: "csv",
 	}
@@ -1553,8 +1553,8 @@ func TestEvidenceServiceSimple_GenerateEvidence_CSV(t *testing.T) {
 func TestEvidenceServiceSimple_GenerateEvidence_JSON(t *testing.T) {
 	t.Parallel()
 	stub := newStubDataService()
-	stub.tasks[2] = &domain.EvidenceTask{
-		ID:        2,
+	stub.tasks["2"] = &domain.EvidenceTask{
+	ID: "2",
 		Name:      "JSON Task",
 		Framework: "SOC2",
 		Priority:  "medium",
@@ -1566,7 +1566,7 @@ func TestEvidenceServiceSimple_GenerateEvidence_JSON(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &EvidenceGenerationRequest{
-		TaskID: 2,
+		TaskID: "2",
 		Title:  "JSON Evidence",
 		Format: "json",
 	}
@@ -1585,7 +1585,7 @@ func TestEvidenceServiceSimple_GenerateEvidence_TaskNotFound(t *testing.T) {
 	svc, err := NewEvidenceService(stub, cfg, log)
 	require.NoError(t, err)
 
-	req := &EvidenceGenerationRequest{TaskID: 999}
+	req := &EvidenceGenerationRequest{TaskID: "999"}
 	_, err = svc.GenerateEvidence(context.Background(), req)
 	assert.Error(t, err)
 }
@@ -1593,9 +1593,9 @@ func TestEvidenceServiceSimple_GenerateEvidence_TaskNotFound(t *testing.T) {
 func TestEvidenceServiceSimple_ListEvidenceTasks(t *testing.T) {
 	t.Parallel()
 	stub := newStubDataService()
-	stub.tasks[1] = &domain.EvidenceTask{ID: 1, Status: "pending"}
-	stub.tasks[2] = &domain.EvidenceTask{ID: 2, Status: "completed"}
-	stub.tasks[3] = &domain.EvidenceTask{ID: 3, Status: "pending"}
+	stub.tasks["1"] = &domain.EvidenceTask{ID: "1", Status: "pending"}
+	stub.tasks["2"] = &domain.EvidenceTask{ID: "2", Status: "completed"}
+	stub.tasks["3"] = &domain.EvidenceTask{ID: "3", Status: "pending"}
 
 	cfg := &config.Config{}
 	log := newTestLogger(t)
@@ -1616,9 +1616,9 @@ func TestEvidenceServiceSimple_GetEvidenceTaskSummary(t *testing.T) {
 	dueSoon := now.Add(3 * 24 * time.Hour)
 	far := now.Add(30 * 24 * time.Hour)
 
-	stub.tasks[1] = &domain.EvidenceTask{ID: 1, Status: "pending", Priority: "high", NextDue: &overdue}
-	stub.tasks[2] = &domain.EvidenceTask{ID: 2, Status: "completed", Priority: "low", NextDue: &far}
-	stub.tasks[3] = &domain.EvidenceTask{ID: 3, Status: "pending", Priority: "high", NextDue: &dueSoon}
+	stub.tasks["1"] = &domain.EvidenceTask{ID: "1", Status: "pending", Priority: "high", NextDue: &overdue}
+	stub.tasks["2"] = &domain.EvidenceTask{ID: "2", Status: "completed", Priority: "low", NextDue: &far}
+	stub.tasks["3"] = &domain.EvidenceTask{ID: "3", Status: "pending", Priority: "high", NextDue: &dueSoon}
 
 	cfg := &config.Config{}
 	log := newTestLogger(t)
@@ -1638,8 +1638,8 @@ func TestEvidenceServiceSimple_GetEvidenceTaskSummary(t *testing.T) {
 func TestEvidenceServiceSimple_AnalyzeEvidenceTask(t *testing.T) {
 	t.Parallel()
 	stub := newStubDataService()
-	stub.tasks[10] = &domain.EvidenceTask{
-		ID:          10,
+	stub.tasks["10"] = &domain.EvidenceTask{
+	ID: "10",
 		Name:        "GitHub Access Controls",
 		Description: "Show GitHub repository access",
 		Framework:   "SOC2",
@@ -1648,7 +1648,7 @@ func TestEvidenceServiceSimple_AnalyzeEvidenceTask(t *testing.T) {
 		Policies:    []string{"P1"},
 	}
 	stub.controls["AC-01"] = &domain.Control{
-		ID:          1,
+	ID: "1",
 		ReferenceID: "AC-01",
 		Name:        "Access Control",
 		FrameworkCodes: []domain.FrameworkCode{
@@ -1665,9 +1665,9 @@ func TestEvidenceServiceSimple_AnalyzeEvidenceTask(t *testing.T) {
 	svc, err := NewEvidenceService(stub, cfg, log)
 	require.NoError(t, err)
 
-	analysis, err := svc.AnalyzeEvidenceTask(context.Background(), 10)
+	analysis, err := svc.AnalyzeEvidenceTask(context.Background(), "10")
 	require.NoError(t, err)
-	assert.Equal(t, 10, analysis.TaskID)
+	assert.Equal(t, "10", analysis.TaskID)
 	assert.Len(t, analysis.RelatedControls, 1)
 	assert.Len(t, analysis.RelatedPolicies, 1)
 	assert.NotEmpty(t, analysis.SuggestedTools)
@@ -1680,8 +1680,8 @@ func TestEvidenceServiceSimple_AnalyzeEvidenceTask(t *testing.T) {
 func TestEvidenceServiceSimple_AnalyzeEvidenceTask_FallbackPolicies(t *testing.T) {
 	t.Parallel()
 	stub := newStubDataService()
-	stub.tasks[20] = &domain.EvidenceTask{
-		ID:        20,
+	stub.tasks["20"] = &domain.EvidenceTask{
+	ID: "20",
 		Name:      "Fallback Task",
 		Framework: "SOC2",
 		// No direct policy references
@@ -1694,7 +1694,7 @@ func TestEvidenceServiceSimple_AnalyzeEvidenceTask_FallbackPolicies(t *testing.T
 	svc, err := NewEvidenceService(stub, cfg, log)
 	require.NoError(t, err)
 
-	analysis, err := svc.AnalyzeEvidenceTask(context.Background(), 20)
+	analysis, err := svc.AnalyzeEvidenceTask(context.Background(), "20")
 	require.NoError(t, err)
 	// Should find policies by framework matching
 	assert.Len(t, analysis.RelatedPolicies, 1)
@@ -1838,7 +1838,7 @@ func TestEvidenceServiceSimple_SaveGeneratedEvidence(t *testing.T) {
 	require.NoError(t, err)
 
 	evidence := &models.GeneratedEvidence{
-		TaskID:          55,
+		TaskID: "55",
 		GeneratedAt:     time.Now(),
 		GeneratedBy:     "test",
 		EvidenceFormat:  "markdown",
@@ -1882,7 +1882,7 @@ func TestEvidenceServiceSimple_SaveGeneratedEvidence_NoOutputDir(t *testing.T) {
 	require.NoError(t, err)
 
 	evidence := &models.GeneratedEvidence{
-		TaskID:          1,
+		TaskID: "1",
 		GeneratedAt:     time.Now(),
 		EvidenceContent: "content",
 	}
@@ -1913,16 +1913,16 @@ func TestExtractTaskIDFromRef_Extended(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		ref      string
-		expected int
+		expected string
 	}{
-		{"ET-0001", 1},
-		{"ET-0100", 100},
-		{"ET-9999", 9999},
-		{"ET-0000", 0},
-		{"ET-", 0},
-		{"", 0},
-		{"INVALID", 0},
-		{"et-0001", 0}, // case sensitive
+		{"ET-0001", "1"},
+		{"ET-0100", "100"},
+		{"ET-9999", "9999"},
+		{"ET-0000", "0"},
+		{"ET-", ""},
+		{"", ""},
+		{"INVALID", ""},
+		{"et-0001", ""}, // case sensitive
 	}
 
 	for _, tc := range tests {
@@ -1973,14 +1973,14 @@ func TestIsWindowDirectory_Extended(t *testing.T) {
 func TestEvidenceGenerationRequest_Fields(t *testing.T) {
 	t.Parallel()
 	req := EvidenceGenerationRequest{
-		TaskID:      42,
+		TaskID: "42",
 		Title:       "Test",
 		Description: "Desc",
 		Format:      "csv",
 		Tools:       []string{"terraform-security-analyzer"},
 		Context:     map[string]interface{}{"key": "val"},
 	}
-	assert.Equal(t, 42, req.TaskID)
+	assert.Equal(t, "42", req.TaskID)
 	assert.Equal(t, "csv", req.Format)
 	assert.Len(t, req.Tools, 1)
 	assert.Equal(t, "val", req.Context["key"])
@@ -2115,9 +2115,9 @@ func TestSyncService_ConvertAttachmentsToSubmission(t *testing.T) {
 	s := &SyncService{}
 
 	// Empty attachments
-	result := s.convertAttachmentsToSubmission("ET-0001", "task_dir", 100, "2025-Q1", nil)
+	result := s.convertAttachmentsToSubmission("ET-0001", "task_dir", "100", "2025-Q1", nil)
 	assert.Equal(t, "ET-0001", result.TaskRef)
-	assert.Equal(t, 100, result.TaskID)
+	assert.Equal(t, "100", result.TaskID)
 	assert.Equal(t, "2025-Q1", result.Window)
 	assert.Equal(t, "accepted", result.Status)
 	assert.Equal(t, 0, result.TotalFileCount)
@@ -2299,7 +2299,7 @@ func TestEvidenceEvaluator_EvaluateSubfolder(t *testing.T) {
 
 	// Save a task
 	task := &domain.EvidenceTask{
-		ID:          50,
+	ID: "50",
 		ReferenceID: "ET-0050",
 		Name:        "Subfolder Task",
 		Description: "Test subfolder evaluation",

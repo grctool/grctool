@@ -113,7 +113,7 @@ func (us *Storage) SaveControl(control *domain.Control) error {
 	// Generate unified filename
 	filename := us.filenameGenerator.GenerateFilename(
 		control.ReferenceID,
-		strconv.Itoa(control.ID),
+		control.ID,
 		control.Name,
 		"json",
 	)
@@ -131,7 +131,7 @@ func (us *Storage) SaveEvidenceTask(task *domain.EvidenceTask) error {
 	// Generate unified filename
 	filename := us.filenameGenerator.GenerateFilename(
 		task.ReferenceID,
-		strconv.Itoa(task.ID),
+		task.ID,
 		task.Name,
 		"json",
 	)
@@ -248,12 +248,10 @@ func (us *Storage) GetControl(id string) (*domain.Control, error) {
 		return nil, err
 	}
 
-	// Try numeric ID first
-	if numID, err := strconv.Atoi(id); err == nil {
-		for _, control := range controls {
-			if control.ID == numID {
-				return &control, nil
-			}
+	// Try direct ID match (string)
+	for _, control := range controls {
+		if control.ID == id {
+			return &control, nil
 		}
 	}
 
@@ -275,40 +273,39 @@ func (us *Storage) GetControl(id string) (*domain.Control, error) {
 	return nil, fmt.Errorf("control not found: %s", id)
 }
 
-// GetEvidenceTask retrieves an evidence task by numeric ID or task reference (ET-0001, ET0001, or 327992)
+// GetEvidenceTask retrieves an evidence task by ID or task reference (ET-0001, ET0001, or 327992)
 func (us *Storage) GetEvidenceTask(id string) (*domain.EvidenceTask, error) {
 	tasks, err := us.GetAllEvidenceTasks()
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse the ID to get the numeric task ID
-	numID := us.parseTaskID(id)
-	if numID == 0 {
+	// Parse the ID to get the task ID string
+	taskID := us.parseTaskID(id)
+	if taskID == "" {
 		return nil, fmt.Errorf("invalid task ID format: %s (expected: numeric ID, ET-0001, or ET0001)", id)
 	}
 
-	// Find task by numeric ID
+	// Find task by ID
 	for _, task := range tasks {
-		if task.ID == numID {
+		if task.ID == taskID {
 			return &task, nil
 		}
 	}
 
-	return nil, fmt.Errorf("evidence task not found: %s (parsed as ID %d)", id, numID)
+	return nil, fmt.Errorf("evidence task not found: %s (parsed as ID %s)", id, taskID)
 }
 
-// parseTaskID extracts the numeric task ID from various formats:
-// - "327992" -> 327992 (pure numeric)
-// - "ET-0001" -> 327992 (reference with dash, looks up by ReferenceID)
-// - "ET0001" -> 327992 (reference without dash, looks up by ReferenceID)
-// - "ET-1" -> 327992 (reference with dash, zero-padding)
-func (us *Storage) parseTaskID(id string) int {
+// parseTaskID extracts the task ID from various formats:
+// - "327992" -> "327992" (pure numeric string)
+// - "ET-0001" -> looks up by ReferenceID, returns the task's ID
+// - "ET0001" -> looks up by ReferenceID, returns the task's ID
+func (us *Storage) parseTaskID(id string) string {
 	trimmed := strings.TrimSpace(id)
 
-	// Try pure numeric ID first
-	if numID, err := strconv.Atoi(trimmed); err == nil {
-		return numID
+	// Try pure numeric ID first - return as-is (it's a valid string ID)
+	if _, err := strconv.Atoi(trimmed); err == nil {
+		return trimmed
 	}
 
 	// Try parsing as task reference (ET-0001 or ET0001)
@@ -318,7 +315,6 @@ func (us *Storage) parseTaskID(id string) int {
 	if matched, _ := regexp.MatchString(`^ET-\d+$`, upper); matched {
 		refNum := strings.TrimPrefix(upper, "ET-")
 		if num, err := strconv.Atoi(refNum); err == nil {
-			// Look up task by ReferenceID
 			return us.lookupTaskByReferenceNumber(num)
 		}
 	}
@@ -327,19 +323,18 @@ func (us *Storage) parseTaskID(id string) int {
 	if matched, _ := regexp.MatchString(`^ET\d+$`, upper); matched {
 		refNum := strings.TrimPrefix(upper, "ET")
 		if num, err := strconv.Atoi(refNum); err == nil {
-			// Look up task by ReferenceID
 			return us.lookupTaskByReferenceNumber(num)
 		}
 	}
 
-	return 0
+	return ""
 }
 
 // lookupTaskByReferenceNumber finds a task by its reference number (e.g., 1 for ET-0001)
-func (us *Storage) lookupTaskByReferenceNumber(refNum int) int {
+func (us *Storage) lookupTaskByReferenceNumber(refNum int) string {
 	tasks, err := us.GetAllEvidenceTasks()
 	if err != nil {
-		return 0
+		return ""
 	}
 
 	// Format as ET-XXXX with zero padding
@@ -351,7 +346,7 @@ func (us *Storage) lookupTaskByReferenceNumber(refNum int) int {
 		}
 	}
 
-	return 0
+	return ""
 }
 
 // GetAllPolicies retrieves all policies regardless of filename format
@@ -431,7 +426,7 @@ func (us *Storage) GetEvidenceRecord(id string) (*domain.EvidenceRecord, error) 
 }
 
 // GetEvidenceRecordsByTaskID retrieves all evidence records for a specific task
-func (us *Storage) GetEvidenceRecordsByTaskID(taskID int) ([]domain.EvidenceRecord, error) {
+func (us *Storage) GetEvidenceRecordsByTaskID(taskID string) ([]domain.EvidenceRecord, error) {
 	var records []domain.EvidenceRecord
 
 	ids, err := us.fileStorage.List("evidence_records")

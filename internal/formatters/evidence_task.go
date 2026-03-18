@@ -34,7 +34,7 @@ type EvidenceTaskFormatter struct {
 	// Optional control details for enhanced formatting
 	relatedControls map[string]domain.Control
 	// Reference mapping for tests
-	referenceMapping map[int]string
+	referenceMapping map[string]string
 }
 
 // NewEvidenceTaskFormatter creates a new evidence task formatter with default (disabled) interpolation
@@ -50,7 +50,7 @@ func NewEvidenceTaskFormatter() *EvidenceTaskFormatter {
 		baseFormatter:    NewBaseFormatter(interpolator),
 		registry:         nil, // Will be set by SetRegistry
 		relatedControls:  make(map[string]domain.Control),
-		referenceMapping: make(map[int]string),
+		referenceMapping: make(map[string]string),
 	}
 }
 
@@ -60,7 +60,7 @@ func NewEvidenceTaskFormatterWithInterpolation(interpolator interpolation.Interp
 		baseFormatter:    NewBaseFormatter(interpolator),
 		registry:         nil, // Will be set by SetRegistry
 		relatedControls:  make(map[string]domain.Control),
-		referenceMapping: make(map[int]string),
+		referenceMapping: make(map[string]string),
 	}
 }
 
@@ -74,14 +74,14 @@ func (etf *EvidenceTaskFormatter) SetRelatedControls(controls []domain.Control) 
 	etf.relatedControls = make(map[string]domain.Control)
 	for _, control := range controls {
 		// Map by both string and int representations of ID
-		controlIDStr := fmt.Sprintf("%d", control.ID)
+		controlIDStr := fmt.Sprintf("%s", control.ID)
 		etf.relatedControls[controlIDStr] = control
 	}
 }
 
 // InitializeReferenceMapping initializes reference mapping for evidence tasks (for testing)
 func (etf *EvidenceTaskFormatter) InitializeReferenceMapping(tasks []domain.EvidenceTask) {
-	etf.referenceMapping = make(map[int]string)
+	etf.referenceMapping = make(map[string]string)
 
 	// Sort tasks by ID to ensure consistent reference assignment
 	sortedTasks := make([]domain.EvidenceTask, len(tasks))
@@ -116,7 +116,7 @@ func (etf *EvidenceTaskFormatter) InitializeReferenceMapping(tasks []domain.Evid
 func (etf *EvidenceTaskFormatter) RegisterTask(task *domain.EvidenceTask) string {
 	if etf.registry == nil {
 		// Fallback if no registry is set - use task ID with zero-padding
-		ref := fmt.Sprintf("ET-%04d", task.ID)
+		ref := fmt.Sprintf("ET-%s", task.ID)
 		task.ReferenceID = ref
 		return ref
 	}
@@ -132,11 +132,11 @@ func (etf *EvidenceTaskFormatter) ToMarkdown(task *domain.EvidenceTask) string {
 	var md strings.Builder
 
 	// Header section with ID and basic info
-	md.WriteString(fmt.Sprintf("# Evidence Task %d\n\n", task.ID))
+	md.WriteString(fmt.Sprintf("# Evidence Task %s\n\n", task.ID))
 
 	// Metadata header box
 	md.WriteString("```\n")
-	md.WriteString(fmt.Sprintf("Task ID: %d\n", task.ID))
+	md.WriteString(fmt.Sprintf("Task ID: %s\n", task.ID))
 	md.WriteString(fmt.Sprintf("Framework: %s\n", task.Framework))
 	md.WriteString(fmt.Sprintf("Priority: %s\n", task.Priority))
 	md.WriteString(fmt.Sprintf("Status: %s\n", task.Status))
@@ -206,7 +206,7 @@ func (etf *EvidenceTaskFormatter) ToMarkdown(task *domain.EvidenceTask) string {
 	// Basic information
 	md.WriteString("### Basic Information\n\n")
 	basicRows := []MetadataRow{
-		{"Task ID", strconv.Itoa(task.ID)},
+		{"Task ID", task.ID},
 		{"Name", etf.baseFormatter.InterpolateText(task.Name)},
 		{"Framework", task.Framework},
 		{"Priority", task.Priority},
@@ -396,7 +396,7 @@ func (etf *EvidenceTaskFormatter) ToMarkdown(task *domain.EvidenceTask) string {
 				// Show detailed control information from embedded data
 				refID := control.ReferenceID
 				if refID == "" {
-					refID = fmt.Sprintf("C%d", control.ID)
+					refID = fmt.Sprintf("C%s", control.ID)
 				}
 				md.WriteString(fmt.Sprintf("#### %s - %s\n\n", refID, control.Name))
 				if control.Description != "" {
@@ -469,7 +469,7 @@ func (etf *EvidenceTaskFormatter) ToSummaryMarkdown(task *domain.EvidenceTask) s
 	var md strings.Builder
 
 	md.WriteString(fmt.Sprintf("## %s\n\n", task.Name))
-	md.WriteString(fmt.Sprintf("**ID:** %d | **Priority:** %s | **Status:** %s\n\n",
+	md.WriteString(fmt.Sprintf("**ID:** %s | **Priority:** %s | **Status:** %s\n\n",
 		task.ID, task.Priority, task.Status))
 
 	if task.Description != "" {
@@ -599,7 +599,7 @@ func (etf *EvidenceTaskFormatter) ToDocumentMarkdown(task *domain.EvidenceTask) 
 	// Basic metadata table
 	metadataRows := []MetadataRow{
 		{"Document Reference", reference},
-		{"Task ID", strconv.Itoa(task.ID)},
+		{"Task ID", task.ID},
 		{"Task Name", etf.baseFormatter.InterpolateText(task.Name)},
 		{"Framework", task.Framework},
 		{"Priority", task.Priority},
@@ -655,7 +655,7 @@ func (etf *EvidenceTaskFormatter) ToDocumentMarkdown(task *domain.EvidenceTask) 
 				// Show comprehensive control information from embedded data
 				refID := control.ReferenceID
 				if refID == "" {
-					refID = fmt.Sprintf("C%d", control.ID)
+					refID = fmt.Sprintf("C%s", control.ID)
 				}
 				md.WriteString(fmt.Sprintf("#### %s - %s\n\n", refID, control.Name))
 
@@ -878,7 +878,7 @@ func (etf *EvidenceTaskFormatter) addEnhancedControlSection(md *strings.Builder,
 		for _, control := range task.RelatedControls {
 			refID := control.ReferenceID
 			if refID == "" {
-				refID = fmt.Sprintf("C%d", control.ID)
+				refID = fmt.Sprintf("C%s", control.ID)
 			}
 			fmt.Fprintf(md, "### %s - %s\n\n", refID, control.Name)
 			if control.Description != "" {
@@ -897,7 +897,7 @@ func (etf *EvidenceTaskFormatter) addEnhancedControlSection(md *strings.Builder,
 		// Create a map for quick control lookup by ID
 		controlMap := make(map[string]domain.Control)
 		for _, control := range controls {
-			controlMap[fmt.Sprintf("%d", control.ID)] = control
+			controlMap[fmt.Sprintf("%s", control.ID)] = control
 		}
 
 		for _, controlID := range task.Controls {
@@ -1008,7 +1008,7 @@ func (etf *EvidenceTaskFormatter) generateReference(task *domain.EvidenceTask) s
 
 	if etf.registry == nil {
 		// Fallback if no registry is set
-		ref := fmt.Sprintf("ET%d", task.ID)
+		ref := fmt.Sprintf("ET%s", task.ID)
 		task.ReferenceID = ref
 		return ref
 	}
@@ -1029,5 +1029,5 @@ func (etf *EvidenceTaskFormatter) generateReference(task *domain.EvidenceTask) s
 // GetDocumentFilename generates a filename for an evidence task document using unified pattern
 func (etf *EvidenceTaskFormatter) GetDocumentFilename(task *domain.EvidenceTask) string {
 	fg := utils.NewFilenameGenerator()
-	return fg.GenerateFilename(task.ReferenceID, strconv.Itoa(task.ID), task.Name, "md")
+	return fg.GenerateFilename(task.ReferenceID, task.ID, task.Name, "md")
 }

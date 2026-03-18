@@ -16,7 +16,7 @@ func TestGenerationMetadata_JSONRoundTrip(t *testing.T) {
 		GeneratedAt:      now,
 		GeneratedBy:      "claude-code-assisted",
 		GenerationMethod: "tool_coordination",
-		TaskID:           1,
+		TaskID: "1",
 		TaskRef:          "ET-0001",
 		Window:           "2025-Q4",
 		ToolsUsed:        []string{"terraform_scanner", "github_permissions"},

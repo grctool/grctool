@@ -33,7 +33,7 @@ type EvidenceTaskBuilder struct {
 func NewEvidenceTaskBuilder() *EvidenceTaskBuilder {
 	return &EvidenceTaskBuilder{
 		task: &models.EvidenceTask{
-			ID:                 1001,
+			ID:                 "1001",
 			Name:               "Test Evidence Task",
 			Description:        "A test evidence task for unit testing",
 			Guidance:           "Follow standard evidence collection procedures",
@@ -47,7 +47,7 @@ func NewEvidenceTaskBuilder() *EvidenceTaskBuilder {
 }
 
 // WithID sets the ID
-func (b *EvidenceTaskBuilder) WithID(id int) *EvidenceTaskBuilder {
+func (b *EvidenceTaskBuilder) WithID(id string) *EvidenceTaskBuilder {
 	b.task.ID = id
 	return b
 }
@@ -276,7 +276,7 @@ type ControlBuilder struct {
 func NewControlBuilder() *ControlBuilder {
 	return &ControlBuilder{
 		control: &models.Control{
-			ID:                3001,
+			ID:                "3001",
 			Name:              "Test Control",
 			Body:              "This is a test control for unit testing",
 			Category:          "Access Control",
@@ -289,7 +289,7 @@ func NewControlBuilder() *ControlBuilder {
 }
 
 // WithID sets the ID
-func (b *ControlBuilder) WithID(id int) *ControlBuilder {
+func (b *ControlBuilder) WithID(id string) *ControlBuilder {
 	b.control.ID = id
 	return b
 }

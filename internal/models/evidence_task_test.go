@@ -117,7 +117,7 @@ func TestEvidenceTask_JSONRoundTrip(t *testing.T) {
 	lastCollected := "2025-01-01"
 
 	task := EvidenceTask{
-		ID:                 327992,
+		ID: "327992",
 		Name:               "GitHub Repository Access Controls",
 		Description:        "Show team permissions",
 		Guidance:           "Extract from GitHub",
@@ -168,7 +168,7 @@ func TestEvidenceTask_JSONRoundTrip(t *testing.T) {
 func TestEvidenceTask_JSONRoundTrip_NilOptionals(t *testing.T) {
 	t.Parallel()
 	task := EvidenceTask{
-		ID:   1,
+		ID: "1",
 		Name: "Minimal task",
 	}
 
@@ -179,7 +179,7 @@ func TestEvidenceTask_JSONRoundTrip_NilOptionals(t *testing.T) {
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
-	assert.Equal(t, 1, decoded.ID)
+	assert.Equal(t, "1", decoded.ID)
 	assert.Nil(t, decoded.LastCollected)
 	assert.Nil(t, decoded.DueDate)
 	assert.Nil(t, decoded.EntityRole)
@@ -190,7 +190,7 @@ func TestEvidenceTaskDetails_JSONRoundTrip(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	details := EvidenceTaskDetails{
 		EvidenceTask: EvidenceTask{
-			ID:   123,
+			ID: "123",
 			Name: "Test Task",
 		},
 		MasterContent: &MasterContent{
@@ -220,7 +220,7 @@ func TestEvidenceTaskDetails_JSONRoundTrip(t *testing.T) {
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
-	assert.Equal(t, 123, decoded.ID)
+	assert.Equal(t, "123", decoded.ID)
 	assert.NotNil(t, decoded.MasterContent)
 	assert.Equal(t, "Master", decoded.MasterContent.Title)
 	assert.Len(t, decoded.Tags, 1)

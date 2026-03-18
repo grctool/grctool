@@ -155,7 +155,7 @@ func TestPolicy_JSON_Roundtrip(t *testing.T) {
 func TestControl_JSON_Roundtrip(t *testing.T) {
 	t.Parallel()
 	control := Control{
-		ID:          123,
+	ID: "123",
 		ReferenceID: "AC1",
 		Name:        "Access Provisioning",
 		Description: "Controls access",
@@ -273,7 +273,7 @@ func TestEvidenceTask_GetComplexityLevel(t *testing.T) {
 				CollectionInterval: "annually",
 				Sensitive:          true,
 				RelatedControls: []Control{
-					{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4},
+					{ID: "1"}, {ID: "2"}, {ID: "3"}, {ID: "4"},
 				},
 			},
 			expected: "Complex",
@@ -284,7 +284,7 @@ func TestEvidenceTask_GetComplexityLevel(t *testing.T) {
 				Name:               "Access Review",
 				Guidance:           string(make([]byte, 600)),
 				CollectionInterval: "monthly",
-				RelatedControls:    []Control{{ID: 1}, {ID: 2}},
+				RelatedControls:    []Control{{ID: "1"}, {ID: "2"}},
 			},
 			expected: "Moderate",
 		},
@@ -530,7 +530,7 @@ func TestEvidenceTask_JSON_Roundtrip(t *testing.T) {
 	t.Parallel()
 	now := time.Now().Truncate(time.Second)
 	task := EvidenceTask{
-		ID:                 42,
+	ID: "42",
 		ReferenceID:        "ET-0042",
 		Name:               "Test Evidence Task",
 		Description:        "A test task",
@@ -565,7 +565,7 @@ func TestEvidenceRecord_JSON_Roundtrip(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 	record := EvidenceRecord{
 		ID:          "ev-1",
-		TaskID:      42,
+		TaskID: "42",
 		Title:       "Firewall Rules",
 		Description: "Current firewall configuration",
 		Content:     "rule1...",
@@ -616,8 +616,8 @@ func TestControlReferenceProcessor_AllWithPrefixes(t *testing.T) {
 	t.Parallel()
 	processor := NewControlReferenceProcessor()
 	controls := []Control{
-		{ID: 1, Name: "AC1 - Access Control"},
-		{ID: 2, Name: "OM2 - Operations"},
+		{ID: "1", Name: "AC1 - Access Control"},
+		{ID: "2", Name: "OM2 - Operations"},
 	}
 	result := processor.ProcessControlReferences(controls)
 	assert.Len(t, result, 2)
@@ -629,8 +629,8 @@ func TestControlReferenceProcessor_AllWithoutPrefixes(t *testing.T) {
 	t.Parallel()
 	processor := NewControlReferenceProcessor()
 	controls := []Control{
-		{ID: 1, Name: "Zebra Control"},
-		{ID: 2, Name: "Alpha Control"},
+		{ID: "1", Name: "Zebra Control"},
+		{ID: "2", Name: "Alpha Control"},
 	}
 	result := processor.ProcessControlReferences(controls)
 	assert.Len(t, result, 2)

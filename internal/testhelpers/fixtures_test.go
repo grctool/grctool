@@ -39,7 +39,7 @@ func TestLoadControlFixture(t *testing.T) {
 
 	c, err := LoadControlFixture("sample_control")
 	require.NoError(t, err)
-	assert.Equal(t, 1001, c.ID)
+	assert.Equal(t, "1001", c.ID)
 	assert.Equal(t, "CC-06.1", c.ReferenceID)
 	assert.Equal(t, "Logical Access Security", c.Name)
 	assert.Equal(t, "SOC2", c.Framework)
@@ -51,7 +51,7 @@ func TestLoadEvidenceTaskFixture(t *testing.T) {
 
 	et, err := LoadEvidenceTaskFixture("sample_task")
 	require.NoError(t, err)
-	assert.Equal(t, 327992, et.ID)
+	assert.Equal(t, "327992", et.ID)
 	assert.Equal(t, "ET-0047", et.ReferenceID)
 	assert.Equal(t, "GitHub Repository Access Controls", et.Name)
 	assert.Equal(t, "SOC2", et.Framework)
@@ -109,7 +109,7 @@ func TestSampleEvidenceRecord(t *testing.T) {
 
 	r := SampleEvidenceRecord()
 	assert.NotEmpty(t, r.ID)
-	assert.NotZero(t, r.TaskID)
+	assert.NotEmpty(t, r.TaskID)
 	assert.NotEmpty(t, r.Title)
 	assert.NotEmpty(t, r.Source)
 	assert.False(t, r.CollectedAt.IsZero())

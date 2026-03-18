@@ -18,7 +18,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strconv"
+
 	"strings"
 	"time"
 
@@ -69,12 +69,6 @@ Examples:
 	RunE: func(cmd *cobra.Command, args []string) error {
 		controlID := args[0]
 
-		// Parse control ID to integer
-		id, err := strconv.Atoi(controlID)
-		if err != nil {
-			return fmt.Errorf("invalid control ID '%s': must be a number", controlID)
-		}
-
 		// Load configuration
 		cfg, err := config.Load()
 		if err != nil {
@@ -87,14 +81,14 @@ Examples:
 			return fmt.Errorf("failed to initialize storage: %w", err)
 		}
 
-		// Get control from storage
-		control, err := storage.GetControl(strconv.Itoa(id))
+		// Get control from storage (accepts both numeric IDs and reference IDs)
+		control, err := storage.GetControl(controlID)
 		if err != nil {
-			return fmt.Errorf("failed to get control %d: %w", id, err)
+			return fmt.Errorf("failed to get control %s: %w", controlID, err)
 		}
 
 		if control == nil {
-			return fmt.Errorf("control %d not found", id)
+			return fmt.Errorf("control %s not found", controlID)
 		}
 
 		// Create formatter with interpolation
@@ -132,7 +126,7 @@ Examples:
 			if err := os.WriteFile(outputFile, []byte(content), 0644); err != nil {
 				return fmt.Errorf("failed to write to file %s: %w", outputFile, err)
 			}
-			cmd.Printf("Control %d saved to %s\n", id, outputFile)
+			cmd.Printf("Control %s saved to %s\n", controlID, outputFile)
 		} else {
 			cmd.Print(content)
 		}
@@ -301,7 +295,7 @@ func formatControlsList(controls []*domain.Control, formatter *formatters.Contro
 			implemented = control.ImplementedDate.Format("2006-01-02")
 		}
 
-		content.WriteString(fmt.Sprintf("| %d | %s | %s | %s | %s | %s |\n",
+		content.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s | %s |\n",
 			control.ID,
 			truncateString(control.Name, 40),
 			truncateString(control.Category, 20),
@@ -341,7 +335,7 @@ func formatControlsListSummary(controls []*domain.Control, formatter *formatters
 		content.WriteString(fmt.Sprintf("## %s (%d controls)\n\n", strings.ToTitle(status), len(groupControls)))
 
 		for _, control := range groupControls {
-			content.WriteString(fmt.Sprintf("- **%d** - %s (%s)\n",
+			content.WriteString(fmt.Sprintf("- **%s** - %s (%s)\n",
 				control.ID,
 				truncateString(control.Name, 60),
 				control.Category,
@@ -361,13 +355,13 @@ func formatControlsListSummary(controls []*domain.Control, formatter *formatters
 func createControlMetadataView(control *domain.Control, formatter *formatters.ControlFormatter) string {
 	var content strings.Builder
 
-	content.WriteString(fmt.Sprintf("# Control %d Metadata\n\n", control.ID))
+	content.WriteString(fmt.Sprintf("# Control %s Metadata\n\n", control.ID))
 
 	// Basic info
 	content.WriteString("## Basic Information\n\n")
 	content.WriteString("| Field | Value |\n")
 	content.WriteString("|-------|-------|\n")
-	content.WriteString(fmt.Sprintf("| **Control ID** | %d |\n", control.ID))
+	content.WriteString(fmt.Sprintf("| **Control ID** | %s |\n", control.ID))
 	content.WriteString(fmt.Sprintf("| **Name** | %s |\n", control.Name))
 	content.WriteString(fmt.Sprintf("| **Category** | %s |\n", control.Category))
 	content.WriteString(fmt.Sprintf("| **Framework** | %s |\n", control.Framework))

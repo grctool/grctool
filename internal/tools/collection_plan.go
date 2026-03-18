@@ -267,7 +267,7 @@ func (cpm *CollectionPlanManager) convertControls(controls []domain.Control) []C
 	refs := make([]ControlRef, len(controls))
 	for i, control := range controls {
 		refs[i] = ControlRef{
-			ID:          fmt.Sprintf("%d", control.ID),
+			ID:          fmt.Sprintf("%s", control.ID),
 			ReferenceID: control.ReferenceID,
 			Name:        control.Name,
 			Category:    control.Category,

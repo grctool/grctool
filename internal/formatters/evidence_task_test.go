@@ -17,7 +17,6 @@ package formatters
 
 import (
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -312,7 +311,7 @@ func TestEvidenceTaskFormatter_ToDocumentMarkdown(t *testing.T) {
 		{
 			name: "Evidence task with different reference pattern",
 			task: &domain.EvidenceTask{
-				ID:                 456,
+	ID: "456",
 				Name:               "Network Security Monitoring",
 				Description:        "Monitor network security events",
 				CollectionInterval: "daily",
@@ -365,26 +364,26 @@ func TestEvidenceTaskFormatter_GenerateReference(t *testing.T) {
 	}{
 		{
 			name:     "First task gets ET1",
-			task:     &domain.EvidenceTask{ID: 100, Name: "Access Control Registration"},
+			task:     &domain.EvidenceTask{ID: "100", Name: "Access Control Registration"},
 			expected: "ET1",
 		},
 		{
 			name:     "Second task gets ET2",
-			task:     &domain.EvidenceTask{ID: 200, Name: "Password Policy Review"},
+			task:     &domain.EvidenceTask{ID: "200", Name: "Password Policy Review"},
 			expected: "ET2",
 		},
 		{
 			name:     "Third task gets ET3",
-			task:     &domain.EvidenceTask{ID: 300, Name: "MFA Setup"},
+			task:     &domain.EvidenceTask{ID: "300", Name: "MFA Setup"},
 			expected: "ET3",
 		},
 	}
 
 	// Create test tasks for initialization
 	tasks := []domain.EvidenceTask{
-		{ID: 100, Name: "Access Control Registration"},
-		{ID: 200, Name: "Password Policy Review"},
-		{ID: 300, Name: "MFA Setup"},
+		{ID: "100", Name: "Access Control Registration"},
+		{ID: "200", Name: "Password Policy Review"},
+		{ID: "300", Name: "MFA Setup"},
 	}
 
 	// Initialize reference mapping
@@ -415,7 +414,7 @@ func TestEvidenceTaskFormatter_GetDocumentFilename(t *testing.T) {
 		{
 			name: "Standard evidence task",
 			task: &domain.EvidenceTask{
-				ID:          123,
+	ID: "123",
 				ReferenceID: "ET123",
 				Name:        "Access Control Review",
 			},
@@ -423,7 +422,7 @@ func TestEvidenceTaskFormatter_GetDocumentFilename(t *testing.T) {
 		{
 			name: "Evidence task with special characters",
 			task: &domain.EvidenceTask{
-				ID:          456,
+	ID: "456",
 				ReferenceID: "ET456",
 				Name:        "Security Assessment: Network/Firewall Analysis",
 			},
@@ -431,7 +430,7 @@ func TestEvidenceTaskFormatter_GetDocumentFilename(t *testing.T) {
 		{
 			name: "Evidence task with quotes and colons",
 			task: &domain.EvidenceTask{
-				ID:          789,
+	ID: "789",
 				ReferenceID: "ET789",
 				Name:        "Policy Review \"Access Control\"",
 			},
@@ -459,8 +458,8 @@ func TestEvidenceTaskFormatter_GetDocumentFilename(t *testing.T) {
 			}
 
 			// Second part should be numeric ID
-			if parts[1] != strconv.Itoa(tt.task.ID) {
-				t.Errorf("Second part should be numeric ID %d, got %s", tt.task.ID, parts[1])
+			if parts[1] != tt.task.ID {
+				t.Errorf("Second part should be numeric ID %s, got %s", tt.task.ID, parts[1])
 			}
 
 			if result == "" {
@@ -492,7 +491,7 @@ func TestEvidenceTaskFormatter_WithInterpolation(t *testing.T) {
 	formatter := NewEvidenceTaskFormatterWithInterpolation(interpolator)
 
 	task := &domain.EvidenceTask{
-		ID:                 999,
+	ID: "999",
 		Name:               "{{company.name}} Access Control Policy",
 		Description:        "Review access control policy for {{company.domain}}",
 		Guidance:           "Contact {{security.team}} for implementation details",
@@ -543,14 +542,14 @@ func TestEvidenceTaskFormatter_EdgeCases(t *testing.T) {
 		if markdown == "" {
 			t.Error("Should return non-empty markdown even for empty task")
 		}
-		if !strings.Contains(markdown, "# Evidence Task 0") {
+		if !strings.Contains(markdown, "# Evidence Task ") {
 			t.Error("Should contain header even for empty task")
 		}
 	})
 
 	t.Run("Evidence task with nil pointers", func(t *testing.T) {
 		task := &domain.EvidenceTask{
-			ID:               123,
+	ID: "123",
 			Name:             "Test Task",
 			LastCollected:    nil,
 			NextDue:          nil,
@@ -573,7 +572,7 @@ func TestEvidenceTaskFormatter_EdgeCases(t *testing.T) {
 	t.Run("Evidence task with zero times", func(t *testing.T) {
 		zeroTime := time.Time{}
 		task := &domain.EvidenceTask{
-			ID:            123,
+	ID: "123",
 			Name:          "Test Task",
 			LastCollected: &zeroTime,
 			NextDue:       &zeroTime,
@@ -598,7 +597,7 @@ func createCompleteEvidenceTask() *domain.EvidenceTask {
 	lastViewed := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
 
 	return &domain.EvidenceTask{
-		ID:                 327992,
+	ID: "327992",
 		Name:               "Access Control Registration Document",
 		Description:        "Provide user registration and de-registration process document/Access Control policy or procedure reviewed by management.",
 		Guidance:           "The documented access control policies and procedures should demonstrate account management processes.",
@@ -653,7 +652,7 @@ func createCompleteEvidenceTask() *domain.EvidenceTask {
 
 func createMinimalEvidenceTask() *domain.EvidenceTask {
 	return &domain.EvidenceTask{
-		ID:                 123,
+	ID: "123",
 		Name:               "Basic Evidence Task",
 		Description:        "A simple evidence collection task",
 		CollectionInterval: "monthly",
@@ -666,7 +665,7 @@ func createMinimalEvidenceTask() *domain.EvidenceTask {
 
 func createEvidenceTaskWithHTML() *domain.EvidenceTask {
 	return &domain.EvidenceTask{
-		ID:                 456,
+	ID: "456",
 		Name:               "HTML Content Task",
 		Description:        "<p>This contains <strong>bold text</strong> and <em>italic text</em>.</p>",
 		Guidance:           "<div>Some <b>guidance</b> with <a href='#'>links</a></div>",
@@ -684,7 +683,7 @@ func createEvidenceTaskWithAEC() *domain.EvidenceTask {
 	nextScheduled := time.Date(2024, 7, 1, 10, 0, 0, 0, time.UTC)
 
 	return &domain.EvidenceTask{
-		ID:                 789,
+	ID: "789",
 		Name:               "Automated Evidence Task",
 		Description:        "Task with automated evidence collection",
 		CollectionInterval: "daily",
@@ -704,7 +703,7 @@ func createEvidenceTaskWithAEC() *domain.EvidenceTask {
 
 func createSensitiveEvidenceTask() *domain.EvidenceTask {
 	return &domain.EvidenceTask{
-		ID:                 101,
+	ID: "101",
 		Name:               "Sensitive Data Task",
 		Description:        "Task involving sensitive data collection",
 		CollectionInterval: "quarterly",
@@ -716,7 +715,7 @@ func createSensitiveEvidenceTask() *domain.EvidenceTask {
 
 func createEvidenceTaskWithSubtasks() *domain.EvidenceTask {
 	return &domain.EvidenceTask{
-		ID:                 202,
+	ID: "202",
 		Name:               "Task with Subtasks",
 		Description:        "Task that has multiple subtasks",
 		CollectionInterval: "monthly",
@@ -744,25 +743,25 @@ func TestEvidenceTaskFormatter_InitializeReferenceMapping(t *testing.T) {
 		{
 			name: "Tasks in ascending ID order",
 			tasks: []domain.EvidenceTask{
-				{ID: 100, Name: "First Task"},
-				{ID: 200, Name: "Second Task"},
-				{ID: 300, Name: "Third Task"},
+				{ID: "100", Name: "First Task"},
+				{ID: "200", Name: "Second Task"},
+				{ID: "300", Name: "Third Task"},
 			},
 		},
 		{
 			name: "Tasks in descending ID order",
 			tasks: []domain.EvidenceTask{
-				{ID: 300, Name: "Third Task"},
-				{ID: 200, Name: "Second Task"},
-				{ID: 100, Name: "First Task"},
+				{ID: "300", Name: "Third Task"},
+				{ID: "200", Name: "Second Task"},
+				{ID: "100", Name: "First Task"},
 			},
 		},
 		{
 			name: "Tasks in random order",
 			tasks: []domain.EvidenceTask{
-				{ID: 200, Name: "Second Task"},
-				{ID: 100, Name: "First Task"},
-				{ID: 300, Name: "Third Task"},
+				{ID: "200", Name: "Second Task"},
+				{ID: "100", Name: "First Task"},
+				{ID: "300", Name: "Third Task"},
 			},
 		},
 	}
@@ -772,17 +771,17 @@ func TestEvidenceTaskFormatter_InitializeReferenceMapping(t *testing.T) {
 			formatter.InitializeReferenceMapping(tc.tasks)
 
 			// Check that all tasks get sequential references regardless of input order
-			expectedRefs := map[int]string{
-				100: "ET1", // Lowest ID gets ET1
-				200: "ET2", // Second lowest ID gets ET2
-				300: "ET3", // Highest ID gets ET3
+			expectedRefs := map[string]string{
+				"100": "ET1", // Lowest ID gets ET1
+				"200": "ET2", // Second lowest ID gets ET2
+				"300": "ET3", // Highest ID gets ET3
 			}
 
 			for taskID, expectedRef := range expectedRefs {
 				if ref, exists := formatter.referenceMapping[taskID]; !exists {
-					t.Errorf("Expected mapping for task ID %d", taskID)
+					t.Errorf("Expected mapping for task ID %s", taskID)
 				} else if ref != expectedRef {
-					t.Errorf("Task ID %d: expected %q, got %q", taskID, expectedRef, ref)
+					t.Errorf("Task ID %s: expected %q, got %q", taskID, expectedRef, ref)
 				}
 			}
 		})
@@ -799,23 +798,23 @@ func TestEvidenceTaskFormatter_InitializeReferenceMapping(t *testing.T) {
 	// Test with realistic evidence task IDs (like those from Tugboat)
 	t.Run("Realistic task IDs", func(t *testing.T) {
 		tasks := []domain.EvidenceTask{
-			{ID: 327995, Name: "Task A"},
-			{ID: 327992, Name: "Task B"}, // Lower ID should get ET1
-			{ID: 328010, Name: "Task C"},
+			{ID: "327995", Name: "Task A"},
+			{ID: "327992", Name: "Task B"}, // Lower ID should get ET1
+			{ID: "328010", Name: "Task C"},
 		}
 
 		formatter.InitializeReferenceMapping(tasks)
 
 		// Should be sorted by ID and assigned sequentially
-		expectedMappings := map[int]string{
-			327992: "ET1", // Lowest ID
-			327995: "ET2", // Middle ID
-			328010: "ET3", // Highest ID
+		expectedMappings := map[string]string{
+			"327992": "ET1", // Lowest ID
+			"327995": "ET2", // Middle ID
+			"328010": "ET3", // Highest ID
 		}
 
 		for taskID, expectedRef := range expectedMappings {
 			if ref := formatter.referenceMapping[taskID]; ref != expectedRef {
-				t.Errorf("Task ID %d: expected %q, got %q", taskID, expectedRef, ref)
+				t.Errorf("Task ID %s: expected %q, got %q", taskID, expectedRef, ref)
 			}
 		}
 	})
@@ -833,7 +832,7 @@ func TestEvidenceTaskFormatter_ToDocumentMarkdownWithContext(t *testing.T) {
 	formatter := NewEvidenceTaskFormatterWithInterpolation(interpolator)
 
 	task := &domain.EvidenceTask{
-		ID:          123,
+	ID: "123",
 		Name:        "Access Control Documentation",
 		Description: "Test access control task",
 		Controls:    []string{"1", "2"},
@@ -841,7 +840,7 @@ func TestEvidenceTaskFormatter_ToDocumentMarkdownWithContext(t *testing.T) {
 
 	controls := []domain.Control{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "AC1",
 			Name:        "Access Provisioning",
 			Description: "Control access to systems",
@@ -849,7 +848,7 @@ func TestEvidenceTaskFormatter_ToDocumentMarkdownWithContext(t *testing.T) {
 			Status:      "implemented",
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "AC2",
 			Name:        "Access Revocation",
 			Description: "Remove access when needed",
@@ -914,14 +913,14 @@ func TestEvidenceTaskFormatter_AddEnhancedControlSection(t *testing.T) {
 	formatter := NewEvidenceTaskFormatter()
 
 	task := &domain.EvidenceTask{
-		ID:       123,
+	ID: "123",
 		Name:     "Test Task",
 		Controls: []string{"1", "999"}, // 999 doesn't exist to test missing control
 	}
 
 	controls := []domain.Control{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "AC1",
 			Name:        "Test Control",
 			Description: "Test control description",
@@ -963,7 +962,7 @@ func TestEvidenceTaskFormatter_AddEnhancedPolicySection(t *testing.T) {
 	formatter := NewEvidenceTaskFormatter()
 
 	task := &domain.EvidenceTask{
-		ID:          123,
+	ID: "123",
 		Name:        "Access Control Task",
 		Description: "Task related to access control",
 		Framework:   "SOC2",
@@ -1028,14 +1027,14 @@ Test description
 | Field | Value |`
 
 	task := &domain.EvidenceTask{
-		ID:       123,
+	ID: "123",
 		Name:     "Test Task",
 		Controls: []string{"1"},
 	}
 
 	controls := []domain.Control{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "AC1",
 			Name:        "Test Control",
 		},

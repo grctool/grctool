@@ -41,7 +41,7 @@ func TestSubmissionStorage_SaveAndLoadSubmission(t *testing.T) {
 
 	// Create test submission
 	submission := &models.EvidenceSubmission{
-		TaskID:         1234,
+		TaskID: "1234",
 		TaskRef:        "ET-0001",
 		Window:         "2025-Q4",
 		Status:         "draft",

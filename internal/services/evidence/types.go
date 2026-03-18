@@ -28,15 +28,15 @@ type Service interface {
 	// Core evidence operations
 	ListEvidenceTasks(ctx context.Context, filter domain.EvidenceFilter) ([]domain.EvidenceTask, error)
 	GetEvidenceTaskSummary(ctx context.Context) (*domain.EvidenceTaskSummary, error)
-	AnalyzeEvidenceTask(ctx context.Context, taskID int) (*services.EvidenceAnalysisResult, error)
+	AnalyzeEvidenceTask(ctx context.Context, taskID string) (*services.EvidenceAnalysisResult, error)
 	GenerateEvidence(ctx context.Context, req *services.EvidenceGenerationRequest) (*services.EvidenceGenerationResult, error)
 	ReviewEvidence(ctx context.Context, recordID string, showReasoning bool) (map[string]interface{}, error)
 
 	// Task resolution and mapping operations
-	ResolveTaskID(ctx context.Context, identifier string) (int, error)
+	ResolveTaskID(ctx context.Context, identifier string) (string, error)
 	MapEvidenceRelationships(ctx context.Context) (*EvidenceMapResult, error)
 	GenerateTemplateBasedPrompt(context *models.EvidenceContext, outputFormat string) string
-	ProcessAnalysisForTask(ctx context.Context, taskID int, outputFormat string) (string, string, error)
+	ProcessAnalysisForTask(ctx context.Context, taskID string, outputFormat string) (string, string, error)
 	ProcessBulkAnalysis(ctx context.Context, outputFormat string) error
 
 	// File and output operations

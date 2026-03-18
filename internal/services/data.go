@@ -17,8 +17,6 @@ package services
 
 import (
 	"context"
-	"fmt"
-	"strconv"
 
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/storage"
@@ -39,9 +37,9 @@ func NewDataService(storage *storage.Storage) DataService {
 
 // Evidence task operations
 
-func (d *DataServiceImpl) GetEvidenceTask(ctx context.Context, taskID int) (*domain.EvidenceTask, error) {
+func (d *DataServiceImpl) GetEvidenceTask(ctx context.Context, taskID string) (*domain.EvidenceTask, error) {
 	// Get directly from unified storage - no conversion needed
-	return d.storage.GetEvidenceTask(strconv.Itoa(taskID))
+	return d.storage.GetEvidenceTask(taskID)
 }
 
 func (d *DataServiceImpl) GetAllEvidenceTasks(ctx context.Context) ([]domain.EvidenceTask, error) {
@@ -100,13 +98,8 @@ func (d *DataServiceImpl) GetRelationships(ctx context.Context, sourceType, sour
 
 	switch sourceType {
 	case "evidence_task":
-		taskID, err := strconv.Atoi(sourceID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid evidence task ID: %s", sourceID)
-		}
-
 		// Get task to find related controls
-		task, err := d.GetEvidenceTask(ctx, taskID)
+		task, err := d.GetEvidenceTask(ctx, sourceID)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +144,7 @@ func (d *DataServiceImpl) SaveEvidenceRecord(ctx context.Context, record *domain
 	return d.storage.SaveEvidenceRecord(record)
 }
 
-func (d *DataServiceImpl) GetEvidenceRecords(ctx context.Context, taskID int) ([]domain.EvidenceRecord, error) {
+func (d *DataServiceImpl) GetEvidenceRecords(ctx context.Context, taskID string) ([]domain.EvidenceRecord, error) {
 	// Get directly from unified storage - no conversion needed
 	return d.storage.GetEvidenceRecordsByTaskID(taskID)
 }

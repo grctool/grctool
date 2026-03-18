@@ -897,7 +897,7 @@ func TestGetControlDetails(t *testing.T) {
 
 		details := models.ControlDetails{
 			Control: models.Control{
-				ID:   778805,
+				ID: 778805,
 				Name: "Logical Access Security",
 			},
 		}
@@ -1061,7 +1061,7 @@ func TestGetEvidenceTaskDetails(t *testing.T) {
 
 		details := models.EvidenceTaskDetails{
 			EvidenceTask: models.EvidenceTask{
-				ID:   327992,
+				ID: 327992,
 				Name: "GitHub Repository Access Controls",
 			},
 			MasterContent: &models.MasterContent{

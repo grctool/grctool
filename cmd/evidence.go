@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -909,7 +910,12 @@ func displayEvidenceTasks(cmd *cobra.Command, tasks []domain.EvidenceTask, evide
 		refID := task.ReferenceID
 		if refID == "" {
 			// Generate a reference ID based on task ID if not available
-			refID = fmt.Sprintf("ET-%04d", task.ID-327991) // Offset to start from ET-0001
+			// Generate a reference ID based on task ID if not available
+			if idNum, err := strconv.Atoi(task.ID); err == nil {
+				refID = fmt.Sprintf("ET-%04d", idNum-327991) // Offset to start from ET-0001
+			} else {
+				refID = fmt.Sprintf("ET-%s", task.ID)
+			}
 		}
 
 		// Get category with intelligent assignment
@@ -942,7 +948,7 @@ func displayEvidenceTasks(cmd *cobra.Command, tasks []domain.EvidenceTask, evide
 			urlDisplay = fmt.Sprintf("\x1b]8;;%s\x1b\\🔗 View\x1b]8;;\x1b\\", task.TugboatURL)
 		}
 
-		fmt.Fprintf(w, "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			refID, task.ID, name, category, task.Framework, task.Status, aecStatus, collectionType, task.Priority, dueDateStr, assigneeStr, urlDisplay)
 	}
 
@@ -990,7 +996,7 @@ func displayEvidenceMap(cmd *cobra.Command, mapResult *evidence.EvidenceMapResul
 
 		for i := 0; i < displayCount; i++ {
 			task := frameworkTasks[i]
-			cmd.Printf("      %d. %s [%s]\n", task.ID, task.Name, task.Status)
+			cmd.Printf("      %s. %s [%s]\n", task.ID, task.Name, task.Status)
 		}
 
 		if len(frameworkTasks) > 5 {
@@ -1073,7 +1079,7 @@ func generateEvidenceContext(task *domain.EvidenceTask, window string, requested
 
 	// Scan for existing evidence
 	evidenceDir := filepath.Join(cfg.Storage.DataDir, "evidence")
-	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%s", task.ID))
 	taskEvidenceDir := filepath.Join(evidenceDir, taskDirName)
 
 	// Check for existing evidence windows
@@ -1269,7 +1275,7 @@ func formatContextAsMarkdown(context *EvidenceGenerationContext, task *domain.Ev
 func saveEvidenceContext(task *domain.EvidenceTask, window string, contextMarkdown string, dataDir string) (string, error) {
 	// Create evidence directory structure
 	evidenceDir := filepath.Join(dataDir, "evidence")
-	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%s", task.ID))
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 
@@ -2632,7 +2638,7 @@ func applyTemplateVariables(template string, task *domain.EvidenceTask, window s
 	replacements := map[string]string{
 		"{{TASK_REF}}":   task.ReferenceID,
 		"{{TASK_NAME}}":  task.Name,
-		"{{TUGBOAT_ID}}": fmt.Sprintf("%d", task.ID),
+		"{{TUGBOAT_ID}}": fmt.Sprintf("%s", task.ID),
 		"{{WINDOW}}":     window,
 		"{{DATE}}":       time.Now().Format("2006-01-02"),
 		"{{PERIOD}}":     calculatePeriod(window),
@@ -2659,7 +2665,7 @@ func calculatePeriod(window string) string {
 func saveAssemblyContext(task *domain.EvidenceTask, window string, ctx *AssemblyContext, dataDir string) (*AssemblyPaths, error) {
 	// Determine evidence directory path
 	evidenceDir := filepath.Join(dataDir, "evidence")
-	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%d", task.ID))
+	taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, fmt.Sprintf("%s", task.ID))
 	windowDir := filepath.Join(evidenceDir, taskDirName, window)
 	contextDir := filepath.Join(windowDir, ".context")
 

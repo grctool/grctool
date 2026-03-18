@@ -288,7 +288,7 @@ func TestEvidenceTaskListTool_EnrichTasksWithURLs(t *testing.T) {
 	t.Run("no base URL configured", func(t *testing.T) {
 		t.Parallel()
 		e := newTaskListToolForFilterTesting(t)
-		tasks := []domain.EvidenceTask{{ID: 1}}
+		tasks := []domain.EvidenceTask{{ID: "1"}}
 		e.enrichTasksWithURLs(tasks)
 		assert.Empty(t, tasks[0].TugboatURL)
 	})
@@ -299,7 +299,7 @@ func TestEvidenceTaskListTool_EnrichTasksWithURLs(t *testing.T) {
 		e.config.Tugboat.BaseURL = "https://app.tugboatlogic.com"
 		e.config.Tugboat.OrgID = "123"
 
-		tasks := []domain.EvidenceTask{{ID: 456, OrgID: 0}}
+		tasks := []domain.EvidenceTask{{ID: "456", OrgID: 0}}
 		e.enrichTasksWithURLs(tasks)
 		assert.NotEmpty(t, tasks[0].TugboatURL)
 	})

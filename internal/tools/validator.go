@@ -127,7 +127,7 @@ func (v *Validator) normalizeTaskReference(taskRef string) (string, string, erro
 		normalizedRef := v.normalizeETReference(trimmed)
 		if normalizedRef != "" {
 			if taskID, found := v.registry.GetTaskID(normalizedRef); found {
-				return strconv.Itoa(taskID), fmt.Sprintf("resolved %s to task ID %d from registry", trimmed, taskID), nil
+				return taskID, fmt.Sprintf("resolved %s to task ID %s from registry", trimmed, taskID), nil
 			}
 		}
 	}

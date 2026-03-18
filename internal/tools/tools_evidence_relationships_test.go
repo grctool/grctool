@@ -82,7 +82,7 @@ func TestEvidenceRelationshipsTool_BuildBasicDependencyGraph(t *testing.T) {
 	ert := newEvidenceRelationshipsToolForPureTesting(t)
 
 	task := &domain.EvidenceTask{
-		ID:        327992,
+		ID: "327992",
 		Name:      "GitHub Access Controls",
 		Framework: "SOC2",
 		Status:    "pending",
@@ -115,7 +115,7 @@ func TestEvidenceRelationshipsTool_BuildExtendedRelationships(t *testing.T) {
 	ert := newEvidenceRelationshipsToolForPureTesting(t)
 
 	task := &domain.EvidenceTask{
-		ID:        327992,
+		ID: "327992",
 		Name:      "Test Task",
 		Framework: "SOC2",
 		Controls:  []string{"CC-06.1", "CC-06.3"},
@@ -163,7 +163,7 @@ func TestEvidenceRelationshipsTool_BuildRelationshipGraph(t *testing.T) {
 	t.Run("task without controls, depth 1", func(t *testing.T) {
 		t.Parallel()
 		task := &domain.EvidenceTask{
-			ID:          327992,
+			ID: "327992",
 			ReferenceID: "ET-0001",
 			Name:        "GitHub Access",
 			Framework:   "SOC2",
@@ -179,7 +179,7 @@ func TestEvidenceRelationshipsTool_BuildRelationshipGraph(t *testing.T) {
 
 		// Check task info
 		taskInfo := graph["task"].(map[string]interface{})
-		assert.Equal(t, 327992, taskInfo["id"])
+		assert.Equal(t, "327992", taskInfo["id"])
 		assert.Equal(t, "ET-0001", taskInfo["reference_id"])
 
 		// Check recommendations
@@ -198,7 +198,7 @@ func TestEvidenceRelationshipsTool_BuildRelationshipGraph(t *testing.T) {
 	t.Run("task depth 2 adds extended", func(t *testing.T) {
 		t.Parallel()
 		task := &domain.EvidenceTask{
-			ID:       1,
+			ID: "1",
 			Controls: []string{"A", "B"},
 		}
 		// Don't include controls/policies from dataStore (nil)
@@ -210,7 +210,7 @@ func TestEvidenceRelationshipsTool_BuildRelationshipGraph(t *testing.T) {
 
 	t.Run("without controls or policies depth 1", func(t *testing.T) {
 		t.Parallel()
-		task := &domain.EvidenceTask{ID: 1}
+		task := &domain.EvidenceTask{ID: "1"}
 		graph, err := ert.buildRelationshipGraph(nil, task, 1, false, false)
 		require.NoError(t, err)
 		require.NotNil(t, graph)

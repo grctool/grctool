@@ -16,13 +16,16 @@
 package domain
 
 import (
+	"encoding/json"
+	"fmt"
+	"strconv"
 	"time"
 )
 
 // Control represents a comprehensive security control in the domain model
 type Control struct {
 	// Basic fields
-	ID                int        `json:"id"`
+	ID                string     `json:"id"`
 	ReferenceID       string     `json:"reference_id"`
 	Name              string     `json:"name"`
 	Description       string     `json:"description"`
@@ -86,6 +89,42 @@ type ControlEvidenceMetrics struct {
 	TotalCount    int `json:"total_count"`
 	CompleteCount int `json:"complete_count"`
 	OverdueCount  int `json:"overdue_count"`
+}
+
+// UnmarshalJSON implements custom unmarshaling for Control to handle
+// both integer and string ID values for backward compatibility.
+func (c *Control) UnmarshalJSON(data []byte) error {
+	// Use an alias to avoid infinite recursion
+	type ControlAlias Control
+	var raw struct {
+		ControlAlias
+		RawID json.RawMessage `json:"id"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*c = Control(raw.ControlAlias)
+
+	// Parse the ID field: accept both int and string
+	if raw.RawID != nil && string(raw.RawID) != "null" {
+		var strID string
+		if err := json.Unmarshal(raw.RawID, &strID); err == nil {
+			c.ID = strID
+		} else {
+			var intID int
+			if err := json.Unmarshal(raw.RawID, &intID); err == nil {
+				c.ID = strconv.Itoa(intID)
+			} else {
+				var floatID float64
+				if err := json.Unmarshal(raw.RawID, &floatID); err == nil {
+					c.ID = fmt.Sprintf("%.0f", floatID)
+				} else {
+					return fmt.Errorf("cannot unmarshal control ID: %s", string(raw.RawID))
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // ControlDetails is an alias for Control since we unified the model

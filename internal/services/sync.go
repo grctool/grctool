@@ -259,7 +259,7 @@ func (s *SyncService) syncControls(ctx context.Context, opts SyncOptions, stats 
 		if err := s.generateControlDocument(&domainControl); err != nil {
 			// Don't fail the sync for document generation errors, but log them
 			s.logger.Warn("Failed to generate control document",
-				logger.Int("control_id", domainControl.ID),
+				logger.String("control_id", domainControl.ID),
 				logger.Error(err))
 		}
 
@@ -297,7 +297,7 @@ func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, s
 		domainTask.RelatedControls = processedControls
 
 		// Check if we have an existing task with a reference ID
-		existingTask, err := s.storage.GetEvidenceTask(strconv.Itoa(domainTask.ID))
+		existingTask, err := s.storage.GetEvidenceTask(domainTask.ID)
 		if err == nil && existingTask.ReferenceID != "" {
 			// Preserve the existing reference ID
 			domainTask.ReferenceID = existingTask.ReferenceID
@@ -316,7 +316,7 @@ func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, s
 		// Save the updated task with its reference ID
 		if err := s.saveEvidenceTaskThroughDataService(ctx, &domainTasks[i]); err != nil {
 			s.logger.Warn("Failed to save updated evidence task",
-				logger.Int("task_id", domainTasks[i].ID),
+				logger.String("task_id", domainTasks[i].ID),
 				logger.Error(err))
 		}
 
@@ -324,7 +324,7 @@ func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, s
 		if err := s.generateEvidenceTaskDocument(&domainTasks[i]); err != nil {
 			// Don't fail the sync for document generation errors, but log them
 			s.logger.Warn("Failed to generate evidence task document",
-				logger.Int("task_id", domainTasks[i].ID),
+				logger.String("task_id", domainTasks[i].ID),
 				logger.Error(err))
 		}
 	}
@@ -414,7 +414,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 	// Save attachments for each window
 	for window, windowAttachments := range windowMap {
 		// Download actual files to archive/ subfolder for file-type attachments
-		taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, strconv.Itoa(task.ID))
+		taskDirName := naming.GetEvidenceTaskDirName(task.Name, task.ReferenceID, task.ID)
 		evidenceDir := filepath.Join(s.baseDir, "evidence", taskDirName, window, naming.SubfolderArchive)
 		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
 			s.logger.Warn("Failed to create evidence directory",
@@ -477,7 +477,7 @@ func (s *SyncService) saveAttachmentsForTask(ctx context.Context, taskID int, at
 			}
 		}
 
-		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskDirName, taskID, window, windowAttachments)
+		submission := s.convertAttachmentsToSubmission(task.ReferenceID, taskDirName, strconv.Itoa(taskID), window, windowAttachments)
 		if err := s.storage.SaveSubmissionToSubfolder(submission, naming.SubfolderArchive); err != nil {
 			s.logger.Warn("Failed to save submission for window",
 				logger.String("task_ref", task.ReferenceID),
@@ -829,7 +829,7 @@ func (s *SyncService) validateDataIntegrity(ctx context.Context) (map[string]int
 	// Create lookup maps for efficient checking
 	controlMap := make(map[string]bool)
 	for _, control := range controls {
-		controlMap[fmt.Sprintf("%d", control.ID)] = true
+		controlMap[fmt.Sprintf("%s", control.ID)] = true
 	}
 
 	policyMap := make(map[string]bool)
@@ -843,7 +843,7 @@ func (s *SyncService) validateDataIntegrity(ctx context.Context) (map[string]int
 		// Check control references using unified model
 		for _, controlID := range task.Controls {
 			if !controlMap[controlID] {
-				brokenControlRefs = append(brokenControlRefs, fmt.Sprintf("Task %d references missing control %s", task.ID, controlID))
+				brokenControlRefs = append(brokenControlRefs, fmt.Sprintf("Task %s references missing control %s", task.ID, controlID))
 			}
 		}
 	}
@@ -859,7 +859,7 @@ func (s *SyncService) validateDataIntegrity(ctx context.Context) (map[string]int
 	// Check that tasks have proper framework assignments
 	for _, task := range evidenceTasks {
 		if task.Framework == "" {
-			inconsistencies = append(inconsistencies, fmt.Sprintf("Task %d has no framework assigned", task.ID))
+			inconsistencies = append(inconsistencies, fmt.Sprintf("Task %s has no framework assigned", task.ID))
 		}
 	}
 
@@ -945,7 +945,7 @@ func (s *SyncService) getWindowFromDate(dateStr string) string {
 }
 
 // convertAttachmentsToSubmission converts Tugboat attachments to EvidenceSubmission model
-func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskDirName string, taskID int, window string, attachments []tugboatModels.EvidenceAttachment) *models.EvidenceSubmission {
+func (s *SyncService) convertAttachmentsToSubmission(taskRef string, taskDirName string, taskID string, window string, attachments []tugboatModels.EvidenceAttachment) *models.EvidenceSubmission {
 	now := time.Now()
 	submission := &models.EvidenceSubmission{
 		TaskID:            taskID,

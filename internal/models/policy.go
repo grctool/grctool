@@ -101,7 +101,7 @@ type Policy struct {
 
 // Control represents a security control
 type Control struct {
-	ID                int         `json:"id"`
+	ID                string      `json:"id"`
 	Name              string      `json:"name"`
 	Body              string      `json:"body"` // Changed from Description to Body
 	Category          string      `json:"category"`

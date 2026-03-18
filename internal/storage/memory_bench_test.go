@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"strconv"
 	"testing"
 	"time"
 
@@ -208,7 +209,7 @@ func BenchmarkMemoryAllocation(b *testing.B) {
 			for j := 0; j < 1000; j++ {
 				record := &domain.EvidenceRecord{
 					ID:          fmt.Sprintf("small-%d-%d", i, j),
-					TaskID:      j % 100,
+					TaskID: strconv.Itoa(j % 100),
 					Format:      "markdown",
 					Source:      "benchmark",
 					Content:     "Small content",
@@ -233,7 +234,7 @@ func BenchmarkMemoryAllocation(b *testing.B) {
 			var tasks []*domain.EvidenceTask
 			for j := 0; j < 100; j++ {
 				task := &domain.EvidenceTask{
-					ID:          j,
+					ID:          strconv.Itoa(j),
 					ReferenceID: fmt.Sprintf("ET-%04d", j),
 					Name:        fmt.Sprintf("Large evidence task %d with comprehensive details", j),
 					Description: strings.Repeat("Detailed description with comprehensive requirements. ", 100),
@@ -457,7 +458,7 @@ func createLargeEvidenceTaskSet(count int) []domain.EvidenceTask {
 
 	for i := 0; i < count; i++ {
 		tasks[i] = domain.EvidenceTask{
-			ID:          327992 + i,
+			ID: strconv.Itoa(327992 + i),
 			ReferenceID: fmt.Sprintf("ET-%04d", i+1),
 			Name:        fmt.Sprintf("Evidence Task %d - Comprehensive Implementation", i+1),
 			Description: strings.Repeat(fmt.Sprintf("Detailed description for task %d with comprehensive requirements. ", i+1), 10),
@@ -498,7 +499,7 @@ func createLargeControlSet(count int) []domain.Control {
 
 	for i := 0; i < count; i++ {
 		controls[i] = domain.Control{
-			ID:          778805 + i,
+			ID: strconv.Itoa(778805 + i),
 			ReferenceID: fmt.Sprintf("AC-%02d", i+1),
 			Name:        fmt.Sprintf("Control %d - Comprehensive Access Management", i+1),
 			Description: strings.Repeat(fmt.Sprintf("Detailed control description %d with implementation guidance. ", i+1), 15),

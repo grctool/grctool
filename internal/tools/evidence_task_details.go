@@ -105,13 +105,13 @@ func (ett *EvidenceTaskDetailsTool) Execute(ctx context.Context, params map[stri
 	}
 
 	// Get task details from local data store
-	task, err := ett.dataStore.GetEvidenceTask(strconv.Itoa(taskID))
+	task, err := ett.dataStore.GetEvidenceTask(taskID)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to retrieve task %d: %w", taskID, err)
+		return "", nil, fmt.Errorf("failed to retrieve task %s: %w", taskID, err)
 	}
 
 	if task == nil {
-		return "", nil, fmt.Errorf("task %d not found", taskID)
+		return "", nil, fmt.Errorf("task %s not found", taskID)
 	}
 
 	// Create detailed response
@@ -206,7 +206,7 @@ func (ett *EvidenceTaskDetailsTool) Execute(ctx context.Context, params map[stri
 	// Create evidence source
 	source := &models.EvidenceSource{
 		Type:        "evidence_task",
-		Resource:    fmt.Sprintf("Task %s (%d)", task.ReferenceID, task.ID),
+		Resource:    fmt.Sprintf("Task %s (%s)", task.ReferenceID, task.ID),
 		Content:     string(jsonData),
 		Relevance:   1.0, // Always highly relevant for task-specific queries
 		ExtractedAt: task.UpdatedAt,
@@ -228,32 +228,32 @@ func (ett *EvidenceTaskDetailsTool) Execute(ctx context.Context, params map[stri
 }
 
 // parseTaskReference converts various task reference formats to numeric ID
-func (ett *EvidenceTaskDetailsTool) parseTaskReference(taskRef string) (int, error) {
-	// Create validator for task reference normalization
+func (ett *EvidenceTaskDetailsTool) parseTaskReference(taskRef string) (string, error) {
 	validator := NewValidator(ett.config.Storage.DataDir)
 
 	result, err := validator.ValidateTaskReference(taskRef)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	if !result.Valid {
-		return 0, fmt.Errorf("invalid task reference format")
+		return "", fmt.Errorf("invalid task reference format")
 	}
 
-	// Get normalized value
 	normalizedRef := result.Normalized["task_ref"]
 	if normalizedRef == "" {
 		normalizedRef = taskRef
 	}
 
-	// Convert to integer
-	taskID, err := strconv.Atoi(normalizedRef)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert task reference to numeric ID: %w", err)
+	if _, err := strconv.Atoi(normalizedRef); err == nil {
+		return normalizedRef, nil
 	}
 
-	return taskID, nil
+	if taskID, exists := result.Normalized["task_id"]; exists && taskID != "" {
+		return taskID, nil
+	}
+
+	return normalizedRef, nil
 }
 
 // Category returns the tool category

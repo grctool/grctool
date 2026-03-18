@@ -112,7 +112,7 @@ func BenchmarkDataService_GetEvidenceTask(b *testing.B) {
 	ctx := context.Background()
 	dataService := setupBenchmarkDataService(b)
 
-	taskIDs := []int{327992, 327993, 327994, 327995, 327996}
+	taskIDs := []string{"327992", "327993", "327994", "327995", "327996"}
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -121,7 +121,7 @@ func BenchmarkDataService_GetEvidenceTask(b *testing.B) {
 		taskID := taskIDs[i%len(taskIDs)]
 		_, err := dataService.GetEvidenceTask(ctx, taskID)
 		if err != nil {
-			b.Fatalf("Failed to get evidence task %d: %v", taskID, err)
+			b.Fatalf("Failed to get evidence task %s: %v", taskID, err)
 		}
 	}
 }
@@ -372,7 +372,7 @@ func createLargeEvidenceTask() *domain.EvidenceTask {
 	longDescription := strings.Repeat("This is a detailed description of the evidence task with comprehensive requirements and implementation details. ", 20)
 
 	return &domain.EvidenceTask{
-		ID:          327992,
+	ID: "327992",
 		ReferenceID: "ET-0001",
 		Name:        "Comprehensive Access Control Implementation Evidence Collection",
 		Description: longDescription,
@@ -410,7 +410,7 @@ func createLargeControl() *domain.Control {
 	longDescription := strings.Repeat("This is a detailed control description with comprehensive implementation guidance and testing procedures. ", 30)
 
 	return &domain.Control{
-		ID:              778805,
+	ID: "778805",
 		ReferenceID:     "AC-01",
 		Name:            "Comprehensive Access Control Policy and Procedures Implementation",
 		Description:     longDescription,
@@ -427,7 +427,7 @@ func createLargeEvidenceRecord() *domain.EvidenceRecord {
 
 	return &domain.EvidenceRecord{
 		ID:          "evidence-record-benchmark-001",
-		TaskID:      327992,
+		TaskID: "327992",
 		Format:      "markdown",
 		Source:      "system-scan",
 		Content:     largeContent,

@@ -56,7 +56,7 @@ type TerraformEvidence struct {
 
 // EvidenceRelationship represents the connection between evidence tasks, controls, and policies
 type EvidenceRelationship struct {
-	EvidenceTaskID    int                      `json:"evidence_task_id"`
+	EvidenceTaskID    string                   `json:"evidence_task_id"`
 	EvidenceTask      *EvidenceTask            `json:"evidence_task"`
 	RelatedControls   []EvidenceControlSummary `json:"related_controls"`
 	GoverningPolicies []EvidencePolicySummary  `json:"governing_policies"`
@@ -67,7 +67,7 @@ type EvidenceRelationship struct {
 
 // EvidenceControlSummary represents a simplified control for relationship mapping
 type EvidenceControlSummary struct {
-	ID             int             `json:"id"`
+	ID             string          `json:"id"`
 	Name           string          `json:"name"`
 	Category       string          `json:"category"`
 	Status         string          `json:"status"`
@@ -77,7 +77,7 @@ type EvidenceControlSummary struct {
 
 // EvidencePolicySummary represents a simplified policy for relationship mapping
 type EvidencePolicySummary struct {
-	ID       int    `json:"id"`
+	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Type     string `json:"type"`
 	Status   string `json:"status"`
@@ -86,7 +86,7 @@ type EvidencePolicySummary struct {
 
 // EvidencePrompt represents the generated prompt for Claude
 type EvidencePrompt struct {
-	TaskID          int             `json:"task_id"`
+	TaskID          string          `json:"task_id"`
 	GeneratedAt     time.Time       `json:"generated_at"`
 	Context         EvidenceContext `json:"context"`
 	PromptText      string          `json:"prompt_text"`
@@ -100,7 +100,7 @@ type EvidenceContext struct {
 	Task             EvidenceTaskDetails        `json:"task"`
 	Controls         []Control                  `json:"controls"`
 	Policies         []Policy                   `json:"policies"`
-	ControlSummaries map[int]AIControlSummary   `json:"control_summaries,omitempty"`
+	ControlSummaries map[string]AIControlSummary `json:"control_summaries,omitempty"`
 	PolicySummaries  map[string]AIPolicySummary `json:"policy_summaries,omitempty"`
 	FrameworkReqs    []string                   `json:"framework_requirements"`
 	PreviousEvidence []string                   `json:"previous_evidence"`
@@ -123,9 +123,9 @@ type SecurityControlMapping struct {
 
 // AIControlSummary represents an AI-generated summary of a control for a specific evidence task
 type AIControlSummary struct {
-	ControlID          int       `json:"control_id"`
+	ControlID          string    `json:"control_id"`
 	ControlName        string    `json:"control_name"`
-	TaskID             int       `json:"task_id"`
+	TaskID             string    `json:"task_id"`
 	Summary            string    `json:"summary"`
 	KeyRequirements    []string  `json:"key_requirements"`
 	VerificationPoints []string  `json:"verification_points"`
@@ -137,7 +137,7 @@ type AIControlSummary struct {
 type AIPolicySummary struct {
 	PolicyID         string    `json:"policy_id"`
 	PolicyName       string    `json:"policy_name"`
-	TaskID           int       `json:"task_id"`
+	TaskID           string    `json:"task_id"`
 	Summary          string    `json:"summary"`
 	KeyRequirements  []string  `json:"key_requirements"`
 	RelevantSections []string  `json:"relevant_sections"`
@@ -147,7 +147,7 @@ type AIPolicySummary struct {
 
 // GeneratedEvidence represents the AI-generated evidence package
 type GeneratedEvidence struct {
-	TaskID          int                 `json:"task_id"`
+	TaskID          string              `json:"task_id"`
 	GeneratedAt     time.Time           `json:"generated_at"`
 	GeneratedBy     string              `json:"generated_by"`     // "claude-3-5-sonnet"
 	EvidenceFormat  string              `json:"evidence_format"`  // "csv" or "markdown"
@@ -271,7 +271,7 @@ type GitHubIssueResult struct {
 
 // EvidenceGenerationRequest represents a request to generate evidence
 type EvidenceGenerationRequest struct {
-	TaskID           int       `json:"task_id"`
+	TaskID           string    `json:"task_id"`
 	ToolsEnabled     []string  `json:"tools_enabled"` // terraform, github, google_docs
 	OutputFormat     string    `json:"output_format"` // csv, markdown
 	IncludeReasoning bool      `json:"include_reasoning"`
@@ -283,7 +283,7 @@ type EvidenceGenerationRequest struct {
 // EvidenceGenerationResponse represents the response from evidence generation
 type EvidenceGenerationResponse struct {
 	Success         bool               `json:"success"`
-	TaskID          int                `json:"task_id"`
+	TaskID          string             `json:"task_id"`
 	OutputDirectory string             `json:"output_directory"`
 	GeneratedFiles  []string           `json:"generated_files"`
 	Evidence        *GeneratedEvidence `json:"evidence,omitempty"`
@@ -294,7 +294,7 @@ type EvidenceGenerationResponse struct {
 
 // EvidenceAnalysisResult represents the result of analyzing an evidence task
 type EvidenceAnalysisResult struct {
-	TaskID            int                      `json:"task_id"`
+	TaskID            string                   `json:"task_id"`
 	Relationships     *EvidenceRelationship    `json:"relationships"`
 	PromptGenerated   bool                     `json:"prompt_generated"`
 	PromptPath        string                   `json:"prompt_path,omitempty"`
@@ -308,7 +308,7 @@ type EvidenceAnalysisResult struct {
 // EvidenceDataPackage represents a structured data package for external AI consumption
 // This is the new prompt-as-data pattern where tools generate data instead of AI doing analysis
 type EvidenceDataPackage struct {
-	TaskID      int                    `json:"task_id"`
+	TaskID      string                 `json:"task_id"`
 	GeneratedAt time.Time              `json:"generated_at"`
 	Prompt      string                 `json:"prompt"`       // Original prompt/requirements
 	ToolOutputs []ToolOutput           `json:"tool_outputs"` // Results from each tool

@@ -332,10 +332,10 @@ func TestFilterControls(t *testing.T) {
 	t.Parallel()
 
 	controls := []*domain.Control{
-		{ID: 1, Name: "SOC2 Access", Framework: "SOC2", Status: "implemented", Category: "Access Control"},
-		{ID: 2, Name: "ISO Risk", Framework: "ISO27001", Status: "implemented", Category: "Risk Management"},
-		{ID: 3, Name: "SOC2 Monitor", Framework: "SOC2", Status: "not_applicable", Category: "Monitoring"},
-		{ID: 4, Name: "ISO Access", Framework: "ISO27001", Status: "planned", Category: "Access Control"},
+		{ID: "1", Name: "SOC2 Access", Framework: "SOC2", Status: "implemented", Category: "Access Control"},
+		{ID: "2", Name: "ISO Risk", Framework: "ISO27001", Status: "implemented", Category: "Risk Management"},
+		{ID: "3", Name: "SOC2 Monitor", Framework: "SOC2", Status: "not_applicable", Category: "Monitoring"},
+		{ID: "4", Name: "ISO Access", Framework: "ISO27001", Status: "planned", Category: "Access Control"},
 	}
 
 	t.Run("no filters returns all", func(t *testing.T) {
@@ -369,7 +369,7 @@ func TestFilterControls(t *testing.T) {
 		t.Parallel()
 		result := filterControls(controls, "SOC2", "implemented", "")
 		assert.Len(t, result, 1)
-		assert.Equal(t, 1, result[0].ID)
+		assert.Equal(t, "1", result[0].ID)
 	})
 
 	t.Run("case insensitive framework", func(t *testing.T) {

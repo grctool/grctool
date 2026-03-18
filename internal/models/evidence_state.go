@@ -15,14 +15,19 @@
 
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"time"
+)
 
 // EvidenceTaskState represents the complete state for one evidence task
 // including both remote (Tugboat) status and local evidence status
 type EvidenceTaskState struct {
 	// Task identification
 	TaskRef  string `json:"task_ref" yaml:"task_ref"`   // ET-0001
-	TaskID   int    `json:"task_id" yaml:"task_id"`     // Numeric ID
+	TaskID   string `json:"task_id" yaml:"task_id"`     // Task ID (string)
 	TaskName string `json:"task_name" yaml:"task_name"` // Human-readable name
 
 	// Tugboat sync state (remote)
@@ -43,6 +48,40 @@ type EvidenceTaskState struct {
 	LastGeneratedAt *time.Time `json:"last_generated_at,omitempty" yaml:"last_generated_at,omitempty"` // Most recent generation
 	LastSubmittedAt *time.Time `json:"last_submitted_at,omitempty" yaml:"last_submitted_at,omitempty"` // Most recent submission
 	LastScannedAt   time.Time  `json:"last_scanned_at" yaml:"last_scanned_at"`                         // When this state was computed
+}
+
+// UnmarshalJSON implements custom unmarshaling for EvidenceTaskState to handle
+// both integer and string TaskID values for backward compatibility with on-disk JSON.
+func (s *EvidenceTaskState) UnmarshalJSON(data []byte) error {
+	type EvidenceTaskStateAlias EvidenceTaskState
+	var raw struct {
+		EvidenceTaskStateAlias
+		RawTaskID json.RawMessage `json:"task_id"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	*s = EvidenceTaskState(raw.EvidenceTaskStateAlias)
+
+	if raw.RawTaskID != nil && string(raw.RawTaskID) != "null" {
+		var strID string
+		if err := json.Unmarshal(raw.RawTaskID, &strID); err == nil {
+			s.TaskID = strID
+		} else {
+			var intID int
+			if err := json.Unmarshal(raw.RawTaskID, &intID); err == nil {
+				s.TaskID = strconv.Itoa(intID)
+			} else {
+				var floatID float64
+				if err := json.Unmarshal(raw.RawTaskID, &floatID); err == nil {
+					s.TaskID = fmt.Sprintf("%.0f", floatID)
+				} else {
+					return fmt.Errorf("cannot unmarshal evidence task state task_id: %s", string(raw.RawTaskID))
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // WindowState represents evidence state for a specific collection window

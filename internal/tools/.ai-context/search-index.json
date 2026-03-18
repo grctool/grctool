@@ -1,0 +1,53 @@
+{
+  "generated_at": "2026-03-18T04:02:54.275747541-04:00",
+  "files": [
+    {
+      "path": "/tmp/TestSemanticSearchTool_Execute_SaveAndLoad146639286/001/main.go",
+      "package": "main",
+      "imports": [],
+      "loc": 3,
+      "purpose": "application entry point",
+      "keywords": [
+        "main"
+      ],
+      "last_modified": "2026-03-18T04:02:54.272754238-04:00"
+    }
+  ],
+  "functions": [
+    {
+      "name": "main",
+      "file": "/tmp/TestSemanticSearchTool_Execute_SaveAndLoad146639286/001/main.go",
+      "line": 3,
+      "parameters": [],
+      "return_types": [],
+      "is_exported": false,
+      "doc_comment": "",
+      "purpose": "function",
+      "keywords": [
+        "main",
+        "function"
+      ]
+    }
+  ],
+  "types": [],
+  "interfaces": [],
+  "comments": [],
+  "keywords": {
+    "function": [
+      {
+        "file": "/tmp/TestSemanticSearchTool_Execute_SaveAndLoad146639286/001/main.go",
+        "line": 3,
+        "context": "main",
+        "type": "function"
+      }
+    ],
+    "main": [
+      {
+        "file": "/tmp/TestSemanticSearchTool_Execute_SaveAndLoad146639286/001/main.go",
+        "line": 3,
+        "context": "main",
+        "type": "function"
+      }
+    ]
+  }
+}

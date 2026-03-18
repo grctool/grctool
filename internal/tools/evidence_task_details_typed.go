@@ -18,7 +18,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/grctool/grctool/internal/config"
@@ -63,13 +62,13 @@ func (ett *TypedEvidenceTaskDetailsTool) ExecuteTyped(ctx context.Context, req t
 	}
 
 	// Get task details from local data store
-	task, err := ett.dataStore.GetEvidenceTask(strconv.Itoa(taskID))
+	task, err := ett.dataStore.GetEvidenceTask(taskID)
 	if err != nil {
-		return types.NewErrorResponse(ett.Name(), fmt.Sprintf("failed to retrieve task %d: %v", taskID, err), nil), nil
+		return types.NewErrorResponse(ett.Name(), fmt.Sprintf("failed to retrieve task %s: %v", taskID, err), nil), nil
 	}
 
 	if task == nil {
-		return types.NewErrorResponse(ett.Name(), fmt.Sprintf("task %d not found", taskID), nil), nil
+		return types.NewErrorResponse(ett.Name(), fmt.Sprintf("task %s not found", taskID), nil), nil
 	}
 
 	// Get related controls and policies

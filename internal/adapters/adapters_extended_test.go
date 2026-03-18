@@ -26,7 +26,7 @@ func TestConvertPolicy_BasicPolicy(t *testing.T) {
 	now := time.Now().Truncate(time.Second)
 
 	apiPolicy := tugboatmodels.Policy{
-		ID:          "42",
+		ID: tugboatmodels.IntOrString("42"),
 		Name:        "Access Control Policy",
 		Description: "Governs access controls",
 		Framework:   "SOC2",
@@ -50,7 +50,7 @@ func TestConvertPolicy_PolicyDetails(t *testing.T) {
 
 	apiPolicy := tugboatmodels.PolicyDetails{
 		Policy: tugboatmodels.Policy{
-			ID:        "42",
+			ID: tugboatmodels.IntOrString("42"),
 			Name:      "Access Control Policy",
 			Framework: "SOC2",
 			Status:    "published",
@@ -60,7 +60,7 @@ func TestConvertPolicy_PolicyDetails(t *testing.T) {
 		Summary:          "Policy summary",
 		Details:          "Full policy content here",
 		Category:         "Access Control",
-		MasterPolicyID:   "36",
+		MasterPolicyID: tugboatmodels.IntOrString("36"),
 		VersionNum:       3,
 		MasterVersionNum: 2,
 		Tags: []tugboatmodels.PolicyTag{
@@ -154,7 +154,7 @@ func TestConvertPolicy_PolicyDetails_ContentFallback(t *testing.T) {
 	// When Details is empty, Content should fall back to CurrentVersion.Content
 	apiPolicy := tugboatmodels.PolicyDetails{
 		Policy: tugboatmodels.Policy{
-			ID:   "1",
+			ID: tugboatmodels.IntOrString("1"),
 			Name: "Test Policy",
 		},
 		Details: "", // Empty details
@@ -173,7 +173,7 @@ func TestConvertPolicy_PolicyDetails_NilOptionalFields(t *testing.T) {
 
 	apiPolicy := tugboatmodels.PolicyDetails{
 		Policy: tugboatmodels.Policy{
-			ID:   "1",
+			ID: tugboatmodels.IntOrString("1"),
 			Name: "Minimal Policy",
 		},
 		// All optional fields are nil
@@ -204,7 +204,7 @@ func TestConvertControl_BasicControl(t *testing.T) {
 	implDate := "2024-01-15T00:00:00Z"
 
 	apiControl := tugboatmodels.Control{
-		ID:                42,
+		ID: 42,
 		Name:              "AC1 - Access Provisioning",
 		Body:              "Controls access provisioning",
 		Category:          "Access Control",
@@ -219,7 +219,7 @@ func TestConvertControl_BasicControl(t *testing.T) {
 	}
 
 	result := adapter.ConvertControl(apiControl)
-	assert.Equal(t, 42, result.ID)
+	assert.Equal(t, "42", result.ID)
 	assert.Equal(t, "AC1 - Access Provisioning", result.Name)
 	assert.Equal(t, "Controls access provisioning", result.Description) // Body -> Description
 	assert.Equal(t, "Access Control", result.Category)
@@ -237,7 +237,7 @@ func TestConvertControl_NilOptionalFields(t *testing.T) {
 	adapter := NewTugboatToDomain()
 
 	apiControl := tugboatmodels.Control{
-		ID:              42,
+		ID: 42,
 		Name:            "Simple Control",
 		Body:            "Body",
 		RiskLevel:       nil,
@@ -257,7 +257,7 @@ func TestConvertControl_InvalidDateFormat(t *testing.T) {
 	badDate := "not-a-date"
 
 	apiControl := tugboatmodels.Control{
-		ID:              1,
+		ID: 1,
 		Name:            "Test",
 		ImplementedDate: &badDate,
 	}
@@ -270,7 +270,7 @@ func TestConvertControl_UnknownType(t *testing.T) {
 	t.Parallel()
 	adapter := NewTugboatToDomain()
 	result := adapter.ConvertControl("not a control")
-	assert.Equal(t, 0, result.ID)
+	assert.Equal(t, "", result.ID)
 }
 
 // --- ConvertEvidenceTask tests ---
@@ -281,7 +281,7 @@ func TestConvertEvidenceTask_BasicTask(t *testing.T) {
 	lastCollected := "2024-06-01T00:00:00Z"
 
 	apiTask := tugboatmodels.EvidenceTask{
-		ID:                 42,
+		ID: 42,
 		Name:               "Firewall Configuration",
 		Description:        "Show firewall config",
 		CollectionInterval: "quarter",
@@ -292,7 +292,7 @@ func TestConvertEvidenceTask_BasicTask(t *testing.T) {
 	}
 
 	result := adapter.ConvertEvidenceTask(apiTask)
-	assert.Equal(t, 42, result.ID)
+	assert.Equal(t, "42", result.ID)
 	assert.Equal(t, "Firewall Configuration", result.Name)
 	assert.Equal(t, "pending", result.Status)          // Derived from Completed=false
 	assert.Equal(t, "medium", result.Priority)          // Derived from quarter
@@ -308,7 +308,7 @@ func TestConvertEvidenceTask_WithExistingStatus(t *testing.T) {
 	adapter := NewTugboatToDomain()
 
 	apiTask := tugboatmodels.EvidenceTask{
-		ID:       1,
+		ID: 1,
 		Name:     "Test",
 		Status:   "in_progress",
 		Priority: "high",
@@ -324,7 +324,7 @@ func TestConvertEvidenceTask_CompletedTask(t *testing.T) {
 	adapter := NewTugboatToDomain()
 
 	apiTask := tugboatmodels.EvidenceTask{
-		ID:        1,
+		ID: 1,
 		Name:      "Completed Task",
 		Completed: true,
 	}
@@ -348,7 +348,7 @@ func TestConvertEvidenceTask_PriorityDerivation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		apiTask := tugboatmodels.EvidenceTask{
-			ID:                 1,
+			ID: 1,
 			Name:               "Test",
 			CollectionInterval: tt.interval,
 		}
@@ -362,7 +362,7 @@ func TestConvertEvidenceTask_NilDates(t *testing.T) {
 	adapter := NewTugboatToDomain()
 
 	apiTask := tugboatmodels.EvidenceTask{
-		ID:            1,
+		ID: 1,
 		Name:          "No Dates",
 		LastCollected: nil,
 		NextDue:       nil,
@@ -379,7 +379,7 @@ func TestConvertEvidenceTask_EmptyDates(t *testing.T) {
 	empty := ""
 
 	apiTask := tugboatmodels.EvidenceTask{
-		ID:            1,
+		ID: 1,
 		Name:          "Empty Dates",
 		LastCollected: &empty,
 		NextDue:       &empty,
@@ -394,7 +394,7 @@ func TestConvertEvidenceTask_UnknownType(t *testing.T) {
 	t.Parallel()
 	adapter := NewTugboatToDomain()
 	result := adapter.ConvertEvidenceTask("not a task")
-	assert.Equal(t, 0, result.ID)
+	assert.Equal(t, "", result.ID)
 }
 
 // --- Flexible interface conversion tests ---
@@ -689,7 +689,7 @@ func TestConvertOrgScope_Valid(t *testing.T) {
 	t.Parallel()
 	adapter := NewTugboatToDomain()
 	scope := &tugboatmodels.OrgScope{
-		ID:          1,
+		ID: 1,
 		Name:        "Engineering",
 		Description: "Eng team",
 		Type:        "department",
@@ -875,7 +875,7 @@ func TestConvertEmbeddedControl(t *testing.T) {
 		"org_scope_id":        float64(1),
 	}
 	result := adapter.convertEmbeddedControl(ctrlMap)
-	assert.Equal(t, 42, result.ID)
+	assert.Equal(t, "42", result.ID)
 	assert.Equal(t, "Access Control", result.Name)
 	assert.Equal(t, "Description text", result.Description)
 	assert.Equal(t, "SOC2", result.Framework)
@@ -937,7 +937,7 @@ func TestConvertEmbeddedEvidenceTasks_ValidArray(t *testing.T) {
 	}
 	result := adapter.convertEmbeddedEvidenceTasks(tasks)
 	require.Len(t, result, 1)
-	assert.Equal(t, 100, result[0].ID)
+	assert.Equal(t, "100", result[0].ID)
 	assert.Equal(t, "Firewall Config", result[0].Name)
 }
 
@@ -984,7 +984,7 @@ func TestConvertEmbeddedEvidenceTask_AllFields(t *testing.T) {
 	}
 
 	result := adapter.convertEmbeddedEvidenceTask(taskMap)
-	assert.Equal(t, 42, result.ID)
+	assert.Equal(t, "42", result.ID)
 	assert.Equal(t, "Test Task", result.Name)
 	assert.Equal(t, "month", result.CollectionInterval)
 	assert.NotNil(t, result.LastCollected)

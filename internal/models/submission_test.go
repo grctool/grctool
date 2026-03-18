@@ -14,7 +14,7 @@ func TestEvidenceSubmission_JSONRoundTrip(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	batchName := "Q4 2025 Batch"
 	sub := EvidenceSubmission{
-		TaskID:    1,
+		TaskID: "1",
 		TaskRef:   "ET-0001",
 		Window:    "2025-Q4",
 		Status:    "submitted",
@@ -66,7 +66,7 @@ func TestEvidenceSubmission_JSONRoundTrip(t *testing.T) {
 func TestEvidenceSubmission_JSONRoundTrip_NilOptionals(t *testing.T) {
 	t.Parallel()
 	sub := EvidenceSubmission{
-		TaskID:  1,
+		TaskID: "1",
 		TaskRef: "ET-0001",
 		Status:  "draft",
 	}
@@ -218,7 +218,7 @@ func TestSubmissionHistory_JSONRoundTrip(t *testing.T) {
 func TestSubmitEvidenceRequest_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 	req := SubmitEvidenceRequest{
-		TaskID:           1,
+		TaskID: "1",
 		Content:          "Evidence content here",
 		ContentType:      "markdown",
 		CollectionWindow: "2025-Q4",
@@ -254,7 +254,7 @@ func TestSubmitEvidenceResponse_JSONRoundTrip(t *testing.T) {
 		SubmissionID: "sub-001",
 		Status:       "accepted",
 		Message:      "Evidence received",
-		TaskID:       1,
+		TaskID: "1",
 		ReceivedAt:   now,
 	}
 
@@ -274,7 +274,7 @@ func TestSubmissionStatusResponse_JSONRoundTrip(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
 	resp := SubmissionStatusResponse{
 		SubmissionID: "sub-001",
-		TaskID:       1,
+		TaskID: "1",
 		Status:       "accepted",
 		SubmittedAt:  now,
 		ReviewedAt:   &now,
@@ -319,11 +319,11 @@ func TestSubmissionListResponse_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 	now := time.Now().UTC().Truncate(time.Second)
 	resp := SubmissionListResponse{
-		TaskID: 1,
+		TaskID: "1",
 		Total:  2,
 		Submissions: []SubmissionStatusResponse{
-			{SubmissionID: "sub-001", TaskID: 1, Status: "accepted", SubmittedAt: now},
-			{SubmissionID: "sub-002", TaskID: 1, Status: "pending", SubmittedAt: now},
+			{SubmissionID: "sub-001", TaskID: "1", Status: "accepted", SubmittedAt: now},
+			{SubmissionID: "sub-002", TaskID: "1", Status: "pending", SubmittedAt: now},
 		},
 	}
 

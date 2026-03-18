@@ -103,21 +103,21 @@ func TestEvidenceValidator_ExtractTaskIDFromContent(t *testing.T) {
 		t.Parallel()
 		content := "# Evidence for ET47\nSome evidence content here"
 		taskID := evt.extractTaskIDFromContent(content)
-		assert.Equal(t, 327991+47, taskID)
+		assert.Equal(t, "328038", taskID)
 	})
 
 	t.Run("no ET reference returns 0", func(t *testing.T) {
 		t.Parallel()
 		content := "Just some random content\nNo task references"
 		taskID := evt.extractTaskIDFromContent(content)
-		assert.Equal(t, 0, taskID)
+		assert.Equal(t, "", taskID)
 	})
 
 	t.Run("ET in later lines still found if within first 10", func(t *testing.T) {
 		t.Parallel()
 		content := "line 1\nline 2\nline 3\nline 4\nTask ET5 evidence\n"
 		taskID := evt.extractTaskIDFromContent(content)
-		assert.Equal(t, 327991+5, taskID)
+		assert.Equal(t, "327996", taskID)
 	})
 }
 

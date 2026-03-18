@@ -17,7 +17,6 @@ package formatters
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -57,11 +56,11 @@ func (cf *ControlFormatter) ToMarkdown(control *domain.Control) string {
 	var md strings.Builder
 
 	// Header section with ID and basic info
-	md.WriteString(fmt.Sprintf("# Control %d\n\n", control.ID))
+	md.WriteString(fmt.Sprintf("# Control %s\n\n", control.ID))
 
 	// Metadata header box
 	md.WriteString("```\n")
-	md.WriteString(fmt.Sprintf("Control ID: %d\n", control.ID))
+	md.WriteString(fmt.Sprintf("Control ID: %s\n", control.ID))
 	md.WriteString(fmt.Sprintf("Framework: %s\n", control.Framework))
 	md.WriteString(fmt.Sprintf("Category: %s\n", control.Category))
 	md.WriteString(fmt.Sprintf("Status: %s\n", control.Status))
@@ -118,7 +117,7 @@ func (cf *ControlFormatter) ToMarkdown(control *domain.Control) string {
 	// Basic information
 	md.WriteString("### Basic Information\n\n")
 	basicRows := []MetadataRow{
-		{"Control ID", strconv.Itoa(control.ID)},
+		{"Control ID", control.ID},
 		{"Reference ID", control.ReferenceID},
 		{"Name", cf.baseFormatter.InterpolateText(control.Name)},
 		{"Category", control.Category},
@@ -282,7 +281,7 @@ func (cf *ControlFormatter) ToSummaryMarkdown(control *domain.Control) string {
 	var md strings.Builder
 
 	md.WriteString(fmt.Sprintf("## %s\n\n", control.Name))
-	md.WriteString(fmt.Sprintf("**ID:** %d | **Category:** %s | **Status:** %s\n\n",
+	md.WriteString(fmt.Sprintf("**ID:** %s | **Category:** %s | **Status:** %s\n\n",
 		control.ID, control.Category, control.Status))
 
 	if control.Description != "" {
@@ -377,7 +376,7 @@ func (cf *ControlFormatter) ToDocumentMarkdown(control *domain.Control) string {
 	// Basic metadata table
 	metadataRows := []MetadataRow{
 		{"Document Reference", reference},
-		{"Control ID", strconv.Itoa(control.ID)},
+		{"Control ID", control.ID},
 		{"Reference ID", control.ReferenceID},
 		{"Control Name", control.Name},
 		{"Category", control.Category},
@@ -612,7 +611,7 @@ func (cf *ControlFormatter) generateReference(name string) string {
 // GetDocumentFilename generates a filename for a control document using unified pattern
 func (cf *ControlFormatter) GetDocumentFilename(control *domain.Control) string {
 	fg := utils.NewFilenameGenerator()
-	return fg.GenerateFilename(control.ReferenceID, strconv.Itoa(control.ID), control.Name, "md")
+	return fg.GenerateFilename(control.ReferenceID, control.ID, control.Name, "md")
 }
 
 // getTimeValue safely extracts a time value, handling nil pointers

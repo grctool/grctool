@@ -17,7 +17,6 @@ package testhelpers
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
 
@@ -66,11 +65,11 @@ func NewStubStorageServiceWithData(
 	}
 	for i := range controls {
 		c := controls[i]
-		s.controls[strconv.Itoa(c.ID)] = &c
+		s.controls[c.ID] = &c
 	}
 	for i := range tasks {
 		t := tasks[i]
-		s.tasks[strconv.Itoa(t.ID)] = &t
+		s.tasks[t.ID] = &t
 	}
 	return s
 }
@@ -145,7 +144,7 @@ func (s *StubStorageService) SaveControl(control *domain.Control) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.controls[strconv.Itoa(control.ID)] = control
+	s.controls[control.ID] = control
 	return nil
 }
 
@@ -163,7 +162,7 @@ func (s *StubStorageService) GetControlByReferenceAndID(referenceID, numericID s
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, c := range s.controls {
-		if c.ReferenceID == referenceID || strconv.Itoa(c.ID) == numericID {
+		if c.ReferenceID == referenceID || c.ID == numericID {
 			return c, nil
 		}
 	}
@@ -207,7 +206,7 @@ func (s *StubStorageService) SaveEvidenceTask(task *domain.EvidenceTask) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.tasks[strconv.Itoa(task.ID)] = task
+	s.tasks[task.ID] = task
 	return nil
 }
 
@@ -225,7 +224,7 @@ func (s *StubStorageService) GetEvidenceTaskByReferenceAndID(referenceID, numeri
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, t := range s.tasks {
-		if t.ReferenceID == referenceID || strconv.Itoa(t.ID) == numericID {
+		if t.ReferenceID == referenceID || t.ID == numericID {
 			return t, nil
 		}
 	}
@@ -281,7 +280,7 @@ func (s *StubStorageService) GetEvidenceRecord(id string) (*domain.EvidenceRecor
 	return r, nil
 }
 
-func (s *StubStorageService) GetEvidenceRecordsByTaskID(taskID int) ([]domain.EvidenceRecord, error) {
+func (s *StubStorageService) GetEvidenceRecordsByTaskID(taskID string) ([]domain.EvidenceRecord, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	var result []domain.EvidenceRecord

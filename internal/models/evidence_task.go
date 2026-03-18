@@ -21,7 +21,7 @@ import (
 
 // EvidenceTask represents an evidence collection task from Tugboat Logic
 type EvidenceTask struct {
-	ID                 int       `json:"id"`
+	ID                 string    `json:"id"`
 	Name               string    `json:"name"`
 	Description        string    `json:"description"`
 	Guidance           string    `json:"guidance"`

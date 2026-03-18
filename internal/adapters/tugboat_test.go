@@ -92,7 +92,7 @@ func TestControlRoundtrip(t *testing.T) {
 		domainControl := adapter.ConvertControl(apiControl)
 
 		// Verify critical fields are mapped
-		if domainControl.ID == 0 {
+		if domainControl.ID == "" {
 			t.Error("Control ID not mapped")
 		}
 		if domainControl.Name == "" {
@@ -109,7 +109,7 @@ func TestControlRoundtrip(t *testing.T) {
 			}
 		}
 
-		t.Logf("✅ Control roundtrip successful: %s (ID: %d, Description length: %d)",
+		t.Logf("✅ Control roundtrip successful: %s (ID: %s, Description length: %d)",
 			domainControl.Name, domainControl.ID, len(domainControl.Description))
 	})
 }
@@ -138,7 +138,7 @@ func TestEvidenceTaskRoundtrip(t *testing.T) {
 		domainTask := adapter.ConvertEvidenceTask(apiTask)
 
 		// Verify critical fields are mapped
-		if domainTask.ID == 0 {
+		if domainTask.ID == "" {
 			t.Error("Evidence Task ID not mapped")
 		}
 		if domainTask.Name == "" {
@@ -182,7 +182,7 @@ func TestEvidenceTaskRoundtrip(t *testing.T) {
 				domainTask.ViewCount, domainTask.DownloadCount)
 		}
 
-		t.Logf("✅ Evidence Task roundtrip successful: %s (ID: %d, Controls: %d, Guidance length: %d, MasterContent: %v)",
+		t.Logf("✅ Evidence Task roundtrip successful: %s (ID: %s, Controls: %d, Guidance length: %d, MasterContent: %v)",
 			domainTask.Name, domainTask.ID, len(domainTask.Controls),
 			len(domainTask.Guidance), domainTask.MasterContent != nil)
 	})

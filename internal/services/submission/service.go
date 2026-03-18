@@ -192,7 +192,7 @@ func (s *SubmissionService) prepareSubmission(
 	}
 
 	submission := &models.EvidenceSubmission{
-		TaskID:         task.ID,
+		TaskID:         task.ID, // string ID
 		TaskRef:        req.TaskRef,
 		Window:         req.Window,
 		Status:         "draft",

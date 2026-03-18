@@ -18,6 +18,7 @@ package services
 import (
 	"context"
 	"testing"
+	"strconv"
 	"time"
 
 	"github.com/grctool/grctool/internal/config"
@@ -49,7 +50,7 @@ func TestDataServiceImpl_GetEvidenceTask(t *testing.T) {
 	}{
 		"existing task": {
 			setupTask: &domain.EvidenceTask{
-				ID:          123,
+	ID: "123",
 				ReferenceID: "ET-0001",
 				Name:        "Test Task",
 				Description: "Test Description",
@@ -79,7 +80,7 @@ func TestDataServiceImpl_GetEvidenceTask(t *testing.T) {
 			}
 
 			// Test GetEvidenceTask
-			task, err := service.GetEvidenceTask(context.Background(), tc.taskID)
+			task, err := service.GetEvidenceTask(context.Background(), strconv.Itoa(tc.taskID))
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -103,17 +104,17 @@ func TestDataServiceImpl_GetAllEvidenceTasks(t *testing.T) {
 	// Setup test data
 	tasks := []*domain.EvidenceTask{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "ET-0001",
 			Name:        "Task 1",
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "ET-0002",
 			Name:        "Task 2",
 		},
 		{
-			ID:          3,
+	ID: "3",
 			ReferenceID: "ET-0003",
 			Name:        "Task 3",
 		},
@@ -140,21 +141,21 @@ func TestDataServiceImpl_FilterEvidenceTasks(t *testing.T) {
 	// Setup test data
 	tasks := []*domain.EvidenceTask{
 		{
-			ID:                 1,
+	ID: "1",
 			ReferenceID:        "ET-0001",
 			Name:               "Quarterly Task",
 			CollectionInterval: "quarterly",
 			Status:             "pending",
 		},
 		{
-			ID:                 2,
+	ID: "2",
 			ReferenceID:        "ET-0002",
 			Name:               "Annual Task",
 			CollectionInterval: "annual",
 			Status:             "completed",
 		},
 		{
-			ID:                 3,
+	ID: "3",
 			ReferenceID:        "ET-0003",
 			Name:               "Monthly Task",
 			CollectionInterval: "monthly",
@@ -350,7 +351,7 @@ func TestDataServiceImpl_GetControl(t *testing.T) {
 
 	// Setup test control
 	control := &domain.Control{
-		ID:          778805,
+	ID: "778805",
 		ReferenceID: "AC-01",
 		Name:        "Access Control",
 		Description: "Control description",
@@ -382,7 +383,7 @@ func TestDataServiceImpl_GetControlByReference(t *testing.T) {
 
 	// Setup test control
 	control := &domain.Control{
-		ID:          778805,
+	ID: "778805",
 		ReferenceID: "AC-01",
 		Name:        "Access Control",
 		Description: "Control description",
@@ -412,17 +413,17 @@ func TestDataServiceImpl_GetAllControls(t *testing.T) {
 	// Setup test data
 	controls := []*domain.Control{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "AC-01",
 			Name:        "Control 1",
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "AC-02",
 			Name:        "Control 2",
 		},
 		{
-			ID:          3,
+	ID: "3",
 			ReferenceID: "CC-01",
 			Name:        "Control 3",
 		},
@@ -450,7 +451,7 @@ func TestDataServiceImpl_FilterControls(t *testing.T) {
 	// Setup test data
 	controls := []*domain.Control{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "AC-01",
 			Name:        "Access Control 1",
 			Framework:   "SOC2",
@@ -458,7 +459,7 @@ func TestDataServiceImpl_FilterControls(t *testing.T) {
 			Status:      "implemented",
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "AC-02",
 			Name:        "Access Control 2",
 			Framework:   "SOC2",
@@ -466,7 +467,7 @@ func TestDataServiceImpl_FilterControls(t *testing.T) {
 			Status:      "planned",
 		},
 		{
-			ID:          3,
+	ID: "3",
 			ReferenceID: "CC-01",
 			Name:        "Change Control",
 			Framework:   "ISO27001",
@@ -522,19 +523,19 @@ func TestDataServiceImpl_GetRelatedEvidenceTasks(t *testing.T) {
 	// Setup test data
 	tasks := []*domain.EvidenceTask{
 		{
-			ID:          1,
+	ID: "1",
 			ReferenceID: "ET-0001",
 			Name:        "Task for AC-01",
 			Controls:    []string{"AC-01", "AC-02"},
 		},
 		{
-			ID:          2,
+	ID: "2",
 			ReferenceID: "ET-0002",
 			Name:        "Task for AC-02",
 			Controls:    []string{"AC-02"},
 		},
 		{
-			ID:          3,
+	ID: "3",
 			ReferenceID: "ET-0003",
 			Name:        "Task for CC-01",
 			Controls:    []string{"CC-01"},
@@ -567,7 +568,7 @@ func TestDataServiceImpl_SaveEvidenceRecord(t *testing.T) {
 
 	record := &domain.EvidenceRecord{
 		ID:          "rec-001",
-		TaskID:      327992,
+		TaskID: "327992",
 		Title:       "Test Evidence",
 		Description: "Evidence description",
 		Content:     "Evidence content",
@@ -598,7 +599,7 @@ func TestDataServiceImpl_GetEvidenceRecord(t *testing.T) {
 	// Save a record
 	record := &domain.EvidenceRecord{
 		ID:          "rec-001",
-		TaskID:      327992,
+		TaskID: "327992",
 		Title:       "Test Evidence",
 		Content:     "Evidence content",
 		Format:      "markdown",

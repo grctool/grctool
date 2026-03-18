@@ -20,7 +20,7 @@ func TestPolicy_JSONRoundTrip(t *testing.T) {
 		Status:      "active",
 		Controls: []Control{
 			{
-				ID:       1001,
+				ID: "1001",
 				Name:     "Logical Access",
 				Category: "Common Criteria",
 				Status:   "implemented",
@@ -41,7 +41,7 @@ func TestPolicy_JSONRoundTrip(t *testing.T) {
 	assert.Equal(t, policy.Name, decoded.Name)
 	assert.Equal(t, policy.Framework, decoded.Framework)
 	assert.Len(t, decoded.Controls, 1)
-	assert.Equal(t, 1001, decoded.Controls[0].ID)
+	assert.Equal(t, "1001", decoded.Controls[0].ID)
 }
 
 func TestPolicy_IDAsIntOrString(t *testing.T) {
@@ -65,7 +65,7 @@ func TestPolicy_IDAsIntOrString(t *testing.T) {
 func TestControl_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 	control := Control{
-		ID:                1001,
+		ID: "1001",
 		Name:              "Logical Access Security",
 		Body:              "Implements logical access controls",
 		Category:          "Common Criteria",
@@ -82,7 +82,7 @@ func TestControl_JSONRoundTrip(t *testing.T) {
 			{MasterControlID: 500, FrameworkName: "SOC 2", FrameworkID: 1, Code: "CC6.1"},
 		},
 		OrgScope: &OrgScope{
-			ID:        10,
+			ID: 10,
 			OrgID:     100,
 			Name:      "Global",
 			ScopeType: "global",
@@ -166,7 +166,7 @@ func TestControlDetails_JSONRoundTrip(t *testing.T) {
 	t.Parallel()
 	cd := ControlDetails{
 		Control: Control{
-			ID:       1001,
+			ID: "1001",
 			Name:     "Test Control",
 			Status:   "implemented",
 			Category: "CC",
@@ -181,7 +181,7 @@ func TestControlDetails_JSONRoundTrip(t *testing.T) {
 	err = json.Unmarshal(data, &decoded)
 	require.NoError(t, err)
 
-	assert.Equal(t, 1001, decoded.ID)
+	assert.Equal(t, "1001", decoded.ID)
 	assert.Equal(t, "Will be removed in v2", decoded.DeprecationNotes)
 }
 

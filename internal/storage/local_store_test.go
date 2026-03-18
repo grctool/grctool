@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 	"time"
 
@@ -129,7 +128,7 @@ func TestLocalDataStore_ControlOperations(t *testing.T) {
 	require.NoError(t, lds.SaveControl(control))
 
 	// GetControl by numeric ID
-	retrieved, err := lds.GetControl(strconv.Itoa(control.ID))
+	retrieved, err := lds.GetControl(control.ID)
 	require.NoError(t, err)
 	assert.Equal(t, control.Name, retrieved.Name)
 
@@ -150,7 +149,7 @@ func TestLocalDataStore_ControlByReferenceAndID(t *testing.T) {
 	control := testhelpers.SampleControl()
 	require.NoError(t, lds.SaveControl(control))
 
-	retrieved, err := lds.GetControlByReferenceAndID(control.ReferenceID, strconv.Itoa(control.ID))
+	retrieved, err := lds.GetControlByReferenceAndID(control.ReferenceID, control.ID)
 	require.NoError(t, err)
 	assert.Equal(t, control.Name, retrieved.Name)
 
@@ -164,7 +163,7 @@ func TestLocalDataStore_ControlSummary(t *testing.T) {
 
 	c1 := testhelpers.SampleControl()
 	c2 := &domain.Control{
-		ID: 2002, ReferenceID: "AC-02", Name: "Network Security",
+		ID: "2002", ReferenceID: "AC-02", Name: "Network Security",
 		Framework: "SOC2", Category: "Infrastructure", Status: "planned",
 	}
 	require.NoError(t, lds.SaveControl(c1))
@@ -186,7 +185,7 @@ func TestLocalDataStore_EvidenceTaskOperations(t *testing.T) {
 	require.NoError(t, lds.SaveEvidenceTask(task))
 
 	// GetEvidenceTask by numeric ID
-	retrieved, err := lds.GetEvidenceTask(strconv.Itoa(task.ID))
+	retrieved, err := lds.GetEvidenceTask(task.ID)
 	require.NoError(t, err)
 	assert.Equal(t, task.Name, retrieved.Name)
 	assert.Equal(t, task.ReferenceID, retrieved.ReferenceID)
@@ -208,7 +207,7 @@ func TestLocalDataStore_EvidenceTaskByReferenceAndID(t *testing.T) {
 	task := testhelpers.SampleEvidenceTask()
 	require.NoError(t, lds.SaveEvidenceTask(task))
 
-	retrieved, err := lds.GetEvidenceTaskByReferenceAndID(task.ReferenceID, strconv.Itoa(task.ID))
+	retrieved, err := lds.GetEvidenceTaskByReferenceAndID(task.ReferenceID, task.ID)
 	require.NoError(t, err)
 	assert.Equal(t, task.Name, retrieved.Name)
 
@@ -227,7 +226,7 @@ func TestLocalDataStore_EvidenceTaskSummary(t *testing.T) {
 	t1.NextDue = &overdue
 
 	t2 := &domain.EvidenceTask{
-		ID: 327993, ReferenceID: "ET-0048", Name: "Terraform Security",
+		ID: "327993", ReferenceID: "ET-0048", Name: "Terraform Security",
 		Status: "in_progress", Priority: "medium", NextDue: &dueSoon,
 	}
 
@@ -263,7 +262,7 @@ func TestLocalDataStore_EvidenceRecordOperations(t *testing.T) {
 	assert.Len(t, records, 1)
 
 	// No records for other task
-	records, err = lds.GetEvidenceRecordsByTaskID(99999)
+	records, err = lds.GetEvidenceRecordsByTaskID("99999")
 	require.NoError(t, err)
 	assert.Empty(t, records)
 }

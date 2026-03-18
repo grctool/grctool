@@ -92,7 +92,7 @@ func TestFinalRelationshipImplementation(t *testing.T) {
 		t.Logf("✓ Found %d evidence tasks for control %s", len(evidenceTasks), controlID)
 
 		for i, task := range evidenceTasks {
-			t.Logf("  Evidence Task %d: %s (ID: %d)", i+1, task.Name, task.ID)
+			t.Logf("  Evidence Task %s: %s (ID: %d)", i+1, task.Name, task.ID)
 		}
 	})
 }

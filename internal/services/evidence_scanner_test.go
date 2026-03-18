@@ -26,20 +26,20 @@ func TestExtractTaskIDFromRef(t *testing.T) {
 	tests := []struct {
 		name     string
 		taskRef  string
-		expected int
+		expected string
 	}{
-		{"Basic task ref", "ET-0001", 1},
-		{"Large task ID", "ET-0047", 47},
-		{"Padded task ID", "ET-0104", 104},
-		{"Invalid format", "ET-XYZ", 0},
-		{"Missing prefix", "0001", 0},
+		{"Basic task ref", "ET-0001", "1"},
+		{"Large task ID", "ET-0047", "47"},
+		{"Padded task ID", "ET-0104", "104"},
+		{"Invalid format", "ET-XYZ", ""},
+		{"Missing prefix", "0001", ""},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := extractTaskIDFromRef(tt.taskRef)
 			if result != tt.expected {
-				t.Errorf("extractTaskIDFromRef(%s) = %d, want %d", tt.taskRef, result, tt.expected)
+				t.Errorf("extractTaskIDFromRef(%s) = %s, want %s", tt.taskRef, result, tt.expected)
 			}
 		})
 	}

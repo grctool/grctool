@@ -28,26 +28,26 @@ func TestEvidenceContext_MapBasedSummaries(t *testing.T) {
 		// Create evidence context with controls
 		context := &models.EvidenceContext{
 			Controls: []models.Control{
-				{ID: 100, Name: "Control 100"},
-				{ID: 200, Name: "Control 200"},
-				{ID: 300, Name: "Control 300"},
+				{ID: "100", Name: "Control 100"},
+				{ID: "200", Name: "Control 200"},
+				{ID: "300", Name: "Control 300"},
 			},
-			ControlSummaries: make(map[int]models.AIControlSummary),
+			ControlSummaries: make(map[string]models.AIControlSummary),
 		}
 
 		// Add summaries in different order to test mapping
-		context.ControlSummaries[200] = models.AIControlSummary{
-			ControlID:   200,
+		context.ControlSummaries["200"] = models.AIControlSummary{
+			ControlID: "200",
 			ControlName: "Control 200",
 			Summary:     "Summary for control 200",
 		}
-		context.ControlSummaries[100] = models.AIControlSummary{
-			ControlID:   100,
+		context.ControlSummaries["100"] = models.AIControlSummary{
+			ControlID: "100",
 			ControlName: "Control 100",
 			Summary:     "Summary for control 100",
 		}
-		context.ControlSummaries[300] = models.AIControlSummary{
-			ControlID:   300,
+		context.ControlSummaries["300"] = models.AIControlSummary{
+			ControlID: "300",
 			ControlName: "Control 300",
 			Summary:     "Summary for control 300",
 		}
@@ -55,7 +55,7 @@ func TestEvidenceContext_MapBasedSummaries(t *testing.T) {
 		// Verify each control has the correct summary
 		for _, control := range context.Controls {
 			summary, exists := context.ControlSummaries[control.ID]
-			require.True(t, exists, "Summary should exist for control %d", control.ID)
+			require.True(t, exists, "Summary should exist for control %s", control.ID)
 			assert.Equal(t, control.ID, summary.ControlID)
 			assert.Equal(t, control.Name, summary.ControlName)
 			assert.Contains(t, summary.Summary, "control")
@@ -104,30 +104,30 @@ func TestEvidenceContext_MapBasedSummaries(t *testing.T) {
 		// Create context with controls but incomplete summaries
 		context := &models.EvidenceContext{
 			Controls: []models.Control{
-				{ID: 100, Name: "Control 100"},
-				{ID: 200, Name: "Control 200"},
-				{ID: 300, Name: "Control 300"},
+				{ID: "100", Name: "Control 100"},
+				{ID: "200", Name: "Control 200"},
+				{ID: "300", Name: "Control 300"},
 			},
-			ControlSummaries: make(map[int]models.AIControlSummary),
+			ControlSummaries: make(map[string]models.AIControlSummary),
 		}
 
 		// Only add summary for one control
-		context.ControlSummaries[200] = models.AIControlSummary{
-			ControlID:   200,
+		context.ControlSummaries["200"] = models.AIControlSummary{
+			ControlID: "200",
 			ControlName: "Control 200",
 			Summary:     "Summary for control 200",
 		}
 
 		// Verify we can check for missing summaries
-		summary100, exists100 := context.ControlSummaries[100]
+		summary100, exists100 := context.ControlSummaries["100"]
 		assert.False(t, exists100, "Summary should not exist for control 100")
 		assert.Zero(t, summary100.ControlID)
 
-		summary200, exists200 := context.ControlSummaries[200]
+		summary200, exists200 := context.ControlSummaries["200"]
 		assert.True(t, exists200, "Summary should exist for control 200")
-		assert.Equal(t, 200, summary200.ControlID)
+		assert.Equal(t, "200", summary200.ControlID)
 
-		summary300, exists300 := context.ControlSummaries[300]
+		summary300, exists300 := context.ControlSummaries["300"]
 		assert.False(t, exists300, "Summary should not exist for control 300")
 		assert.Zero(t, summary300.ControlID)
 	})
@@ -170,41 +170,41 @@ func TestSummaryGeneration_NoArrayIndexing(t *testing.T) {
 
 		context := &models.EvidenceContext{
 			Controls: []models.Control{
-				{ID: 100, Name: "Control 100"},
-				{ID: 200, Name: "Control 200"},
-				{ID: 300, Name: "Control 300"},
+				{ID: "100", Name: "Control 100"},
+				{ID: "200", Name: "Control 200"},
+				{ID: "300", Name: "Control 300"},
 			},
-			ControlSummaries: make(map[int]models.AIControlSummary),
+			ControlSummaries: make(map[string]models.AIControlSummary),
 		}
 
 		// Simulate scenario where control 200 fails to generate summary
 		// In old array-based system, this would cause misalignment
-		context.ControlSummaries[100] = models.AIControlSummary{
-			ControlID:   100,
+		context.ControlSummaries["100"] = models.AIControlSummary{
+			ControlID: "100",
 			ControlName: "Control 100",
 			Summary:     "Summary for control 100",
 		}
 		// Skip control 200
-		context.ControlSummaries[300] = models.AIControlSummary{
-			ControlID:   300,
+		context.ControlSummaries["300"] = models.AIControlSummary{
+			ControlID: "300",
 			ControlName: "Control 300",
 			Summary:     "Summary for control 300",
 		}
 
 		// Verify control 100 still has correct summary
-		summary100, exists100 := context.ControlSummaries[100]
+		summary100, exists100 := context.ControlSummaries["100"]
 		assert.True(t, exists100)
-		assert.Equal(t, 100, summary100.ControlID)
+		assert.Equal(t, "100", summary100.ControlID)
 		assert.Contains(t, summary100.Summary, "control 100")
 
 		// Verify control 200 has no summary
-		_, exists200 := context.ControlSummaries[200]
+		_, exists200 := context.ControlSummaries["200"]
 		assert.False(t, exists200)
 
 		// Verify control 300 still has correct summary
-		summary300, exists300 := context.ControlSummaries[300]
+		summary300, exists300 := context.ControlSummaries["300"]
 		assert.True(t, exists300)
-		assert.Equal(t, 300, summary300.ControlID)
+		assert.Equal(t, "300", summary300.ControlID)
 		assert.Contains(t, summary300.Summary, "control 300")
 	})
 }

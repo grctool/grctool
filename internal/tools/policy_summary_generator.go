@@ -205,14 +205,14 @@ func (psgt *PolicySummaryGeneratorTool) Execute(ctx context.Context, params map[
 	"structured_summary": {
 		"policy_id": %q,
 		"policy_name": %q,
-		"task_id": %d,
+		"task_id": %q,
 		"task_name": %q,
 		"summary": %q,
 		"key_requirements": %s,
 		"relevant_sections": %s
 	},
 	"summary_metadata": {
-		"task_id": %d,
+		"task_id": %q,
 		"task_reference_id": %q,
 		"policy_id": %q,
 		"output_format": %q,
@@ -426,16 +426,16 @@ func (psgt *PolicySummaryGeneratorTool) saveSummaryToFile(summaryText string, ta
 
 // Helper methods
 
-func (psgt *PolicySummaryGeneratorTool) parseTaskReference(taskRef string) (int, error) {
+func (psgt *PolicySummaryGeneratorTool) parseTaskReference(taskRef string) (string, error) {
 	validator := NewValidator(psgt.config.Storage.DataDir)
 
 	result, err := validator.ValidateTaskReference(taskRef)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	if !result.Valid {
-		return 0, fmt.Errorf("invalid task reference format")
+		return "", fmt.Errorf("invalid task reference format")
 	}
 
 	normalizedRef := result.Normalized["task_ref"]
@@ -443,12 +443,15 @@ func (psgt *PolicySummaryGeneratorTool) parseTaskReference(taskRef string) (int,
 		normalizedRef = taskRef
 	}
 
-	taskID, err := strconv.Atoi(normalizedRef)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert task reference to numeric ID: %w", err)
+	if _, err := strconv.Atoi(normalizedRef); err == nil {
+		return normalizedRef, nil
 	}
 
-	return taskID, nil
+	if taskID, exists := result.Normalized["task_id"]; exists && taskID != "" {
+		return taskID, nil
+	}
+
+	return normalizedRef, nil
 }
 
 func (psgt *PolicySummaryGeneratorTool) calculateRelevance(task *domain.EvidenceTask, policy *domain.Policy) float64 {

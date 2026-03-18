@@ -151,13 +151,13 @@ func (ert *EvidenceRelationshipsTool) Execute(ctx context.Context, params map[st
 	}
 
 	// Get task details from local data store
-	task, err := ert.dataStore.GetEvidenceTask(strconv.Itoa(taskID))
+	task, err := ert.dataStore.GetEvidenceTask(taskID)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to retrieve task %d: %w", taskID, err)
+		return "", nil, fmt.Errorf("failed to retrieve task %s: %w", taskID, err)
 	}
 
 	if task == nil {
-		return "", nil, fmt.Errorf("task %d not found", taskID)
+		return "", nil, fmt.Errorf("task %s not found", taskID)
 	}
 
 	// Build relationship graph based on task and parameters
@@ -371,7 +371,7 @@ func (ert *EvidenceRelationshipsTool) buildBasicDependencyGraph(task *domain.Evi
 
 	// Add task node
 	taskNode := map[string]interface{}{
-		"id":    fmt.Sprintf("task_%d", task.ID),
+		"id":    fmt.Sprintf("task_%s", task.ID),
 		"label": task.Name,
 		"type":  "evidence_task",
 		"metadata": map[string]interface{}{
@@ -395,7 +395,7 @@ func (ert *EvidenceRelationshipsTool) buildBasicDependencyGraph(task *domain.Evi
 
 		// Add edge from task to control
 		edge := map[string]interface{}{
-			"from":  fmt.Sprintf("task_%d", task.ID),
+			"from":  fmt.Sprintf("task_%s", task.ID),
 			"to":    fmt.Sprintf("control_%s", controlRef),
 			"type":  "verifies",
 			"label": "verifies",
@@ -432,30 +432,32 @@ func (ert *EvidenceRelationshipsTool) calculateRelevance(task *domain.EvidenceTa
 }
 
 // parseTaskReference converts various task reference formats to numeric ID
-func (ert *EvidenceRelationshipsTool) parseTaskReference(taskRef string) (int, error) {
-	// Create validator for task reference normalization
+func (ert *EvidenceRelationshipsTool) parseTaskReference(taskRef string) (string, error) {
 	validator := NewValidator(ert.config.Storage.DataDir)
 
 	result, err := validator.ValidateTaskReference(taskRef)
 	if err != nil {
-		return 0, err
+		return "", err
 	}
 
 	if !result.Valid {
-		return 0, fmt.Errorf("invalid task reference format")
+		return "", fmt.Errorf("invalid task reference format")
 	}
 
-	// Get normalized value
 	normalizedRef := result.Normalized["task_ref"]
 	if normalizedRef == "" {
 		normalizedRef = taskRef
 	}
 
-	// Convert to integer
-	taskID, err := strconv.Atoi(normalizedRef)
-	if err != nil {
-		return 0, fmt.Errorf("failed to convert task reference to numeric ID: %w", err)
+	if _, err := strconv.Atoi(normalizedRef); err == nil {
+		return normalizedRef, nil
 	}
+
+	if taskID, exists := result.Normalized["task_id"]; exists && taskID != "" {
+		return taskID, nil
+	}
+
+	taskID := normalizedRef
 
 	return taskID, nil
 }

@@ -128,13 +128,13 @@ func TestClient_ControlOperations(t *testing.T) {
 		// Verify structure of first control
 		if len(controls) > 0 {
 			control := controls[0]
-			if control.ID == 0 {
+			if control.ID == "" {
 				t.Error("Expected control to have ID")
 			}
 			if control.Name == "" {
 				t.Error("Expected control to have name")
 			}
-			t.Logf("✅ Got control: %s (ID: %d)", control.Name, control.ID)
+			t.Logf("✅ Got control: %s (ID: %s)", control.Name, control.ID)
 		}
 	})
 
@@ -197,13 +197,13 @@ func TestClient_EvidenceTaskOperations(t *testing.T) {
 		// Verify structure of first task
 		if len(tasks) > 0 {
 			task := tasks[0]
-			if task.ID == 0 {
+			if task.ID == "" {
 				t.Error("Expected evidence task to have ID")
 			}
 			if task.Name == "" {
 				t.Error("Expected evidence task to have name")
 			}
-			t.Logf("✅ Got evidence task: %s (ID: %d)", task.Name, task.ID)
+			t.Logf("✅ Got evidence task: %s (ID: %s)", task.Name, task.ID)
 		}
 	})
 
