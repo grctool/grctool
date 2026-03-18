@@ -26,6 +26,7 @@ import (
 	"github.com/grctool/grctool/internal/auth"
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/tools"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v3"
@@ -76,10 +77,12 @@ This will clear the stored authentication cookies and tokens.`,
 // statusCmd represents the auth status command
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Check authentication status",
-	Long: `Check the current authentication status with Tugboat Logic.
+	Short: "Check authentication status for all providers",
+	Long: `Check authentication status for all configured providers.
 
-This will validate stored credentials and display session information.`,
+Displays token presence, validity, and expiration for each provider
+(Tugboat, GitHub, etc.) when shared auth providers are initialized.
+Falls back to Tugboat-only status check otherwise.`,
 	RunE: runAuthStatus,
 }
 
@@ -204,51 +207,106 @@ func runLogout(cmd *cobra.Command, args []string) error {
 func runAuthStatus(cmd *cobra.Command, args []string) error {
 	logger.Trace("starting auth status check")
 
-	// Load configuration
+	ctx := context.Background()
+
+	// Try shared auth providers first (available after tool registry init)
+	if shared := tools.GetSharedAuthProviders(); shared != nil {
+		return runAuthStatusFromProviders(cmd, ctx, shared)
+	}
+
+	// Fallback: direct config check for Tugboat (pre-init or standalone use)
+	return runAuthStatusLegacy(cmd, ctx)
+}
+
+// runAuthStatusFromProviders reports auth status for all shared providers.
+func runAuthStatusFromProviders(cmd *cobra.Command, ctx context.Context, shared *tools.SharedAuthProviders) error {
+	cmd.Println("Authentication Status")
+	cmd.Println(strings.Repeat("-", 40))
+
+	providers := []auth.AuthProvider{shared.Tugboat, shared.GitHub}
+	anyAuthenticated := false
+
+	for _, p := range providers {
+		status := p.GetStatus(ctx)
+		printProviderStatus(cmd, status)
+		if status.Authenticated {
+			anyAuthenticated = true
+		}
+	}
+
+	if !anyAuthenticated {
+		cmd.Println("\nRun 'grctool auth login' to authenticate with Tugboat Logic")
+	}
+
+	return nil
+}
+
+// printProviderStatus formats a single provider's auth status.
+func printProviderStatus(cmd *cobra.Command, status *auth.AuthStatus) {
+	icon := "x"
+	if status.Authenticated {
+		icon = "ok"
+	}
+
+	cmd.Printf("\n[%s] %s\n", icon, status.Provider)
+
+	if status.TokenPresent {
+		cmd.Printf("  Token: present")
+		if status.TokenValid {
+			cmd.Printf(" (valid)")
+		}
+		cmd.Println()
+	} else {
+		cmd.Println("  Token: not configured")
+	}
+
+	if status.Source != "" {
+		cmd.Printf("  Source: %s\n", status.Source)
+	}
+
+	if status.Error != "" {
+		cmd.Printf("  Error: %s\n", status.Error)
+	}
+
+	if status.ExpiresAt != nil {
+		cmd.Printf("  Expires: %s\n", status.ExpiresAt.Format(time.RFC3339))
+	}
+}
+
+// runAuthStatusLegacy is the original Tugboat-only status check,
+// used when shared auth providers are not initialized.
+func runAuthStatusLegacy(cmd *cobra.Command, ctx context.Context) error {
 	cfg, err := loadConfigForAuth()
 	if err != nil {
 		logger.Debug("failed to load config", logger.Error(err))
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Check if we have credentials
 	if cfg.Tugboat.CookieHeader == "" {
-		logger.Trace("no credentials found in config")
-		cmd.Println("❌ Not authenticated")
+		cmd.Println("Not authenticated")
 		cmd.Println("Run 'grctool auth login' to authenticate")
 		return nil
 	}
 
-	logger.Debug("found stored credentials", logger.Int("cookie_length", len(cfg.Tugboat.CookieHeader)))
-	cmd.Println("🔍 Checking authentication status...")
+	cmd.Println("Checking authentication status...")
 
-	// Create credentials object from config
 	creds := &auth.AuthCredentials{
 		CookieHeader: cfg.Tugboat.CookieHeader,
 		BearerToken:  cfg.Tugboat.BearerToken,
 	}
 
-	// Validate credentials
-	logger.Trace("validating credentials with API")
-	ctx := context.Background()
 	if err := auth.ValidateCredentials(ctx, cfg.Tugboat.BaseURL, creds); err != nil {
-		cmd.Println("❌ Authentication invalid or expired")
+		cmd.Println("Authentication invalid or expired")
 		cmd.Printf("Error: %v\n", err)
 		cmd.Println("\nRun 'grctool auth login' to re-authenticate")
 		return nil
 	}
 
-	cmd.Println("✅ Authenticated successfully!")
-	cmd.Printf("🌐 Connected to: %s\n", cfg.Tugboat.BaseURL)
+	cmd.Println("Authenticated successfully!")
+	cmd.Printf("Connected to: %s\n", cfg.Tugboat.BaseURL)
 
-	// Show cookie info (first 20 chars only for security)
-	if len(cfg.Tugboat.CookieHeader) > 20 {
-		cmd.Printf("🍪 Cookie: %s...\n", cfg.Tugboat.CookieHeader[:20])
-	}
-
-	// Show token info if available
 	if cfg.Tugboat.BearerToken != "" {
-		cmd.Println("🔑 Bearer token: Present")
+		cmd.Println("Bearer token: Present")
 	}
 
 	return nil
