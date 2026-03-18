@@ -4,11 +4,11 @@
 package gdrive
 
 import (
-	"github.com/grctool/grctool/internal/providers"
+	"github.com/grctool/grctool/internal/interfaces"
 )
 
 // RegisterWith registers the GDrive provider with a ProviderRegistry.
 // This is a convenience wrapper around registry.Register.
-func (p *GDriveSyncProvider) RegisterWith(registry *providers.ProviderRegistry) error {
+func (p *GDriveSyncProvider) RegisterWith(registry interfaces.ProviderRegistry) error {
 	return registry.Register(p)
 }

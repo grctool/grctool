@@ -24,6 +24,9 @@ import (
 	"github.com/grctool/grctool/internal/interfaces"
 )
 
+// Compile-time assertion that ProviderRegistry implements interfaces.ProviderRegistry.
+var _ interfaces.ProviderRegistry = (*ProviderRegistry)(nil)
+
 // ProviderRegistry manages registered DataProvider and SyncProvider instances.
 // Thread-safe for concurrent access.
 type ProviderRegistry struct {

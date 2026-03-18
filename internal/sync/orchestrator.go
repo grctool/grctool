@@ -23,14 +23,13 @@ import (
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/logger"
-	"github.com/grctool/grctool/internal/providers"
 )
 
 // SyncOrchestrator coordinates bidirectional sync across providers.
 // It drives a three-phase cycle: detect changes, resolve conflicts,
 // and apply updates in both directions.
 type SyncOrchestrator struct {
-	registry *providers.ProviderRegistry
+	registry interfaces.ProviderRegistry
 	storage  interfaces.StorageService
 	detector *ConflictDetector
 	resolver *ConflictResolver
@@ -40,7 +39,7 @@ type SyncOrchestrator struct {
 // NewSyncOrchestrator creates an orchestrator with the given registry,
 // storage service, conflict policy, and logger.
 func NewSyncOrchestrator(
-	registry *providers.ProviderRegistry,
+	registry interfaces.ProviderRegistry,
 	storage interfaces.StorageService,
 	policy ConflictPolicy,
 	log logger.Logger,

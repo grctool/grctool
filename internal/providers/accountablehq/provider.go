@@ -13,7 +13,6 @@ import (
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/logger"
-	"github.com/grctool/grctool/internal/providers"
 )
 
 // Compile-time interface assertion.
@@ -62,7 +61,7 @@ func NewAccountableHQSyncProvider(client AccountableHQClient, log logger.Logger)
 }
 
 // RegisterWith registers this provider with a ProviderRegistry.
-func (p *AccountableHQSyncProvider) RegisterWith(reg *providers.ProviderRegistry) error {
+func (p *AccountableHQSyncProvider) RegisterWith(reg interfaces.ProviderRegistry) error {
 	return reg.Register(p)
 }
 

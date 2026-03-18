@@ -51,6 +51,30 @@ type ChangeSet struct {
 	Changes    []ChangeEntry `json:"changes,omitempty"`
 }
 
+// ProviderRegistry manages registration and lookup of DataProvider instances.
+// Services depend on this interface rather than the concrete struct in
+// internal/providers, enabling mock injection in tests.
+type ProviderRegistry interface {
+	// Register adds a provider. Returns error if name already registered.
+	Register(provider DataProvider) error
+
+	// Get returns a provider by name, or error if not found.
+	Get(name string) (DataProvider, error)
+
+	// GetSyncProvider returns the provider as a SyncProvider, or error if
+	// not found or if the provider doesn't implement SyncProvider.
+	GetSyncProvider(name string) (SyncProvider, error)
+
+	// List returns all registered provider names, sorted.
+	List() []string
+
+	// ListSyncProviders returns names of providers implementing SyncProvider.
+	ListSyncProviders() []string
+
+	// HealthCheck tests connectivity for all registered providers.
+	HealthCheck(ctx context.Context) map[string]error
+}
+
 // ProviderCapabilities reports which entity types and operations a provider supports.
 // Callers should check capabilities before calling entity-specific methods.
 type ProviderCapabilities struct {

@@ -47,7 +47,7 @@ import (
 type SyncService struct {
 	tugboatClient         *tugboat.Client
 	adapter               *adapters.TugboatToDomain
-	registry              *providers.ProviderRegistry // Provider registry for multi-provider sync
+	registry              interfaces.ProviderRegistry // Provider registry for multi-provider sync
 	storage               *storage.Storage            // Single storage interface for all operations
 	policyFormatter       *formatters.PolicyFormatter
 	controlFormatter      *formatters.ControlFormatter
@@ -82,7 +82,7 @@ func NewSyncService(tugboatClient *tugboat.Client, storage *storage.Storage, cfg
 // This allows syncing from any registered DataProvider, not just Tugboat.
 // The tugboatClient field is left nil; callers that need submission sync
 // should also set it explicitly or use NewSyncService instead.
-func NewSyncServiceWithRegistry(reg *providers.ProviderRegistry, storage *storage.Storage, cfg *config.Config, log logger.Logger) *SyncService {
+func NewSyncServiceWithRegistry(reg interfaces.ProviderRegistry, storage *storage.Storage, cfg *config.Config, log logger.Logger) *SyncService {
 	// Create interpolator from config
 	interpolatorConfig := interpolation.InterpolatorConfig{
 		Variables:         cfg.Interpolation.GetFlatVariables(),

@@ -25,6 +25,8 @@ import (
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/testhelpers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // stubSyncProvider embeds StubDataProvider and adds SyncProvider methods.
@@ -75,6 +77,21 @@ func (s *stubSyncProvider) ResolveConflict(_ context.Context, _ interfaces.Confl
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+func TestProviderRegistryImplementsInterface(t *testing.T) {
+	// Verify that *ProviderRegistry can be used through the interfaces.ProviderRegistry interface
+	var reg interfaces.ProviderRegistry = NewProviderRegistry()
+	stub := testhelpers.NewStubDataProvider("via-interface")
+
+	require.NoError(t, reg.Register(stub))
+
+	p, err := reg.Get("via-interface")
+	require.NoError(t, err)
+	assert.Equal(t, "via-interface", p.Name())
+
+	names := reg.List()
+	assert.Contains(t, names, "via-interface")
+}
 
 func TestNewProviderRegistry(t *testing.T) {
 	reg := NewProviderRegistry()

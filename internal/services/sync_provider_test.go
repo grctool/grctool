@@ -22,6 +22,7 @@ import (
 
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/domain"
+	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/providers"
 	"github.com/grctool/grctool/internal/storage"
@@ -42,7 +43,7 @@ func testConfig(dataDir string) *config.Config {
 
 // testSyncService creates a SyncService backed by a ProviderRegistry and
 // real storage in the given temp directory.
-func testSyncService(t *testing.T, reg *providers.ProviderRegistry) (*SyncService, *storage.Storage) {
+func testSyncService(t *testing.T, reg interfaces.ProviderRegistry) (*SyncService, *storage.Storage) {
 	t.Helper()
 	dataDir := t.TempDir()
 	cfg := testConfig(dataDir)
