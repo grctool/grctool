@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/grctool/grctool/internal/auth"
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
@@ -40,6 +41,63 @@ func newTestClient(t *testing.T, handler http.Handler) *GitHubClient {
 		graphqlURL: srv.URL + "/graphql",
 		cacheDir:   t.TempDir(),
 	}
+}
+
+// ---------------------------------------------------------------------------
+// NewGitHubClientWithAuth
+// ---------------------------------------------------------------------------
+
+func TestNewGitHubClientWithAuth_UsesInjectedProvider(t *testing.T) {
+	t.Parallel()
+	log := testhelpers.NewStubLogger()
+	cfg := &config.Config{
+		Storage: config.StorageConfig{DataDir: t.TempDir()},
+		Auth: config.AuthConfig{
+			GitHub:   config.GitHubAuthConfig{Token: "should-not-be-used"},
+			CacheDir: t.TempDir(),
+		},
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				GitHub: config.GitHubToolConfig{Repository: "org/repo"},
+			},
+		},
+	}
+
+	// Inject a custom auth provider
+	injected := auth.NewGitHubAuthProvider("injected-token", t.TempDir(), log)
+	client := NewGitHubClientWithAuth(cfg, log, injected)
+
+	require.NotNil(t, client)
+	assert.Equal(t, "github", client.authProvider.Name())
+	// The injected provider should be the one used, not one built from config
+	assert.Same(t, injected, client.authProvider)
+	client.Close()
+}
+
+func TestNewGitHubClientWithAuth_NilFallsBackToConfig(t *testing.T) {
+	t.Parallel()
+	log := testhelpers.NewStubLogger()
+	cfg := &config.Config{
+		Storage: config.StorageConfig{DataDir: t.TempDir()},
+		Auth: config.AuthConfig{
+			GitHub:   config.GitHubAuthConfig{Token: "from-config"},
+			CacheDir: t.TempDir(),
+		},
+		Evidence: config.EvidenceConfig{
+			Tools: config.ToolsConfig{
+				GitHub: config.GitHubToolConfig{Repository: "org/repo"},
+			},
+		},
+	}
+
+	client := NewGitHubClientWithAuth(cfg, log, nil)
+
+	require.NotNil(t, client)
+	assert.Equal(t, "github", client.authProvider.Name())
+	// Auth provider should have been created from config
+	status := client.authProvider.GetStatus(context.Background())
+	assert.True(t, status.TokenPresent)
+	client.Close()
 }
 
 // ---------------------------------------------------------------------------

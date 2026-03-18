@@ -50,8 +50,25 @@ type GitHubClient struct {
 	rateLimiter  *time.Ticker // For GitHub Search API rate limiting (30 req/min)
 }
 
-// NewGitHubClient creates a new comprehensive GitHub API client
+// NewGitHubClientWithAuth creates a GitHub client with an externally-provided
+// auth provider. Use this when auth providers are constructed centrally
+// (e.g., via SharedAuthProviders). Pass nil for authProvider to create
+// one internally from config (same as NewGitHubClient).
+func NewGitHubClientWithAuth(cfg *config.Config, log logger.Logger, authProvider auth.AuthProvider) *GitHubClient {
+	client := newGitHubClientInternal(cfg, log, authProvider)
+	return client
+}
+
+// NewGitHubClient creates a new comprehensive GitHub API client.
+// Constructs its own auth provider from config. For injecting a shared
+// auth provider, use NewGitHubClientWithAuth instead.
 func NewGitHubClient(cfg *config.Config, log logger.Logger) *GitHubClient {
+	return newGitHubClientInternal(cfg, log, nil)
+}
+
+// newGitHubClientInternal is the shared constructor. If authProvider is nil,
+// one is created from config.
+func newGitHubClientInternal(cfg *config.Config, log logger.Logger, authProvider auth.AuthProvider) *GitHubClient {
 	// Start with default transport
 	var httpTransport http.RoundTripper = http.DefaultTransport
 
@@ -72,22 +89,13 @@ func NewGitHubClient(cfg *config.Config, log logger.Logger) *GitHubClient {
 	// Set up cache directory
 	cacheDir := filepath.Join(cfg.Storage.DataDir, "github_cache")
 
-	// Create auth provider - token is populated by config.Load() from multiple sources:
-	// 1. cfg.Auth.GitHub.Token
-	// 2. cfg.Evidence.Tools.GitHub.APIToken
-	// 3. gh CLI (automatically via config loading)
-	githubToken := cfg.Auth.GitHub.Token
-	if githubToken == "" {
-		githubToken = cfg.Evidence.Tools.GitHub.APIToken
-	}
-
-	var authProvider auth.AuthProvider
-	if githubToken != "" {
+	// Create auth provider if not injected
+	if authProvider == nil {
+		githubToken := cfg.Auth.GitHub.Token
+		if githubToken == "" {
+			githubToken = cfg.Evidence.Tools.GitHub.APIToken
+		}
 		authProvider = auth.NewGitHubAuthProvider(githubToken, cfg.Auth.CacheDir, log)
-		log.Debug("GitHub auth provider initialized with token")
-	} else {
-		authProvider = auth.NewGitHubAuthProvider("", cfg.Auth.CacheDir, log)
-		log.Debug("GitHub auth provider initialized without token - gh CLI may be needed")
 	}
 
 	client := &GitHubClient{
@@ -104,7 +112,6 @@ func NewGitHubClient(cfg *config.Config, log logger.Logger) *GitHubClient {
 	}
 
 	// Set up rate limiting for GitHub Search API (30 requests/minute default)
-	// This applies to /search/issues, /search/commits, /search/code endpoints
 	rateLimit := cfg.Evidence.Tools.GitHub.RateLimit
 
 	// Allow override via environment variable (useful for slow VCR recording)
