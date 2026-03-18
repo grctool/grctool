@@ -22,8 +22,25 @@ import (
 	"github.com/grctool/grctool/internal/tools/github"
 )
 
+// sharedAuth holds the shared auth providers created during initialization.
+// Exported via GetSharedAuthProviders for use by cmd/auth.go and other callers.
+var sharedAuth *SharedAuthProviders
+
+// GetSharedAuthProviders returns the shared auth providers created during
+// tool registry initialization. Returns nil if InitializeToolRegistry has
+// not been called yet.
+func GetSharedAuthProviders() *SharedAuthProviders {
+	return sharedAuth
+}
+
 // InitializeToolRegistry registers all available tools with the global registry
 func InitializeToolRegistry(cfg *config.Config, log logger.Logger) error {
+	// Create shared auth providers once, reuse across all tools
+	sharedAuth = NewSharedAuthProviders(cfg, log)
+	log.Debug("Created shared auth providers",
+		logger.Field{Key: "github_auth", Value: sharedAuth.GitHub.Name()},
+		logger.Field{Key: "tugboat_auth", Value: sharedAuth.Tugboat.Name()})
+
 	// Initialize singleton template manager
 	if _, err := templates.GetSingleton(log); err != nil {
 		log.Error("Failed to initialize singleton template manager", logger.Field{Key: "error", Value: err})
