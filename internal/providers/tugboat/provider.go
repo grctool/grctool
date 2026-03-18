@@ -53,6 +53,17 @@ func (p *TugboatDataProvider) Name() string {
 	return "tugboat"
 }
 
+// Capabilities reports that Tugboat supports all entity types (read-only).
+func (p *TugboatDataProvider) Capabilities() interfaces.ProviderCapabilities {
+	return interfaces.ProviderCapabilities{
+		SupportsPolicies:      true,
+		SupportsControls:      true,
+		SupportsEvidenceTasks: true,
+		SupportsWrite:         false,
+		SupportsChangeDetect:  false,
+	}
+}
+
 // TestConnection verifies the Tugboat API is reachable by fetching
 // a minimal page of policies.
 func (p *TugboatDataProvider) TestConnection(ctx context.Context) error {

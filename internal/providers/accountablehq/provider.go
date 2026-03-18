@@ -68,6 +68,17 @@ func (p *AccountableHQSyncProvider) RegisterWith(reg *providers.ProviderRegistry
 
 func (p *AccountableHQSyncProvider) Name() string { return "accountablehq" }
 
+// Capabilities reports that AccountableHQ supports policies only, with write and change detection.
+func (p *AccountableHQSyncProvider) Capabilities() interfaces.ProviderCapabilities {
+	return interfaces.ProviderCapabilities{
+		SupportsPolicies:      true,
+		SupportsControls:      false,
+		SupportsEvidenceTasks: false,
+		SupportsWrite:         true,
+		SupportsChangeDetect:  true,
+	}
+}
+
 func (p *AccountableHQSyncProvider) TestConnection(ctx context.Context) error {
 	return p.client.TestConnection(ctx)
 }

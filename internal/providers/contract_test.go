@@ -69,6 +69,14 @@ func DataProviderContractSuite(t *testing.T, setup func(t *testing.T) (interface
 		assert.NoError(t, err, "TestConnection() must succeed for a properly configured provider")
 	})
 
+	t.Run("Capabilities", func(t *testing.T) {
+		p, _ := setup(t)
+		caps := p.Capabilities()
+		// At least one entity type must be supported
+		assert.True(t, caps.SupportsPolicies || caps.SupportsControls || caps.SupportsEvidenceTasks,
+			"Capabilities() must report support for at least one entity type")
+	})
+
 	// -----------------------------------------------------------------------
 	// Policies
 	// -----------------------------------------------------------------------

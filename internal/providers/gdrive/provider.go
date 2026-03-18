@@ -72,6 +72,18 @@ func NewGDriveSyncProvider(client DriveClient, rootFolderID string, log logger.L
 
 func (p *GDriveSyncProvider) Name() string { return "gdrive" }
 
+// Capabilities reports that GDrive currently supports policies only (as Docs).
+// Controls and evidence tasks (as Sheets) are planned but not yet implemented.
+func (p *GDriveSyncProvider) Capabilities() interfaces.ProviderCapabilities {
+	return interfaces.ProviderCapabilities{
+		SupportsPolicies:      true,
+		SupportsControls:      false,
+		SupportsEvidenceTasks: false,
+		SupportsWrite:         true,
+		SupportsChangeDetect:  true,
+	}
+}
+
 func (p *GDriveSyncProvider) TestConnection(ctx context.Context) error {
 	return p.driveClient.TestConnection(ctx)
 }

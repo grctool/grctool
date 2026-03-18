@@ -104,7 +104,7 @@ Without this foundational framework, each integration will reinvent its own adap
 
 **Acceptance Criteria**:
 
-- A `DataProvider` interface is defined in `internal/interfaces/` (or `internal/domain/`) with methods: `Name() string`, `Capabilities() ProviderCapabilities`, `ListPolicies(ctx, filter) ([]Policy, error)`, `GetPolicy(ctx, externalID) (*Policy, error)`, and equivalent methods for Controls and EvidenceTasks
+- A `DataProvider` interface is defined in `internal/interfaces/` with methods: `Name() string`, `Capabilities() ProviderCapabilities`, `TestConnection(ctx) error`, `ListPolicies(ctx, opts) ([]Policy, int, error)`, `GetPolicy(ctx, id) (*Policy, error)`, and equivalent List/Get methods for Controls and EvidenceTasks. List methods return a total count alongside the page of results to support pagination
 - `ProviderCapabilities` reports which entity types the provider supports and whether it is read-only or read-write
 - The interface uses `context.Context` for cancellation and timeout support
 - The interface returns domain objects (not provider-specific DTOs), with the adapter responsible for conversion

@@ -52,6 +52,17 @@ func (s *StubDataProvider) Name() string {
 	return s.ProviderName
 }
 
+// Capabilities returns full support for all entity types (read-only).
+func (s *StubDataProvider) Capabilities() interfaces.ProviderCapabilities {
+	return interfaces.ProviderCapabilities{
+		SupportsPolicies:      true,
+		SupportsControls:      true,
+		SupportsEvidenceTasks: true,
+		SupportsWrite:         false,
+		SupportsChangeDetect:  false,
+	}
+}
+
 func (s *StubDataProvider) TestConnection(_ context.Context) error {
 	return s.ConnError
 }

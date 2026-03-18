@@ -51,12 +51,25 @@ type ChangeSet struct {
 	Changes    []ChangeEntry `json:"changes,omitempty"`
 }
 
+// ProviderCapabilities reports which entity types and operations a provider supports.
+// Callers should check capabilities before calling entity-specific methods.
+type ProviderCapabilities struct {
+	SupportsPolicies      bool `json:"supports_policies"`
+	SupportsControls      bool `json:"supports_controls"`
+	SupportsEvidenceTasks bool `json:"supports_evidence_tasks"`
+	SupportsWrite         bool `json:"supports_write"`
+	SupportsChangeDetect  bool `json:"supports_change_detect"`
+}
+
 // DataProvider is the read-only interface for compliance data sources.
 // Any system that can provide policies, controls, or evidence tasks
 // implements this interface.
 type DataProvider interface {
 	// Name returns the unique identifier for this provider (e.g., "tugboat", "accountablehq").
 	Name() string
+
+	// Capabilities reports which entity types and operations this provider supports.
+	Capabilities() ProviderCapabilities
 
 	// TestConnection verifies that the provider is reachable and authenticated.
 	TestConnection(ctx context.Context) error

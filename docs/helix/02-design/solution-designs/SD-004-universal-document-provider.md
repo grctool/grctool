@@ -175,7 +175,7 @@ const (
 
 ## Interface Definitions
 
-All interfaces are defined in `internal/interfaces/provider.go` (new file).
+**Target state.** These interfaces define the design target for `internal/interfaces/provider.go`. The file already exists with `DataProvider`, `SyncProvider`, `EvidenceSubmitter`, and `RelationshipQuerier` partially implemented. Methods marked **(NEW)** below do not yet exist in code and must be added.
 
 ### DataProvider
 
@@ -200,11 +200,31 @@ type ListOptions struct {
     Category  string `json:"category,omitempty"`
 }
 
+// ProviderCapabilities reports which entity types a provider supports
+// and whether it offers read-only or read-write access.
+// Callers use this to skip entity types a provider cannot serve
+// (e.g., AccountableHQ supports policies only).
+type ProviderCapabilities struct {
+    SupportsPolicies      bool `json:"supports_policies"`
+    SupportsControls      bool `json:"supports_controls"`
+    SupportsEvidenceTasks bool `json:"supports_evidence_tasks"`
+    SupportsWrite         bool `json:"supports_write"`
+    SupportsChangeDetect  bool `json:"supports_change_detect"`
+}
+
 // DataProvider defines read-only access to compliance entities from an external source.
 // This is the minimal interface that every compliance platform must implement.
 type DataProvider interface {
     // Name returns the unique identifier for this provider (e.g., "tugboat", "accountablehq").
     Name() string
+
+    // (NEW) Capabilities reports which entity types and operations this provider supports.
+    // Callers must check capabilities before calling entity-specific methods;
+    // calling an unsupported method returns an error.
+    Capabilities() ProviderCapabilities
+
+    // TestConnection verifies that the provider is reachable and authenticated.
+    TestConnection(ctx context.Context) error
 
     // ListPolicies returns a page of policies and the total count.
     ListPolicies(ctx context.Context, opts ListOptions) ([]domain.Policy, int, error)
@@ -223,9 +243,6 @@ type DataProvider interface {
 
     // GetEvidenceTask retrieves a single evidence task by its provider-native ID.
     GetEvidenceTask(ctx context.Context, id string) (*domain.EvidenceTask, error)
-
-    // TestConnection verifies that the provider is reachable and authenticated.
-    TestConnection(ctx context.Context) error
 }
 ```
 
@@ -258,6 +275,99 @@ type SyncProvider interface {
 
     // DetectChanges returns entities that changed since the given time.
     DetectChanges(ctx context.Context, since time.Time) (*ChangeSet, error)
+
+    // (NEW) ResolveConflict applies a conflict resolution decision to an entity.
+    // Strategies: LocalWins, RemoteWins, NewestWins, Manual.
+    // Manual strategy marks the conflict as requiring human review.
+    ResolveConflict(ctx context.Context, conflict Conflict, resolution ConflictResolution) error
+}
+
+// ConflictResolution enumerates strategies for resolving sync conflicts.
+type ConflictResolution string
+
+const (
+    ConflictResolutionLocalWins  ConflictResolution = "local_wins"
+    ConflictResolutionRemoteWins ConflictResolution = "remote_wins"
+    ConflictResolutionNewestWins ConflictResolution = "newest_wins"
+    ConflictResolutionManual     ConflictResolution = "manual"
+)
+
+// Conflict represents a detected conflict between local and remote state.
+type Conflict struct {
+    EntityType string    `json:"entity_type"` // "policy", "control", "evidence_task"
+    EntityID   string    `json:"entity_id"`   // GRCTool-native ID
+    Provider   string    `json:"provider"`
+    LocalHash  string    `json:"local_hash"`
+    RemoteHash string    `json:"remote_hash"`
+    DetectedAt time.Time `json:"detected_at"`
+}
+```
+
+### Optional Capability Interfaces
+
+Not all providers support evidence submission or relationship queries. These
+capabilities are expressed as separate interfaces. Callers must type-assert
+before use:
+
+```go
+if es, ok := provider.(EvidenceSubmitter); ok {
+    err := es.SubmitEvidence(ctx, taskID, file, meta)
+}
+```
+
+#### EvidenceSubmitter
+
+```go
+// EvidenceSubmitter is an optional interface for providers that support
+// uploading evidence and managing attachments. Only providers connected
+// to platforms with evidence intake (e.g., Tugboat custom collectors)
+// implement this interface.
+type EvidenceSubmitter interface {
+    // SubmitEvidence uploads evidence for a task.
+    SubmitEvidence(ctx context.Context, taskID string, file io.Reader, meta SubmissionMetadata) error
+
+    // ListAttachments returns evidence attachments for a task.
+    ListAttachments(ctx context.Context, taskID string, opts ListOptions) ([]Attachment, int, error)
+
+    // DownloadAttachment returns a reader for an attachment's content.
+    DownloadAttachment(ctx context.Context, attachmentID string) (io.ReadCloser, string, error)
+}
+
+// SubmissionMetadata provides context for an evidence submission.
+type SubmissionMetadata struct {
+    CollectedDate string            `json:"collected_date"`
+    Notes         string            `json:"notes,omitempty"`
+    Window        string            `json:"window,omitempty"`
+    ContentType   string            `json:"content_type,omitempty"`
+    Filename      string            `json:"filename,omitempty"`
+    Metadata      map[string]string `json:"metadata,omitempty"`
+}
+
+// Attachment represents an evidence attachment in an upstream platform.
+type Attachment struct {
+    ID            string `json:"id"`
+    TaskID        string `json:"task_id"`
+    Filename      string `json:"filename"`
+    MimeType      string `json:"mime_type"`
+    CollectedDate string `json:"collected_date"`
+}
+```
+
+#### RelationshipQuerier
+
+```go
+// RelationshipQuerier is an optional interface for providers that support
+// cross-entity relationship queries. Not all providers have relationship
+// data (e.g., AccountableHQ manages policies only).
+type RelationshipQuerier interface {
+    // GetEvidenceTasksByControl returns evidence tasks linked to a control.
+    GetEvidenceTasksByControl(ctx context.Context, controlID string) ([]domain.EvidenceTask, error)
+
+    // GetControlsByPolicy returns controls implementing a policy.
+    GetControlsByPolicy(ctx context.Context, policyID string) ([]domain.Control, error)
+
+    // GetPoliciesByControl returns policies that a control implements.
+    GetPoliciesByControl(ctx context.Context, controlID string) ([]domain.Policy, error)
 }
 ```
 
@@ -265,147 +375,68 @@ type SyncProvider interface {
 
 ```go
 // ChangeSet represents entities that changed in a remote provider since a given time.
+// Matches the existing implementation in internal/interfaces/provider.go.
 type ChangeSet struct {
-    // Provider name that produced this changeset.
-    Provider string `json:"provider"`
-
-    // Since is the timestamp used to detect changes.
-    Since time.Time `json:"since"`
-
-    // DetectedAt is when this changeset was computed.
-    DetectedAt time.Time `json:"detected_at"`
-
-    // Changed entities by type.
-    Policies      []ChangeEntry `json:"policies,omitempty"`
-    Controls      []ChangeEntry `json:"controls,omitempty"`
-    EvidenceTasks []ChangeEntry `json:"evidence_tasks,omitempty"`
+    Provider   string        `json:"provider"`
+    Since      time.Time     `json:"since"`
+    DetectedAt time.Time     `json:"detected_at"`
+    Changes    []ChangeEntry `json:"changes,omitempty"`
 }
 
 // ChangeEntry represents a single changed entity.
 type ChangeEntry struct {
-    // ID is the provider-native ID of the changed entity.
-    ID string `json:"id"`
-
-    // ChangeType indicates what happened: "created", "updated", "deleted".
-    ChangeType string `json:"change_type"`
-
-    // ChangedAt is when the change occurred in the remote system.
-    ChangedAt time.Time `json:"changed_at"`
-
-    // ContentHash is the new content hash (empty for deletes).
-    ContentHash string `json:"content_hash,omitempty"`
+    EntityType string    `json:"entity_type"` // "policy", "control", "evidence_task"
+    EntityID   string    `json:"entity_id"`
+    ChangeType string    `json:"change_type"` // "created", "updated", "deleted"
+    Hash       string    `json:"hash,omitempty"`
+    ModifiedAt time.Time `json:"modified_at"`
 }
 ```
 
 ### ProviderRegistry
 
 ```go
-// ProviderRegistry manages the lifecycle of data and sync providers.
-// Defined in internal/interfaces/provider.go, implemented in internal/services/provider_registry.go.
-type ProviderRegistry interface {
-    // Register adds a provider to the registry. Errors if a provider with the same name exists.
-    Register(provider DataProvider) error
-
-    // Get returns a provider by name. Returns nil if not found.
-    Get(name string) DataProvider
-
-    // GetSync returns a provider as SyncProvider if it implements bidirectional sync.
-    // Returns nil if the provider is read-only or not found.
-    GetSync(name string) SyncProvider
-
-    // List returns the names of all registered providers.
-    List() []string
-
-    // HealthCheck tests connectivity for all registered providers.
-    HealthCheck(ctx context.Context) map[string]error
-
-    // Close shuts down all providers gracefully.
-    Close() error
+// ProviderInfo summarizes a registered provider's state.
+// (NEW) Not yet in code.
+type ProviderInfo struct {
+    Name         string               `json:"name"`
+    Capabilities ProviderCapabilities `json:"capabilities"`
+    Healthy      bool                 `json:"healthy"`
+    LastSyncTime *time.Time           `json:"last_sync_time,omitempty"`
 }
+```
+
+### ProviderRegistry
+
+The registry is currently a concrete struct in `internal/providers/registry.go`.
+**Target**: Extract a `ProviderRegistry` interface into `internal/interfaces/provider.go`
+so that services depend on the interface, not the concrete type.
+
+**Current signatures** (in `internal/providers/registry.go`):
+
+```go
+type ProviderRegistry struct { /* ... */ }
+
+func NewProviderRegistry() *ProviderRegistry
+func (r *ProviderRegistry) Register(provider interfaces.DataProvider) error
+func (r *ProviderRegistry) Get(name string) (interfaces.DataProvider, error)
+func (r *ProviderRegistry) GetSyncProvider(name string) (interfaces.SyncProvider, error)
+func (r *ProviderRegistry) List() []string
+func (r *ProviderRegistry) ListSyncProviders() []string
+func (r *ProviderRegistry) Remove(name string)
+func (r *ProviderRegistry) Count() int
+func (r *ProviderRegistry) Has(name string) bool
+func (r *ProviderRegistry) HealthCheck(ctx context.Context) map[string]error
 ```
 
 ---
 
 ## ProviderRegistry Implementation
 
-The registry is implemented in `internal/services/provider_registry.go` (new file):
-
-```go
-package services
-
-import (
-    "context"
-    "fmt"
-    "sync"
-
-    "github.com/grctool/grctool/internal/interfaces"
-)
-
-type providerRegistry struct {
-    mu        sync.RWMutex
-    providers map[string]interfaces.DataProvider
-}
-
-func NewProviderRegistry() interfaces.ProviderRegistry {
-    return &providerRegistry{
-        providers: make(map[string]interfaces.DataProvider),
-    }
-}
-
-func (r *providerRegistry) Register(provider interfaces.DataProvider) error {
-    r.mu.Lock()
-    defer r.mu.Unlock()
-
-    name := provider.Name()
-    if _, exists := r.providers[name]; exists {
-        return fmt.Errorf("provider %q already registered", name)
-    }
-    r.providers[name] = provider
-    return nil
-}
-
-func (r *providerRegistry) Get(name string) interfaces.DataProvider {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
-    return r.providers[name]
-}
-
-func (r *providerRegistry) GetSync(name string) interfaces.SyncProvider {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
-    if p, ok := r.providers[name]; ok {
-        if sp, ok := p.(interfaces.SyncProvider); ok {
-            return sp
-        }
-    }
-    return nil
-}
-
-func (r *providerRegistry) List() []string {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
-    names := make([]string, 0, len(r.providers))
-    for name := range r.providers {
-        names = append(names, name)
-    }
-    return names
-}
-
-func (r *providerRegistry) HealthCheck(ctx context.Context) map[string]error {
-    r.mu.RLock()
-    defer r.mu.RUnlock()
-    results := make(map[string]error, len(r.providers))
-    for name, provider := range r.providers {
-        results[name] = provider.TestConnection(ctx)
-    }
-    return results
-}
-
-func (r *providerRegistry) Close() error {
-    // Future: call Close() on providers that implement io.Closer
-    return nil
-}
-```
+The registry is implemented in `internal/providers/registry.go` as a concrete struct.
+See the current signatures above. The implementation is thread-safe (uses `sync.RWMutex`)
+and snapshots the provider map before calling `TestConnection` in `HealthCheck` to avoid
+holding the read lock during potentially slow network calls.
 
 ---
 
@@ -425,72 +456,22 @@ SyncService (internal/services/sync.go)
 
 ```
 SyncService (internal/services/sync.go)
-    ├── interfaces.ProviderRegistry  (abstracted dependency)
-    ├── interfaces.StorageService    (abstracted dependency)
-    └── orchestration methods: syncFromProvider(providerName)
-
-TugboatDataProvider (internal/adapters/tugboat_provider.go) — NEW
-    ├── *tugboat.Client         (encapsulated)
-    ├── *adapters.TugboatToDomain (encapsulated)
-    └── implements: interfaces.DataProvider
+    ├── *providers.ProviderRegistry  (abstracted dependency)
+    ├── *storage.Storage             (storage dependency)
+    └── orchestration methods: syncPoliciesFromProvider(), syncControlsFromProvider(), ...
 ```
 
-### New File: `internal/adapters/tugboat_provider.go`
+### Existing File: `internal/providers/tugboat/provider.go`
 
-This wraps the existing `tugboat.Client` and `TugboatToDomain` adapter into a `DataProvider` implementation:
+`TugboatDataProvider` **already exists** and implements `DataProvider`, `EvidenceSubmitter`, and `RelationshipQuerier`. Constructor signature:
 
 ```go
-package adapters
-
-import (
-    "context"
-    "strconv"
-
-    "github.com/grctool/grctool/internal/domain"
-    "github.com/grctool/grctool/internal/interfaces"
-    "github.com/grctool/grctool/internal/tugboat"
-)
-
-// TugboatDataProvider implements interfaces.DataProvider by wrapping
-// the existing tugboat.Client and TugboatToDomain adapter.
-type TugboatDataProvider struct {
-    client  *tugboat.Client
-    adapter *TugboatToDomain
-    orgID   string
-}
-
-func NewTugboatDataProvider(client *tugboat.Client, orgID string) *TugboatDataProvider {
-    return &TugboatDataProvider{
-        client:  client,
-        adapter: NewTugboatToDomain(),
-        orgID:   orgID,
-    }
-}
-
-func (p *TugboatDataProvider) Name() string { return "tugboat" }
-
-func (p *TugboatDataProvider) ListPolicies(ctx context.Context, opts interfaces.ListOptions) ([]domain.Policy, int, error) {
-    apiPolicies, err := p.client.GetAllPolicies(ctx, p.orgID, opts.Framework)
-    if err != nil {
-        return nil, 0, err
-    }
-
-    policies := make([]domain.Policy, 0, len(apiPolicies))
-    for _, apiPolicy := range apiPolicies {
-        dp := p.adapter.ConvertPolicy(apiPolicy)
-        dp.ExternalIDs = map[string]string{"tugboat": dp.ID}
-        policies = append(policies, dp)
-    }
-    return policies, len(policies), nil
-}
-
-// ListControls, ListEvidenceTasks, GetPolicy, GetControl, GetEvidenceTask
-// follow the same pattern: call tugboat.Client method, convert via adapter,
-// set ExternalIDs, return domain entity.
-
-func (p *TugboatDataProvider) TestConnection(ctx context.Context) error {
-    return p.client.TestConnection(ctx)
-}
+func NewTugboatDataProvider(
+    client *tugboat.Client,
+    adapter *adapters.TugboatToDomain,
+    orgID string,
+    log logger.Logger,
+) *TugboatDataProvider
 ```
 
 The key change in each method: after converting via `p.adapter.ConvertControl(apiControl)`, the provider sets `ExternalIDs = map[string]string{"tugboat": strconv.Itoa(originalID)}` to preserve the Tugboat numeric ID as an external reference, while the domain `ID` field becomes the string representation.
@@ -752,21 +733,29 @@ This is the comprehensive list based on grep analysis of the codebase:
 | File | Purpose |
 |------|---------|
 | `internal/domain/sync_metadata.go` | `SyncMetadata` struct and conflict state constants |
-| `internal/interfaces/provider.go` | `DataProvider`, `SyncProvider`, `ProviderRegistry`, `ListOptions`, `ChangeSet`, `ChangeEntry` |
-| `internal/services/provider_registry.go` | Concrete `ProviderRegistry` implementation |
-| `internal/adapters/tugboat_provider.go` | `TugboatDataProvider` implementing `DataProvider` |
+| `internal/interfaces/provider.go` | (EXISTS) Add `ProviderCapabilities`, `Capabilities()`, `Conflict`, `ConflictResolution`, `ResolveConflict()`, `ProviderInfo` |
+| `internal/providers/registry.go` | (EXISTS) Concrete `ProviderRegistry` — extract interface into `internal/interfaces/` |
+| `internal/providers/tugboat/provider.go` | (EXISTS) `TugboatDataProvider` implementing `DataProvider`, `EvidenceSubmitter`, `RelationshipQuerier` |
 
 ---
 
 ## Testing Strategy
 
-1. **Unit tests for TugboatDataProvider**: Use existing VCR cassettes (ADR-005) to verify that the provider returns correctly typed domain entities with `ExternalIDs` populated.
+1. **Contract tests for DataProvider**: Table-driven test suite (`DataProviderContractSuite`) verifying `Name()`, `Capabilities()`, `TestConnection()`, and all List/Get methods. Every provider implementation must pass this suite. Existing suite at `internal/providers/contract_test.go` must be extended with `Capabilities()` tests.
 
-2. **Integration tests for ProviderRegistry**: Register multiple mock providers, verify lookup, health check, and lifecycle management.
+2. **Contract tests for EvidenceSubmitter**: Existing suite at `internal/providers/evidence_submitter_contract_test.go` covers `SubmitEvidence()`, `ListAttachments()`, `DownloadAttachment()`. Type-assertion gating already tested.
 
-3. **Migration test**: Load existing JSON files with numeric IDs, verify they deserialize correctly into `string` ID fields.
+3. **Contract tests for RelationshipQuerier**: Existing suite at `internal/providers/relationship_contract_test.go` covers cross-entity queries. Type-assertion gating already tested.
 
-4. **Mock DataProvider for sync tests**: Replace the current `*tugboat.Client` mock pattern with a mock `DataProvider`, simplifying test setup.
+4. **Unit tests for TugboatDataProvider**: Use existing VCR cassettes (ADR-005) to verify that the provider returns correctly typed domain entities with `ExternalIDs` populated and `Capabilities()` returns correct flags.
+
+5. **Integration tests for ProviderRegistry**: Register multiple mock providers, verify lookup, health check, `Remove()`, and lifecycle management.
+
+6. **Migration test**: Load existing JSON files with numeric IDs, verify they deserialize correctly into `string` ID fields.
+
+7. **Mock DataProvider for sync tests**: Replace the current `*tugboat.Client` mock pattern with a mock `DataProvider`, simplifying test setup.
+
+8. **Submission routing test**: Verify that `SubmissionService` resolves `EvidenceSubmitter` from the provider registry via type-assertion, not through a direct `tugboat.Client` reference.
 
 ---
 
@@ -776,7 +765,93 @@ This is the comprehensive list based on grep analysis of the codebase:
 
 2. **Bulk vs. detail fetch**: Current sync fetches a list then detail for each entity. Should `DataProvider` have a `ListDetailedPolicies` method, or should providers internally optimize?
 
-3. **Conflict resolution UI**: ADR-010 mentions configurable conflict resolution (`local_wins`, `remote_wins`, `manual`, `newest_wins`). The `SyncMetadata.ConflictState` field supports detection, but the resolution workflow needs a separate design.
+3. **Conflict resolution workflow**: The `SyncProvider.ResolveConflict()` method and `ConflictResolution` strategies are now defined in this document. The remaining open question is the **user-facing workflow**: how does `grctool sync` surface conflicts to the user, and what CLI commands or interactive prompts invoke `ResolveConflict()`? This needs a separate UX design.
+
+---
+
+## Submission Service Routing
+
+### Current State
+
+`SubmissionService` (`internal/services/submission/service.go`) holds a direct `*tugboat.Client` reference and calls `tugboatClient.SubmitEvidence()` to upload evidence. This bypasses the provider abstraction.
+
+### Target State
+
+`SubmissionService` resolves the target provider from the `ProviderRegistry`, type-asserts for `EvidenceSubmitter`, and calls `SubmitEvidence()` through the interface:
+
+```go
+type SubmissionService struct {
+    registry      *providers.ProviderRegistry
+    storage       *storage.Storage
+    validator     *validation.EvidenceValidationService
+    collectorURLs map[string]string
+}
+
+func (s *SubmissionService) Submit(ctx context.Context, taskRef string, providerName string) error {
+    provider, err := s.registry.Get(providerName)
+    if err != nil {
+        return fmt.Errorf("provider %q not registered: %w", providerName, err)
+    }
+    submitter, ok := provider.(interfaces.EvidenceSubmitter)
+    if !ok {
+        return fmt.Errorf("provider %q does not support evidence submission", providerName)
+    }
+    // ... prepare file, metadata ...
+    return submitter.SubmitEvidence(ctx, taskID, file, meta)
+}
+```
+
+The `TugboatDataProvider` already implements `EvidenceSubmitter` with contract tests passing. The wiring change is: replace the `*tugboat.Client` field with `ProviderRegistry`, and resolve the submitter at call time.
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `internal/services/submission/service.go` | Replace `tugboatClient *tugboat.Client` with `registry ProviderRegistry`; resolve submitter via type-assertion |
+| `cmd/evidence.go` | Pass registry to `NewSubmissionService()` instead of `tugboat.Client` |
+
+---
+
+## Tool Client Abstraction
+
+### Current State
+
+GitHub tools (`internal/tools/github/client.go`) and the Tugboat sync wrapper each independently construct auth providers and HTTP clients. Six GitHub tools instantiate their own `GitHubAuthProvider`. VCR transport wrapping happens per-client. VCR tests are disabled (`//go:build disabled`) because the config plumbing changed.
+
+### Target State
+
+Auth providers and HTTP clients are constructed once during tool initialization (`internal/tools/registry_init.go`) and injected into tools:
+
+```go
+// In registry_init.go
+func InitializeToolRegistry(cfg *config.Config, log logger.Logger) {
+    // Construct shared auth providers once
+    githubAuth := auth.NewGitHubAuthProvider(cfg)
+    tugboatAuth := auth.NewTugboatAuthProvider(cfg)
+
+    // Construct shared HTTP clients with VCR transport
+    githubClient := github.NewGitHubClient(cfg, log, githubAuth)
+
+    // Register tools with injected dependencies
+    RegisterTool(github.NewPermissionsTool(githubClient, log))
+    RegisterTool(github.NewWorkflowsTool(githubClient, log))
+    // ...
+}
+```
+
+This enables:
+- VCR recording for all GitHub tool calls (single transport wrapping point)
+- `auth status` can report GitHub auth by querying the shared provider
+- Tools no longer reach into config or environment for credentials
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `internal/tools/registry_init.go` | Construct shared auth providers and HTTP clients; pass to tool constructors |
+| `internal/tools/github/client.go` | Accept auth provider and HTTP client as constructor params instead of building internally |
+| `internal/tools/github_*.go` (6 files) | Remove per-tool auth provider construction; accept shared client |
+| `cmd/auth.go` | Query shared auth providers for `auth status` instead of checking config fields directly |
 
 ---
 

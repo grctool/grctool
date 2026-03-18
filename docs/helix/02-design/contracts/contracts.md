@@ -23,6 +23,7 @@ This document defines the external and internal interface contracts for GRCTool.
 | API-004 | Storage Interface | Library | Approved |
 | API-005 | Configuration Interface | Library | Approved |
 | API-006 | Authentication Interface | Library | Approved |
+| API-007 | Provider Registry Interface | Library | Proposed |
 
 ---
 
@@ -356,6 +357,8 @@ fmt.Errorf("github-permissions: failed to fetch repository %s: %w (ensure GITHUB
 **Status**: Approved
 **Version**: 1.0.0
 
+> **Note (SD-004)**: The Tugboat Client (`*tugboat.Client`) is an internal implementation detail of the `TugboatDataProvider`. Service-layer code (SyncService, SubmissionService) should access Tugboat through the `DataProvider`/`EvidenceSubmitter` interfaces via the `ProviderRegistry` (API-007), not through `*tugboat.Client` directly. This contract documents the REST API shape for adapter implementors.
+
 ### Base URL
 
 ```
@@ -558,7 +561,14 @@ type StorageService interface {
     // Evidence record operations
     SaveEvidenceRecord(record *domain.EvidenceRecord) error
     GetEvidenceRecord(id string) (*domain.EvidenceRecord, error)
-    GetEvidenceRecordsByTaskID(taskID int) ([]domain.EvidenceRecord, error)
+    GetEvidenceRecordsByTaskID(taskID string) ([]domain.EvidenceRecord, error)
+
+    // Master index operations (SD-004: StorageService is the master index)
+    // These methods support bidirectional lookup between GRCTool-native IDs
+    // and provider-specific external IDs stored in entity ExternalIDs maps.
+    GetPolicyByExternalID(provider, externalID string) (*domain.Policy, error)
+    GetControlByExternalID(provider, externalID string) (*domain.Control, error)
+    GetEvidenceTaskByExternalID(provider, externalID string) (*domain.EvidenceTask, error)
 
     // Statistics and metadata
     GetStats() (map[string]interface{}, error)
@@ -924,6 +934,158 @@ Authentication errors must be categorized:
 
 ---
 
+## API-007: Provider Registry Interface
+
+**Type**: Library (Go Interface)
+**Status**: Proposed
+**Version**: 0.1.0
+**Source**: `internal/interfaces/provider.go`, `internal/providers/registry.go`
+**Design**: [SD-004: Universal Document Provider Framework](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-004-universal-document-provider.md)
+
+### Overview
+
+The Provider Registry Interface defines how GRCTool interacts with external compliance data sources. It implements the hexagonal architecture (ADR-006) by defining domain-layer ports that infrastructure adapters implement. The `ProviderRegistry` manages provider lifecycle and lookup.
+
+### Core Interfaces
+
+#### DataProvider (required)
+
+Every compliance data source must implement `DataProvider`:
+
+```go
+type DataProvider interface {
+    Name() string
+    Capabilities() ProviderCapabilities
+    TestConnection(ctx context.Context) error
+    ListPolicies(ctx context.Context, opts ListOptions) ([]domain.Policy, int, error)
+    GetPolicy(ctx context.Context, id string) (*domain.Policy, error)
+    ListControls(ctx context.Context, opts ListOptions) ([]domain.Control, int, error)
+    GetControl(ctx context.Context, id string) (*domain.Control, error)
+    ListEvidenceTasks(ctx context.Context, opts ListOptions) ([]domain.EvidenceTask, int, error)
+    GetEvidenceTask(ctx context.Context, id string) (*domain.EvidenceTask, error)
+}
+```
+
+`Capabilities()` returns which entity types the provider supports. Callers must check capabilities before calling entity-specific methods. Providers that do not support an entity type (e.g., AccountableHQ does not support controls) return `nil, 0, nil` from List methods and an error from Get methods.
+
+#### SyncProvider (optional, extends DataProvider)
+
+For bidirectional sync:
+
+```go
+type SyncProvider interface {
+    DataProvider
+    PushPolicy(ctx context.Context, policy *domain.Policy) error
+    PushControl(ctx context.Context, control *domain.Control) error
+    PushEvidenceTask(ctx context.Context, task *domain.EvidenceTask) error
+    DeletePolicy(ctx context.Context, id string) error
+    DeleteControl(ctx context.Context, id string) error
+    DeleteEvidenceTask(ctx context.Context, id string) error
+    DetectChanges(ctx context.Context, since time.Time) (*ChangeSet, error)
+    ResolveConflict(ctx context.Context, conflict Conflict, resolution ConflictResolution) error
+}
+```
+
+#### EvidenceSubmitter (optional, type-assert)
+
+For providers that support evidence upload. Callers must type-assert:
+
+```go
+if es, ok := provider.(EvidenceSubmitter); ok {
+    err := es.SubmitEvidence(ctx, taskID, file, meta)
+}
+```
+
+```go
+type EvidenceSubmitter interface {
+    SubmitEvidence(ctx context.Context, taskID string, file io.Reader, meta SubmissionMetadata) error
+    ListAttachments(ctx context.Context, taskID string, opts ListOptions) ([]Attachment, int, error)
+    DownloadAttachment(ctx context.Context, attachmentID string) (io.ReadCloser, string, error)
+}
+```
+
+#### RelationshipQuerier (optional, type-assert)
+
+For providers that support cross-entity relationship queries:
+
+```go
+type RelationshipQuerier interface {
+    GetEvidenceTasksByControl(ctx context.Context, controlID string) ([]domain.EvidenceTask, error)
+    GetControlsByPolicy(ctx context.Context, policyID string) ([]domain.Control, error)
+    GetPoliciesByControl(ctx context.Context, controlID string) ([]domain.Policy, error)
+}
+```
+
+### Provider Registry
+
+Currently a concrete struct in `internal/providers/registry.go`. Target: extract interface into `internal/interfaces/`.
+
+**Current signatures**:
+
+```go
+func (r *ProviderRegistry) Register(provider DataProvider) error
+func (r *ProviderRegistry) Get(name string) (DataProvider, error)
+func (r *ProviderRegistry) GetSyncProvider(name string) (SyncProvider, error)
+func (r *ProviderRegistry) List() []string
+func (r *ProviderRegistry) ListSyncProviders() []string
+func (r *ProviderRegistry) Remove(name string)
+func (r *ProviderRegistry) Has(name string) bool
+func (r *ProviderRegistry) Count() int
+func (r *ProviderRegistry) HealthCheck(ctx context.Context) map[string]error
+```
+
+### Registered Providers
+
+| Provider | Implements | Entity Support | Status |
+|----------|-----------|----------------|--------|
+| `tugboat` | DataProvider, EvidenceSubmitter, RelationshipQuerier | Policies, Controls, EvidenceTasks | Implemented |
+| `accountablehq` | DataProvider, SyncProvider | Policies only | Scaffold |
+| `gdrive` | DataProvider, SyncProvider | Policies (Docs); Controls/EvidenceTasks (Sheets, deferred) | Partial |
+
+### Provider Configuration
+
+Providers are declared in `.grctool.yaml`. The `ProvidersConfig` type exists in `internal/config/config.go` but is not yet wired to provider initialization:
+
+```yaml
+providers:
+  - name: "tugboat"
+    type: "tugboat"
+    enabled: true
+    settings:
+      base_url: "https://app.tugboatlogic.com"
+      org_id: "test"
+  - name: "accountablehq"
+    type: "accountablehq"
+    enabled: false
+    settings:
+      base_url: "https://app.accountablehq.com"
+      api_key: "${ACCOUNTABLEHQ_API_KEY}"
+```
+
+### Behavioral Contract
+
+1. **Capability gating**: Callers must check `Capabilities()` before calling entity methods. Providers return empty results for unsupported List calls and errors for unsupported Get calls.
+2. **Optional interfaces via type-assertion**: `EvidenceSubmitter` and `RelationshipQuerier` are not embedded in `DataProvider`. Callers must type-assert before use.
+3. **Idempotent writes**: `PushPolicy/Control/EvidenceTask` must be idempotent — writing the same entity twice with no changes produces no side effects.
+4. **Domain objects only**: All interface methods return domain types (`domain.Policy`, etc.), never provider-specific DTOs. Adapters handle conversion internally.
+5. **Context respect**: All methods accepting `context.Context` must respect cancellation and propagate deadlines.
+
+### Testing Contract
+
+Every `DataProvider` implementation must pass the reusable contract test suite at `internal/providers/contract_test.go`. Optional interfaces have their own contract suites:
+- `internal/providers/evidence_submitter_contract_test.go`
+- `internal/providers/relationship_contract_test.go`
+
+### Error Contract
+
+Provider errors must include the provider name and operation:
+
+```go
+fmt.Errorf("%s: failed to list policies: %w", provider.Name(), err)
+```
+
+---
+
 ## Cross-Cutting Contracts
 
 ### Error Response Format
@@ -973,3 +1135,6 @@ default:
 - [Auth Provider Source](/home/erik/Projects/grctool/internal/auth/provider.go)
 - [Tugboat Client Source](/home/erik/Projects/grctool/internal/tugboat/client.go)
 - [Config Source](/home/erik/Projects/grctool/internal/config/config.go)
+- [Provider Interface Source](/home/erik/Projects/grctool/internal/interfaces/provider.go)
+- [Provider Registry Source](/home/erik/Projects/grctool/internal/providers/registry.go)
+- [SD-004: Universal Document Provider](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-004-universal-document-provider.md)

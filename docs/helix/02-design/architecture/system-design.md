@@ -186,8 +186,8 @@ type Command interface {
 }
 
 type SyncCommand struct {
-    tugboatClient *tugboat.Client
-    storage       storage.Repository
+    registry *providers.ProviderRegistry
+    storage  *storage.Storage
 }
 ```
 
@@ -203,17 +203,30 @@ graph LR
     E --> F[API Validation]
 ```
 
-### 2. Sync Flow
+### 2. Sync Flow (Provider-Agnostic)
 ```mermaid
 graph TD
-    A[Sync Command] --> B[Tugboat API]
-    B --> C[Pagination Handler]
-    C --> D[Data Normalization]
-    D --> E[File Storage]
-    E --> F[Cache Update]
+    A[Sync Command] --> B[ProviderRegistry.List]
+    B --> C{For each provider}
+    C --> D[Check Capabilities]
+    D --> E[ListPolicies / ListControls / ListEvidenceTasks]
+    E --> F[Set ExternalIDs + SyncMetadata]
+    F --> G[StorageService.Save]
+    G --> H[Generate Markdown]
+    C --> I[Next provider]
 ```
 
-### 3. Evidence Generation Flow
+### 3. Submission Flow
+```mermaid
+graph TD
+    A[Submit Command] --> B[ProviderRegistry.Get]
+    B --> C{Type-assert EvidenceSubmitter?}
+    C -->|Yes| D[submitter.SubmitEvidence]
+    C -->|No| E[Error: provider does not support submission]
+    D --> F[Update submission state]
+```
+
+### 4. Evidence Generation Flow
 ```mermaid
 graph TD
     A[Evidence Command] --> B[Task Analysis]

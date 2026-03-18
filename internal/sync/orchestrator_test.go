@@ -53,6 +53,16 @@ func newStubSyncProvider(name string) *stubSyncProvider {
 
 func (s *stubSyncProvider) Name() string { return s.name }
 
+func (s *stubSyncProvider) Capabilities() interfaces.ProviderCapabilities {
+	return interfaces.ProviderCapabilities{
+		SupportsPolicies:      true,
+		SupportsControls:      true,
+		SupportsEvidenceTasks: true,
+		SupportsWrite:         true,
+		SupportsChangeDetect:  true,
+	}
+}
+
 func (s *stubSyncProvider) TestConnection(_ context.Context) error { return nil }
 
 func (s *stubSyncProvider) ListPolicies(_ context.Context, _ interfaces.ListOptions) ([]domain.Policy, int, error) {
@@ -615,6 +625,9 @@ type dataOnlyProvider struct {
 }
 
 func (d *dataOnlyProvider) Name() string                        { return d.name }
+func (d *dataOnlyProvider) Capabilities() interfaces.ProviderCapabilities {
+	return interfaces.ProviderCapabilities{SupportsPolicies: true, SupportsControls: true, SupportsEvidenceTasks: true}
+}
 func (d *dataOnlyProvider) TestConnection(_ context.Context) error { return nil }
 func (d *dataOnlyProvider) ListPolicies(_ context.Context, _ interfaces.ListOptions) ([]domain.Policy, int, error) {
 	return nil, 0, nil
