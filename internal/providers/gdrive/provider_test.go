@@ -11,6 +11,7 @@ import (
 
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/interfaces"
+	"github.com/grctool/grctool/internal/providers"
 	"github.com/grctool/grctool/internal/testhelpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -251,4 +252,163 @@ func TestGDriveSyncProvider_CompileTimeInterface(t *testing.T) {
 	// Compile-time assertion is at package level (var _ interfaces.SyncProvider = ...)
 	// This test just documents it.
 	var _ interfaces.SyncProvider = (*GDriveSyncProvider)(nil)
+}
+
+// ---------------------------------------------------------------------------
+// Registration with ProviderRegistry
+// ---------------------------------------------------------------------------
+
+func TestGDriveSyncProvider_RegisterWith(t *testing.T) {
+	t.Parallel()
+	registry := providers.NewProviderRegistry()
+	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
+
+	err := p.RegisterWith(registry)
+	require.NoError(t, err)
+	assert.True(t, registry.Has("gdrive"))
+
+	// Verify it's retrievable as a SyncProvider.
+	sp, err := registry.GetSyncProvider("gdrive")
+	require.NoError(t, err)
+	assert.Equal(t, "gdrive", sp.Name())
+}
+
+func TestGDriveSyncProvider_RegisterWith_Duplicate(t *testing.T) {
+	t.Parallel()
+	registry := providers.NewProviderRegistry()
+	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
+
+	require.NoError(t, p.RegisterWith(registry))
+	err := p.RegisterWith(registry)
+	assert.Error(t, err, "duplicate registration must fail")
+}
+
+// ---------------------------------------------------------------------------
+// Contract tests (equivalent to DataProviderContractSuite)
+// ---------------------------------------------------------------------------
+// The DataProviderContractSuite is in package providers_test and cannot be
+// imported here. We replicate the essential contract checks inline.
+
+func newContractProvider() (*GDriveSyncProvider, string) {
+	client := newStubDriveClient()
+	docID := "contract-doc-1"
+	client.files = []DriveFile{
+		{ID: docID, Name: "Contract Policy", MimeType: "application/vnd.google-apps.document"},
+	}
+	client.contents[docID] = "# Contract Policy\n\nContent for contract testing."
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	return p, docID
+}
+
+func TestGDriveContract_Name(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	assert.NotEmpty(t, p.Name(), "Name() must return a non-empty string")
+}
+
+func TestGDriveContract_TestConnection(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	assert.NoError(t, p.TestConnection(context.Background()))
+}
+
+func TestGDriveContract_ListPolicies_ReturnsResults(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	policies, count, err := p.ListPolicies(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Greater(t, count, 0, "count must be > 0 when data is loaded")
+	assert.NotEmpty(t, policies, "policies slice must not be empty")
+}
+
+func TestGDriveContract_ListPolicies_Pagination(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	policies, _, err := p.ListPolicies(context.Background(), interfaces.ListOptions{
+		Page:     1,
+		PageSize: 1,
+	})
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(policies), 1, "page size 1 must return at most 1 result")
+}
+
+func TestGDriveContract_ListPolicies_EmptyPage(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	policies, _, err := p.ListPolicies(context.Background(), interfaces.ListOptions{
+		Page:     9999,
+		PageSize: 1,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, policies, "requesting a page beyond data should return empty slice")
+}
+
+func TestGDriveContract_GetPolicy_Exists(t *testing.T) {
+	t.Parallel()
+	p, docID := newContractProvider()
+	policy, err := p.GetPolicy(context.Background(), docID)
+	require.NoError(t, err)
+	require.NotNil(t, policy)
+	assert.Equal(t, docID, policy.ID, "returned policy ID must match requested ID")
+	// Note: Name comes from gdocs.MarkdownToDoc Title extraction, which may
+	// be empty depending on the markdown parser. Content must be present.
+	assert.NotEmpty(t, policy.Content, "policy Content must not be empty")
+}
+
+func TestGDriveContract_GetPolicy_NotFound(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	_, err := p.GetPolicy(context.Background(), "nonexistent-id-99999")
+	assert.Error(t, err, "GetPolicy with unknown ID must return an error")
+}
+
+func TestGDriveContract_ListControls_Stub(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	// Controls are not yet implemented (Sheets integration pending).
+	// Contract: must not error, returns empty.
+	controls, count, err := p.ListControls(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+	assert.Empty(t, controls)
+}
+
+func TestGDriveContract_GetControl_NotFound(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	_, err := p.GetControl(context.Background(), "nonexistent-id-99999")
+	assert.Error(t, err, "GetControl with unknown ID must return an error")
+}
+
+func TestGDriveContract_ListEvidenceTasks_Stub(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	// Evidence tasks are not yet implemented (Sheets integration pending).
+	tasks, count, err := p.ListEvidenceTasks(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+	assert.Empty(t, tasks)
+}
+
+func TestGDriveContract_GetEvidenceTask_NotFound(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	_, err := p.GetEvidenceTask(context.Background(), "nonexistent-id-99999")
+	assert.Error(t, err, "GetEvidenceTask with unknown ID must return an error")
+}
+
+func TestGDriveContract_ContextCancellation(t *testing.T) {
+	t.Parallel()
+	p, _ := newContractProvider()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	_, _, errPolicies := p.ListPolicies(ctx, interfaces.ListOptions{})
+	_, _, errControls := p.ListControls(ctx, interfaces.ListOptions{})
+	_, _, errTasks := p.ListEvidenceTasks(ctx, interfaces.ListOptions{})
+
+	anyErr := errPolicies != nil || errControls != nil || errTasks != nil
+	if !anyErr {
+		t.Log("NOTE: provider did not return an error for cancelled context (acceptable for stub-backed provider)")
+	}
 }

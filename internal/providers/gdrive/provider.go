@@ -107,8 +107,11 @@ func (p *GDriveSyncProvider) ListPolicies(ctx context.Context, opts interfaces.L
 	}
 
 	// Pagination
-	start := opts.Page * opts.PageSize
-	if opts.PageSize > 0 && start < len(policies) {
+	if opts.PageSize > 0 {
+		start := opts.Page * opts.PageSize
+		if start >= len(policies) {
+			return nil, len(policies), nil
+		}
 		end := start + opts.PageSize
 		if end > len(policies) {
 			end = len(policies)
