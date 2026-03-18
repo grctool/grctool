@@ -17,6 +17,7 @@ package interfaces
 
 import (
 	"context"
+	"io"
 	"time"
 
 	"github.com/grctool/grctool/internal/domain"
@@ -104,6 +105,49 @@ type SyncProvider interface {
 
 	// DetectChanges returns entities that changed since the given time.
 	DetectChanges(ctx context.Context, since time.Time) (*ChangeSet, error)
+}
+
+// SubmissionMetadata provides context for an evidence submission.
+type SubmissionMetadata struct {
+	CollectedDate string            `json:"collected_date"`          // YYYY-MM-DD
+	Notes         string            `json:"notes,omitempty"`
+	Window        string            `json:"window,omitempty"`        // e.g., "2026-Q1"
+	ContentType   string            `json:"content_type,omitempty"`  // MIME type
+	Filename      string            `json:"filename,omitempty"`
+	Metadata      map[string]string `json:"metadata,omitempty"`
+}
+
+// Attachment represents an evidence attachment in an upstream platform.
+type Attachment struct {
+	ID              string `json:"id"`
+	TaskID          string `json:"task_id"`
+	Filename        string `json:"filename"`
+	MimeType        string `json:"mime_type"`
+	Type            string `json:"type"`              // "file" or "url"
+	URL             string `json:"url,omitempty"`
+	CollectedDate   string `json:"collected_date"`    // YYYY-MM-DD
+	Notes           string `json:"notes,omitempty"`
+	Owner           string `json:"owner,omitempty"`
+	IntegrationType string `json:"integration_type,omitempty"`
+	Deleted         bool   `json:"deleted,omitempty"`
+}
+
+// EvidenceSubmitter is an optional interface for providers that support
+// evidence submission and attachment management. Not all providers have
+// submission capability — callers must type-assert before use:
+//
+//	if es, ok := provider.(EvidenceSubmitter); ok {
+//	    err := es.SubmitEvidence(ctx, taskID, file, meta)
+//	}
+type EvidenceSubmitter interface {
+	// SubmitEvidence uploads evidence for a task.
+	SubmitEvidence(ctx context.Context, taskID string, file io.Reader, meta SubmissionMetadata) error
+
+	// ListAttachments returns evidence attachments for a task.
+	ListAttachments(ctx context.Context, taskID string, opts ListOptions) ([]Attachment, int, error)
+
+	// DownloadAttachment returns a reader for an attachment's content.
+	DownloadAttachment(ctx context.Context, attachmentID string) (io.ReadCloser, string, error) // reader, filename, error
 }
 
 // RelationshipQuerier is an optional interface for providers that support
