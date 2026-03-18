@@ -46,7 +46,7 @@ Without this foundational framework, each integration will reinvent its own adap
 3. **DataProvider interface** -- Universal read contract for compliance data sources: `ListPolicies`, `GetPolicy`, `ListControls`, `GetControl`, `ListEvidenceTasks`, `GetEvidenceTask`, with provider identity and capability reporting.
 4. **SyncProvider interface** -- Extends `DataProvider` with `PushPolicy`, `PushControl`, `PushEvidenceTask`, `DeletePolicy`, `DeleteControl`, `DeleteEvidenceTask`, plus `DetectChanges` for bidirectional reconciliation.
 5. **Provider registry** -- Manages registration, lookup, and lifecycle of multiple `DataProvider`/`SyncProvider` instances. Routes sync operations to the correct provider by name. Reports provider health and capabilities.
-6. **Master index** -- Canonical local registry that assigns GRCTool-native IDs (POL-NNNN, CTRL-NNNN, ET-NNNN) independent of any external system. Maps native IDs to external IDs across all registered providers. Supports lookup in both directions. (Per SD-004/ADR-011, implemented as the existing `StorageService` enriched with `ExternalIDs` and `SyncMetadata` fields.)
+6. **Master index** -- Canonical local registry using existing reference ID conventions: `POL-NNNN` for policies, framework codes for controls (e.g., `CC-06.1`, `AC-01`), `ET-NNNN` for evidence tasks. Maps reference IDs to external IDs across all registered providers. Supports lookup in both directions. (Per SD-004/ADR-011, implemented as the existing `StorageService` enriched with `ExternalIDs` and `SyncMetadata` fields.)
 7. **Refactored Tugboat adapter** -- Rewrite the existing `TugboatToDomain` adapter and `SyncService` to implement `DataProvider` (read-only, matching Tugboat's current capabilities), proving the interface design works against a real integration.
 
 ### Out of Scope
@@ -139,7 +139,7 @@ Without this foundational framework, each integration will reinvent its own adap
 **Acceptance Criteria**:
 
 - A master index is stored on disk in the data directory, in a git-friendly format (JSON or YAML). **NOTE: Per SD-004 and ADR-011, the master index is implemented as the existing `StorageService` enriched with `ExternalIDs` and `SyncMetadata` fields. No separate `.index/` directory is needed.**
-- The master index assigns sequential, human-readable IDs: `POL-NNNN` for policies, `CTRL-NNNN` for controls, `ET-NNNN` for evidence tasks. **NOTE: Existing controls in the codebase use framework reference codes as identifiers (e.g., `CC-06.1`, `AC-01`, `SO-19`) rather than a GRCTool-native sequential format. The relationship between GRCTool-native IDs (`CTRL-NNNN`) and framework reference IDs needs clarification per grct-3gl.5.**
+- The master index uses existing reference ID conventions: `POL-NNNN` for policies, framework codes for controls (e.g., `CC-06.1`, `AC-01`, `SO-19` — extracted by `ControlReferenceProcessor`), `ET-NNNN` for evidence tasks. **DECISION (grct-3gl.5): Framework reference codes are the canonical control identifiers. No separate `CTRL-NNNN` scheme is introduced. Rationale: framework codes are universally understood by compliance teams and auditors; they are already extracted and stored as `Control.ReferenceID` in the codebase.**
 - Each index entry maps the native ID to zero or more external IDs (one per provider)
 - The index supports bidirectional lookup: native ID to external IDs, and external ID (by provider) to native ID
 - The index is append-only for ID assignment: once a native ID is assigned, it is never reassigned to a different entity
