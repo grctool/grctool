@@ -1314,6 +1314,65 @@ func (b *EvidenceTaskBuilder) Build() *models.EvidenceTask {
 | Performance Testing | 85% | 79% | 71% |
 | Integration Testing | 90% | 87% | 76% |
 
+## Feature-Specific Test Plans (2026-03-18)
+
+### FEAT-004: Universal Document Provider Framework
+
+| Test Category | Approach | Location | Status |
+|---------------|----------|----------|--------|
+| DataProvider interface compliance | Table-driven contract suite (reusable) | `internal/providers/contract_test.go` | Done |
+| SyncProvider interface compliance | Extends DataProvider suite with push/delete/detect | `internal/providers/contract_test.go` | Planned |
+| ProviderRegistry lifecycle | Register/get/remove, concurrent access, health checks | `internal/providers/registry_lifecycle_test.go` | Done |
+| TugboatDataProvider | httptest-based, all DataProvider methods | `internal/providers/tugboat/provider_test.go` | Done |
+| ID type migration regression | JSON backward compat, adapter conversion, storage round-trip | `test/integration/id_migration_test.go` | Done |
+| SyncService regression | Multi-provider sync, partial failure, ExternalIDs | `internal/services/sync_regression_test.go` | Done |
+| Conflict detection | In-sync, remote-only, both-changed, local-changed | `internal/sync/conflict_test.go` | Done |
+| Conflict resolution | All 4 policies, batch, timestamp tiebreak | `internal/sync/conflict_test.go` | Done |
+| Sync orchestrator | Pull/push, multi-provider, context cancel | `internal/sync/orchestrator_test.go` | Done |
+| Audit trail | Record types, YAML round-trip, list ordering | `internal/sync/audit_test.go` | Done |
+| GetByExternalID | Found/not-found, nil ExternalIDs, wrong provider | `internal/storage/get_by_external_id_test.go` | Done |
+| Migration tool | Numeric→string conversion, idempotent, dry-run | `cmd/migrate_test.go` | Done |
+
+### FEAT-003: Audit Lifecycle Scheduler
+
+| Test Category | Approach | Location | Status |
+|---------------|----------|----------|--------|
+| Policy state machine | All valid/invalid transitions, terminal states | `internal/lifecycle/state_machine_test.go` | Done |
+| Control state machine | Full lifecycle, failed-testing back-edge | `internal/lifecycle/state_machine_test.go` | Done |
+| Evidence task state machine | Full lifecycle, rejection flow | `internal/lifecycle/state_machine_test.go` | Done |
+| State machine validation | Empty/nil/duplicate edge cases | `internal/lifecycle/state_machine_extra_test.go` | Done |
+| Cron parser | 5-field expressions, ranges, lists, steps, edge cases | `internal/scheduler/cron_test.go` | Done |
+| Scheduler engine | Due detection, mark completed/failed, state persistence | `internal/scheduler/scheduler_test.go` | Done |
+| Evidence orchestrator | Build plan, execute, partial failure, context cancel | `internal/scheduler/orchestrator_test.go` | Done |
+| CLI: schedule commands | Subcommand structure, flag parsing, arg validation | `cmd/schedule_test.go` | Done |
+| CLI: lifecycle commands | Subcommand structure, transition validation | `cmd/lifecycle_test.go` | Done |
+
+### FEAT-001: AccountableHQ Bidirectional Policy Sync
+
+| Test Category | Approach | Location | Status |
+|---------------|----------|----------|--------|
+| AccountableHQ SyncProvider | DataProvider contract suite + push/delete | `internal/providers/accountablehq/` | Planned |
+| VCR cassettes | Record real API interactions for deterministic replay | `internal/providers/accountablehq/testdata/` | Planned |
+| Sync integration | End-to-end sync with conflict scenarios | `test/integration/` | Planned |
+
+### FEAT-002: Google Drive Bidirectional Sync
+
+| Test Category | Approach | Location | Status |
+|---------------|----------|----------|--------|
+| GDrive SyncProvider | DataProvider contract suite + push/delete | `internal/providers/gdrive/` | Planned |
+| Markdown↔Docs round-trip | Golden file tests for format fidelity | `internal/providers/gdrive/` | Planned |
+| Control matrix Sheet export | Sheet structure, conditional formatting | `internal/providers/gdrive/` | Planned |
+
+### Test Infrastructure (Shared)
+
+| Component | Purpose | Location |
+|-----------|---------|----------|
+| StubStorageService | In-memory StorageService for all tests | `internal/testhelpers/stub_storage.go` |
+| StubDataProvider | In-memory DataProvider with fixtures | `internal/testhelpers/stub_provider.go` |
+| StubLogger | No-op and capturing Logger | `internal/testhelpers/stub_logger.go` |
+| Fixture helpers | Load JSON fixtures, sample builders | `internal/testhelpers/fixtures.go` |
+| DataProvider contract suite | Reusable test suite for any provider | `internal/providers/contract_test.go` |
+
 ## References
 
 - [[security-testing]] - Security-specific testing approaches
