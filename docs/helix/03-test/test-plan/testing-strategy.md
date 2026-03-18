@@ -1321,7 +1321,7 @@ func (b *EvidenceTaskBuilder) Build() *models.EvidenceTask {
 | Test Category | Approach | Location | Status |
 |---------------|----------|----------|--------|
 | DataProvider interface compliance | Table-driven contract suite (reusable) | `internal/providers/contract_test.go` | Done |
-| SyncProvider interface compliance | Extends DataProvider suite with push/delete/detect | `internal/providers/contract_test.go` | Planned |
+| SyncProvider interface compliance | Extends DataProvider suite with push/delete/detect | `internal/providers/contract_test.go` | Partial (DataProvider done, SyncProvider deferred) |
 | ProviderRegistry lifecycle | Register/get/remove, concurrent access, health checks | `internal/providers/registry_lifecycle_test.go` | Done |
 | TugboatDataProvider | httptest-based, all DataProvider methods | `internal/providers/tugboat/provider_test.go` | Done |
 | ID type migration regression | JSON backward compat, adapter conversion, storage round-trip | `test/integration/id_migration_test.go` | Done |
@@ -1351,17 +1351,21 @@ func (b *EvidenceTaskBuilder) Build() *models.EvidenceTask {
 
 | Test Category | Approach | Location | Status |
 |---------------|----------|----------|--------|
-| AccountableHQ SyncProvider | DataProvider contract suite + push/delete | `internal/providers/accountablehq/` | Planned |
-| VCR cassettes | Record real API interactions for deterministic replay | `internal/providers/accountablehq/testdata/` | Planned |
-| Sync integration | End-to-end sync with conflict scenarios | `test/integration/` | Planned |
+| AccountableHQ SyncProvider | DataProvider contract suite + push/delete | `internal/providers/accountablehq/` | Done |
+| HTTP client | httptest-based API tests for all endpoints | `internal/providers/accountablehq/http_client_test.go` | Done |
+| Contract tests | End-to-end provider contract via httptest | `internal/providers/accountablehq/contract_test.go` | Done |
+| VCR cassettes | Record real API interactions for deterministic replay | `internal/providers/accountablehq/testdata/` | Planned (requires real API access) |
+| Sync integration | End-to-end sync with conflict scenarios | `test/integration/` | Partial (provider pipeline test done) |
 
 ### FEAT-002: Google Drive Bidirectional Sync
 
 | Test Category | Approach | Location | Status |
 |---------------|----------|----------|--------|
-| GDrive SyncProvider | DataProvider contract suite + push/delete | `internal/providers/gdrive/` | Planned |
-| Markdown↔Docs round-trip | Golden file tests for format fidelity | `internal/providers/gdrive/` | Planned |
-| Control matrix Sheet export | Sheet structure, conditional formatting | `internal/providers/gdrive/` | Planned |
+| GDrive SyncProvider | DataProvider contract suite + push/delete | `internal/providers/gdrive/provider_test.go` | Done |
+| Markdown↔Docs round-trip | Format fidelity with goldmark parser | `internal/gdocs/converter_test.go` | Done |
+| Control matrix Sheet export | Sheet build/parse round-trip, CSV export | `internal/providers/gdrive/sheets_test.go` | Done |
+| Folder management | Resolve subfolder structure | `internal/providers/gdrive/folders_test.go` | Done |
+| Comprehensive edge cases | Error paths, pagination, format fidelity | `internal/providers/gdrive/gdrive_comprehensive_test.go` | Done |
 
 ### Test Infrastructure (Shared)
 
