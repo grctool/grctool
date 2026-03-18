@@ -28,22 +28,27 @@ import (
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/formatters"
+	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/interpolation"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/naming"
+	"github.com/grctool/grctool/internal/providers"
+	tugboatProvider "github.com/grctool/grctool/internal/providers/tugboat"
 	"github.com/grctool/grctool/internal/registry"
 	"github.com/grctool/grctool/internal/storage"
 	"github.com/grctool/grctool/internal/tugboat"
 	tugboatModels "github.com/grctool/grctool/internal/tugboat/models"
 )
 
-// SyncService handles synchronization between Tugboat Logic API and local storage
-// This service uses adapters to convert between API models and domain models
+// SyncService handles synchronization between data providers and local storage.
+// It supports iterating over multiple registered DataProviders via a ProviderRegistry,
+// while preserving backward compatibility with direct Tugboat client usage.
 type SyncService struct {
 	tugboatClient         *tugboat.Client
 	adapter               *adapters.TugboatToDomain
-	storage               *storage.Storage // Single storage interface for all operations
+	registry              *providers.ProviderRegistry // Provider registry for multi-provider sync
+	storage               *storage.Storage            // Single storage interface for all operations
 	policyFormatter       *formatters.PolicyFormatter
 	controlFormatter      *formatters.ControlFormatter
 	evidenceTaskFormatter *formatters.EvidenceTaskFormatter
@@ -53,8 +58,31 @@ type SyncService struct {
 	logger                logger.Logger
 }
 
-// NewSyncService creates a new sync service
+// NewSyncService creates a new sync service using a direct Tugboat client.
+// It creates a ProviderRegistry internally and registers a TugboatDataProvider
+// so that the provider-based sync methods work transparently.
+// This constructor is backward compatible with existing callers.
 func NewSyncService(tugboatClient *tugboat.Client, storage *storage.Storage, cfg *config.Config, log logger.Logger) *SyncService {
+	// Create a ProviderRegistry and register the Tugboat provider
+	reg := providers.NewProviderRegistry()
+	adapter := adapters.NewTugboatToDomain()
+	tp := tugboatProvider.NewTugboatDataProvider(tugboatClient, adapter, cfg.Tugboat.OrgID, log)
+	if err := reg.Register(tp); err != nil {
+		log.Warn("Failed to register tugboat provider in registry", logger.Error(err))
+	}
+
+	svc := NewSyncServiceWithRegistry(reg, storage, cfg, log)
+	// Preserve the direct tugboat client for submission sync and validation
+	svc.tugboatClient = tugboatClient
+	svc.adapter = adapter
+	return svc
+}
+
+// NewSyncServiceWithRegistry creates a new sync service using a ProviderRegistry.
+// This allows syncing from any registered DataProvider, not just Tugboat.
+// The tugboatClient field is left nil; callers that need submission sync
+// should also set it explicitly or use NewSyncService instead.
+func NewSyncServiceWithRegistry(reg *providers.ProviderRegistry, storage *storage.Storage, cfg *config.Config, log logger.Logger) *SyncService {
 	// Create interpolator from config
 	interpolatorConfig := interpolation.InterpolatorConfig{
 		Variables:         cfg.Interpolation.GetFlatVariables(),
@@ -75,8 +103,7 @@ func NewSyncService(tugboatClient *tugboat.Client, storage *storage.Storage, cfg
 	evidenceTaskFormatter.SetRegistry(evidenceTaskRegistry)
 
 	return &SyncService{
-		tugboatClient:         tugboatClient,
-		adapter:               adapters.NewTugboatToDomain(),
+		registry:              reg,
 		storage:               storage,
 		policyFormatter:       formatters.NewPolicyFormatterWithInterpolation(interpolator),
 		controlFormatter:      formatters.NewControlFormatterWithInterpolation(interpolator),
@@ -120,35 +147,65 @@ type SyncStats struct {
 	Downloaded int `json:"downloaded"` // For submissions: number of files downloaded
 }
 
-// SyncAll performs a complete synchronization of all data types
+// SyncAll performs a complete synchronization of all data types.
+// It iterates over all registered providers in the registry for policies,
+// controls, and evidence tasks. Submission sync still uses the direct
+// Tugboat client when available.
 func (s *SyncService) SyncAll(ctx context.Context, opts SyncOptions) (*SyncResult, error) {
 	result := &SyncResult{
 		StartTime: time.Now(),
 		Errors:    []string{},
 	}
 
-	// Sync policies if requested
-	if opts.Policies {
-		if err := s.syncPolicies(ctx, opts, &result.Policies); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Policy sync failed: %v", err))
+	// Sync policies, controls, and evidence tasks from all registered providers
+	providerNames := s.registry.List()
+	for _, name := range providerNames {
+		provider, err := s.registry.Get(name)
+		if err != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("Failed to get provider %s: %v", name, err))
+			continue
+		}
+
+		s.logger.Info("Syncing from provider", logger.String("provider", name))
+
+		if opts.Policies {
+			stats, err := s.syncPoliciesFromProvider(ctx, provider, opts)
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("Policy sync failed (provider %s): %v", name, err))
+			} else {
+				result.Policies.Total += stats.Total
+				result.Policies.Synced += stats.Synced
+				result.Policies.Detailed += stats.Detailed
+				result.Policies.Errors += stats.Errors
+			}
+		}
+
+		if opts.Controls {
+			stats, err := s.syncControlsFromProvider(ctx, provider, opts)
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("Control sync failed (provider %s): %v", name, err))
+			} else {
+				result.Controls.Total += stats.Total
+				result.Controls.Synced += stats.Synced
+				result.Controls.Detailed += stats.Detailed
+				result.Controls.Errors += stats.Errors
+			}
+		}
+
+		if opts.Evidence {
+			stats, err := s.syncEvidenceTasksFromProvider(ctx, provider, opts)
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("Evidence task sync failed (provider %s): %v", name, err))
+			} else {
+				result.EvidenceTasks.Total += stats.Total
+				result.EvidenceTasks.Synced += stats.Synced
+				result.EvidenceTasks.Detailed += stats.Detailed
+				result.EvidenceTasks.Errors += stats.Errors
+			}
 		}
 	}
 
-	// Sync controls if requested
-	if opts.Controls {
-		if err := s.syncControls(ctx, opts, &result.Controls); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Control sync failed: %v", err))
-		}
-	}
-
-	// Sync evidence tasks if requested
-	if opts.Evidence {
-		if err := s.syncEvidenceTasks(ctx, opts, &result.EvidenceTasks); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Evidence task sync failed: %v", err))
-		}
-	}
-
-	// Sync submissions if requested
+	// Sync submissions if requested (still uses direct Tugboat client)
 	if opts.Submissions {
 		if err := s.syncSubmissions(ctx, opts, &result.Submissions); err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("Submission sync failed: %v", err))
@@ -163,35 +220,89 @@ func (s *SyncService) SyncAll(ctx context.Context, opts SyncOptions) (*SyncResul
 
 // Internal sync methods
 
+// syncPolicies is a backward-compatible wrapper that delegates to the first
+// registered provider. Kept for callers that use the old SyncOptions pattern.
 func (s *SyncService) syncPolicies(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
-	// Get policies from Tugboat API
-	apiPolicies, err := s.tugboatClient.GetAllPolicies(ctx, opts.OrgID, opts.Framework)
-	if err != nil {
-		return fmt.Errorf("failed to get policies from API: %w", err)
-	}
-
-	stats.Total = len(apiPolicies)
-
-	// Collect all domain policies first
-	var domainPolicies []domain.Policy
-
-	for _, apiPolicy := range apiPolicies {
-		// Get detailed policy information from API
-		apiPolicyDetails, err := s.tugboatClient.GetPolicyDetails(ctx, apiPolicy.ID.String())
+	providerNames := s.registry.List()
+	for _, name := range providerNames {
+		provider, err := s.registry.Get(name)
 		if err != nil {
 			stats.Errors++
 			continue
 		}
-
-		// Convert API model to domain model using adapter (includes all details)
-		domainPolicy := s.adapter.ConvertPolicy(*apiPolicyDetails)
-		domainPolicies = append(domainPolicies, domainPolicy)
-		stats.Detailed++
+		provStats, err := s.syncPoliciesFromProvider(ctx, provider, opts)
+		if err != nil {
+			return err
+		}
+		stats.Total += provStats.Total
+		stats.Synced += provStats.Synced
+		stats.Detailed += provStats.Detailed
+		stats.Errors += provStats.Errors
 	}
+	return nil
+}
+
+// syncControls is a backward-compatible wrapper that delegates to the first
+// registered provider. Kept for callers that use the old SyncOptions pattern.
+func (s *SyncService) syncControls(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
+	providerNames := s.registry.List()
+	for _, name := range providerNames {
+		provider, err := s.registry.Get(name)
+		if err != nil {
+			stats.Errors++
+			continue
+		}
+		provStats, err := s.syncControlsFromProvider(ctx, provider, opts)
+		if err != nil {
+			return err
+		}
+		stats.Total += provStats.Total
+		stats.Synced += provStats.Synced
+		stats.Detailed += provStats.Detailed
+		stats.Errors += provStats.Errors
+	}
+	return nil
+}
+
+// syncEvidenceTasks is a backward-compatible wrapper that delegates to
+// registered providers. Kept for callers that use the old SyncOptions pattern.
+func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
+	providerNames := s.registry.List()
+	for _, name := range providerNames {
+		provider, err := s.registry.Get(name)
+		if err != nil {
+			stats.Errors++
+			continue
+		}
+		provStats, err := s.syncEvidenceTasksFromProvider(ctx, provider, opts)
+		if err != nil {
+			return err
+		}
+		stats.Total += provStats.Total
+		stats.Synced += provStats.Synced
+		stats.Detailed += provStats.Detailed
+		stats.Errors += provStats.Errors
+	}
+	return nil
+}
+
+// syncPoliciesFromProvider fetches all policies from a single DataProvider,
+// processes reference IDs, saves to storage, and generates documents.
+func (s *SyncService) syncPoliciesFromProvider(ctx context.Context, provider interfaces.DataProvider, opts SyncOptions) (*SyncStats, error) {
+	stats := &SyncStats{}
+
+	// Fetch all policies from the provider using pagination
+	allPolicies, err := s.fetchAllPolicies(ctx, provider, opts.Framework)
+	if err != nil {
+		return stats, fmt.Errorf("failed to get policies from provider %s: %w", provider.Name(), err)
+	}
+
+	stats.Total = len(allPolicies)
+	stats.Detailed = len(allPolicies)
 
 	// Process reference IDs for all policies
 	refProcessor := domain.NewPolicyReferenceProcessor()
-	processedPolicies := refProcessor.ProcessPolicyReferences(domainPolicies)
+	processedPolicies := refProcessor.ProcessPolicyReferences(allPolicies)
 
 	// Save all processed policies
 	for i := range processedPolicies {
@@ -205,47 +316,35 @@ func (s *SyncService) syncPolicies(ctx context.Context, opts SyncOptions, stats 
 
 		// Generate policy document
 		if err := s.generatePolicyDocument(policy); err != nil {
-			// Don't fail the sync for document generation errors, but log them
 			s.logger.Warn("Failed to generate policy document",
 				logger.String("policy_id", policy.ID),
+				logger.String("provider", provider.Name()),
 				logger.Error(err))
 		}
 
 		stats.Synced++
 	}
 
-	return nil
+	return stats, nil
 }
 
-func (s *SyncService) syncControls(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
-	// Get controls from Tugboat API
-	apiControls, err := s.tugboatClient.GetAllControls(ctx, opts.OrgID, opts.Framework)
+// syncControlsFromProvider fetches all controls from a single DataProvider,
+// processes reference IDs, saves to storage, and generates documents.
+func (s *SyncService) syncControlsFromProvider(ctx context.Context, provider interfaces.DataProvider, opts SyncOptions) (*SyncStats, error) {
+	stats := &SyncStats{}
+
+	// Fetch all controls from the provider using pagination
+	allControls, err := s.fetchAllControls(ctx, provider, opts.Framework)
 	if err != nil {
-		return fmt.Errorf("failed to get controls from API: %w", err)
+		return stats, fmt.Errorf("failed to get controls from provider %s: %w", provider.Name(), err)
 	}
 
-	stats.Total = len(apiControls)
-
-	// Collect all domain controls first
-	var domainControls []domain.Control
-
-	for _, apiControl := range apiControls {
-		// Get detailed control information from API
-		apiControlDetails, err := s.tugboatClient.GetControlDetails(ctx, strconv.Itoa(apiControl.ID))
-		if err != nil {
-			stats.Errors++
-			continue
-		}
-
-		// Convert API model to domain model using adapter (includes all details)
-		domainControl := s.adapter.ConvertControl(*apiControlDetails)
-		domainControls = append(domainControls, domainControl)
-		stats.Detailed++
-	}
+	stats.Total = len(allControls)
+	stats.Detailed = len(allControls)
 
 	// Process reference IDs for all controls
 	refProcessor := domain.NewControlReferenceProcessor()
-	processedControls := refProcessor.ProcessControlReferences(domainControls)
+	processedControls := refProcessor.ProcessControlReferences(allControls)
 
 	// Save all processed controls
 	for _, domainControl := range processedControls {
@@ -257,40 +356,35 @@ func (s *SyncService) syncControls(ctx context.Context, opts SyncOptions, stats 
 
 		// Generate control document
 		if err := s.generateControlDocument(&domainControl); err != nil {
-			// Don't fail the sync for document generation errors, but log them
 			s.logger.Warn("Failed to generate control document",
 				logger.String("control_id", domainControl.ID),
+				logger.String("provider", provider.Name()),
 				logger.Error(err))
 		}
 
 		stats.Synced++
 	}
 
-	return nil
+	return stats, nil
 }
 
-func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
-	// Get evidence tasks from Tugboat API
-	apiTasks, err := s.tugboatClient.GetAllEvidenceTasks(ctx, opts.OrgID, opts.Framework)
+// syncEvidenceTasksFromProvider fetches all evidence tasks from a single DataProvider,
+// processes reference IDs, preserves existing references, saves to storage,
+// and generates documents.
+func (s *SyncService) syncEvidenceTasksFromProvider(ctx context.Context, provider interfaces.DataProvider, opts SyncOptions) (*SyncStats, error) {
+	stats := &SyncStats{}
+
+	// Fetch all evidence tasks from the provider using pagination
+	allTasks, err := s.fetchAllEvidenceTasks(ctx, provider, opts.Framework)
 	if err != nil {
-		return fmt.Errorf("failed to get evidence tasks from API: %w", err)
+		return stats, fmt.Errorf("failed to get evidence tasks from provider %s: %w", provider.Name(), err)
 	}
 
-	stats.Total = len(apiTasks)
+	stats.Total = len(allTasks)
 
-	// First pass: collect all domain tasks, preserving existing reference IDs
+	// First pass: process related controls and preserve existing reference IDs
 	var domainTasks []domain.EvidenceTask
-	for _, apiTask := range apiTasks {
-		// Get detailed task information from API
-		apiTaskDetails, err := s.tugboatClient.GetEvidenceTaskDetails(ctx, strconv.Itoa(apiTask.ID))
-		if err != nil {
-			stats.Errors++
-			continue
-		}
-
-		// Convert API model to domain model using adapter (includes all details)
-		domainTask := s.adapter.ConvertEvidenceTask(*apiTaskDetails)
-
+	for _, domainTask := range allTasks {
 		// Process reference IDs for related controls
 		refProcessor := domain.NewControlReferenceProcessor()
 		processedControls := refProcessor.ProcessControlReferences(domainTask.RelatedControls)
@@ -317,14 +411,15 @@ func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, s
 		if err := s.saveEvidenceTaskThroughDataService(ctx, &domainTasks[i]); err != nil {
 			s.logger.Warn("Failed to save updated evidence task",
 				logger.String("task_id", domainTasks[i].ID),
+				logger.String("provider", provider.Name()),
 				logger.Error(err))
 		}
 
 		// Generate evidence task document
 		if err := s.generateEvidenceTaskDocument(&domainTasks[i]); err != nil {
-			// Don't fail the sync for document generation errors, but log them
 			s.logger.Warn("Failed to generate evidence task document",
 				logger.String("task_id", domainTasks[i].ID),
+				logger.String("provider", provider.Name()),
 				logger.Error(err))
 		}
 	}
@@ -334,7 +429,88 @@ func (s *SyncService) syncEvidenceTasks(ctx context.Context, opts SyncOptions, s
 		s.logger.Warn("Failed to save evidence task registry", logger.Error(err))
 	}
 
-	return nil
+	return stats, nil
+}
+
+// fetchAllPolicies retrieves all policies from a DataProvider, handling pagination.
+func (s *SyncService) fetchAllPolicies(ctx context.Context, provider interfaces.DataProvider, framework string) ([]domain.Policy, error) {
+	var allPolicies []domain.Policy
+	page := 1
+	pageSize := 100
+
+	for {
+		policies, _, err := provider.ListPolicies(ctx, interfaces.ListOptions{
+			Page:      page,
+			PageSize:  pageSize,
+			Framework: framework,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list policies page %d: %w", page, err)
+		}
+
+		allPolicies = append(allPolicies, policies...)
+
+		if len(policies) < pageSize {
+			break
+		}
+		page++
+	}
+
+	return allPolicies, nil
+}
+
+// fetchAllControls retrieves all controls from a DataProvider, handling pagination.
+func (s *SyncService) fetchAllControls(ctx context.Context, provider interfaces.DataProvider, framework string) ([]domain.Control, error) {
+	var allControls []domain.Control
+	page := 1
+	pageSize := 100
+
+	for {
+		controls, _, err := provider.ListControls(ctx, interfaces.ListOptions{
+			Page:      page,
+			PageSize:  pageSize,
+			Framework: framework,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list controls page %d: %w", page, err)
+		}
+
+		allControls = append(allControls, controls...)
+
+		if len(controls) < pageSize {
+			break
+		}
+		page++
+	}
+
+	return allControls, nil
+}
+
+// fetchAllEvidenceTasks retrieves all evidence tasks from a DataProvider, handling pagination.
+func (s *SyncService) fetchAllEvidenceTasks(ctx context.Context, provider interfaces.DataProvider, framework string) ([]domain.EvidenceTask, error) {
+	var allTasks []domain.EvidenceTask
+	page := 1
+	pageSize := 100
+
+	for {
+		tasks, _, err := provider.ListEvidenceTasks(ctx, interfaces.ListOptions{
+			Page:      page,
+			PageSize:  pageSize,
+			Framework: framework,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to list evidence tasks page %d: %w", page, err)
+		}
+
+		allTasks = append(allTasks, tasks...)
+
+		if len(tasks) < pageSize {
+			break
+		}
+		page++
+	}
+
+	return allTasks, nil
 }
 
 func (s *SyncService) syncSubmissions(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
