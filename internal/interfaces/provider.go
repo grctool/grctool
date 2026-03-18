@@ -105,3 +105,21 @@ type SyncProvider interface {
 	// DetectChanges returns entities that changed since the given time.
 	DetectChanges(ctx context.Context, since time.Time) (*ChangeSet, error)
 }
+
+// RelationshipQuerier is an optional interface for providers that support
+// cross-entity relationship queries. Not all providers have relationship
+// data — callers must type-assert before use:
+//
+//	if rq, ok := provider.(RelationshipQuerier); ok {
+//	    tasks, err := rq.GetEvidenceTasksByControl(ctx, controlID)
+//	}
+type RelationshipQuerier interface {
+	// GetEvidenceTasksByControl returns evidence tasks linked to a control.
+	GetEvidenceTasksByControl(ctx context.Context, controlID string) ([]domain.EvidenceTask, error)
+
+	// GetControlsByPolicy returns controls implementing a policy.
+	GetControlsByPolicy(ctx context.Context, policyID string) ([]domain.Control, error)
+
+	// GetPoliciesByControl returns policies that a control implements.
+	GetPoliciesByControl(ctx context.Context, controlID string) ([]domain.Policy, error)
+}
