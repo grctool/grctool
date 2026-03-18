@@ -5,7 +5,7 @@ category: "requirements"
 tags: ["product", "vision", "goals", "compliance", "grctool"]
 related: ["user-stories", "compliance-requirements", "security-requirements"]
 created: 2025-01-10
-updated: 2026-01-21
+updated: 2026-03-17
 helix_mapping: "Consolidated from 00-Overview/product-overview.md"
 ---
 
@@ -14,6 +14,40 @@ helix_mapping: "Consolidated from 00-Overview/product-overview.md"
 ## Product Summary
 
 **GRCTool** is an agentic governance, risk, and compliance (GRC) command-line application that automates and coordinates compliance workflows through intelligent integration with Tugboat Logic. It bridges the gap between manual compliance processes and modern infrastructure automation, making evidence generation efficient, accurate, auditable, and easy to hand off between internal teams and auditors.
+
+## Product Vision: GRCTool as System of Record
+
+### From Aggregator to System of Record
+
+GRCTool is evolving from a compliance data aggregator — one that syncs policies, controls, and evidence tasks from Tugboat Logic — into the **system of record** for an organization's GRC data. This shift means that policies, controls, control mappings, and evidence tasks become first-class entities owned and managed by GRCTool, not merely cached copies of a remote system.
+
+### Master Index
+
+GRCTool provides the **master index**: the canonical registry of all compliance artifacts. Every policy, control, control mapping, and evidence task has a GRCTool-native identifier and lifecycle, independent of any external platform. The master index is the single source of truth that all integrations read from and write to. External systems may hold copies, but GRCTool is authoritative.
+
+### Bidirectional Integration Architecture
+
+Integration points with external systems — Tugboat Logic, GitHub, Terraform, Google Workspace — become **bidirectional**. GRCTool does not merely pull data in; it pushes data out. Tugboat Logic becomes one integration target among many, not the upstream source of truth. The integration model follows a hub-and-spoke pattern:
+
+- **Inbound**: Import compliance artifacts from external platforms (Tugboat, spreadsheets, other GRC tools) into the master index.
+- **Outbound**: Publish compliance artifacts, evidence, and status to external platforms (Tugboat submission, reporting dashboards, audit portals).
+- **Sync**: Bidirectional reconciliation with conflict detection and resolution for platforms that maintain their own state.
+
+### Data Sovereignty
+
+Organizations own their compliance data locally. GRCTool stores all policies, controls, control mappings, and evidence tasks on the local filesystem in human-readable formats (JSON, YAML, Markdown), version-controlled via git. Cloud platforms receive data selectively — organizations choose what to sync, when to sync, and where to sync it. No platform lock-in; the local master index is always complete and self-contained.
+
+### Extensibility: Plugin-Based Integrations
+
+GRCTool supports a plugin-based integration architecture for connecting to new compliance platforms beyond Tugboat Logic. Each integration implements a standard adapter interface (aligned with ADR-006, hexagonal architecture) covering:
+
+- **Import adapter**: Pull artifacts from the external system into the master index.
+- **Export adapter**: Push artifacts and evidence from the master index to the external system.
+- **Sync adapter**: Bidirectional reconciliation with conflict resolution.
+
+This enables organizations to adopt GRCTool regardless of their current GRC platform, and to migrate between platforms without losing compliance data or history.
+
+---
 
 ## Core Problem Statement
 
@@ -196,9 +230,12 @@ GRCTool coordinates compliance work across teams and auditors using a predictabl
 - **Enhanced reporting** and analytics
 
 ### Long-term Vision (v2.0+)
+- **System of record**: GRCTool as the canonical source of truth for all GRC data, with bidirectional sync to external platforms
+- **Master index management**: Full CRUD lifecycle for policies, controls, control mappings, and evidence tasks natively in GRCTool
 - **Real-time compliance monitoring** with continuous evidence collection
 - **Multi-framework support** (ISO 27001, PCI DSS, HITRUST)
-- **Plugin architecture** for custom evidence collectors
+- **Plugin architecture** for integration adapters (import, export, sync) supporting new compliance platforms
+- **Bidirectional Tugboat sync**: Push evidence and status updates to Tugboat; pull updates back as one integration among many
 - **Web interface** for non-technical users
 - **Integration marketplace** for common tools and platforms
 

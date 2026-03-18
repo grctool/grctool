@@ -40,9 +40,9 @@ The Build phase implements the designs and requirements established in previous 
 ├── implementation-plan/       # Development plans
 │   └── development-practices.md
 ├── build-procedures/          # Build procedures
-│   └── NEEDS-CLARIFICATION.md
+│   └── build-procedures.md
 └── secure-coding/            # Secure coding guidelines
-    └── NEEDS-CLARIFICATION.md
+    └── secure-coding.md
 ```
 
 ## Entry Criteria

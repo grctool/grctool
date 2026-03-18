@@ -41,11 +41,11 @@ The Deploy phase establishes operational procedures for deploying, monitoring, a
 ├── deployment-checklist/      # Deployment procedures
 │   └── deployment-operations.md
 ├── runbook/                  # Operational runbooks
-│   └── NEEDS-CLARIFICATION.md
+│   └── runbook.md
 ├── monitoring-setup/         # Monitoring configuration
-│   └── NEEDS-CLARIFICATION.md
+│   └── monitoring-setup.md
 └── security-monitoring/      # Security monitoring
-    └── NEEDS-CLARIFICATION.md
+    └── security-monitoring.md
 ```
 
 ## Entry Criteria

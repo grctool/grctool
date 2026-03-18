@@ -39,11 +39,11 @@ The Iterate phase establishes continuous improvement processes for GRCTool based
 06-iterate/
 ├── README.md                  # Phase overview and status
 ├── metrics-dashboard/         # Performance metrics
-│   └── NEEDS-CLARIFICATION.md
+│   └── metrics-dashboard.md
 ├── feedback-analysis/        # User feedback
-│   └── NEEDS-CLARIFICATION.md
+│   └── feedback-analysis.md
 ├── lessons-learned/          # Retrospectives
-│   └── NEEDS-CLARIFICATION.md
+│   └── lessons-learned.md
 └── improvement-backlog/      # Enhancement ideas
     └── roadmap-feedback.md
 ```

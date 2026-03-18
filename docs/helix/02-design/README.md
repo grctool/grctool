@@ -40,15 +40,15 @@ The Design phase translates requirements from Phase 1 into concrete architectura
 02-design/
 ├── README.md                   # Phase overview and status
 ├── adr/                       # Architecture Decision Records
-│   └── NEEDS-CLARIFICATION.md
+│   └── adr-index.md
 ├── architecture/              # System architecture
 │   └── system-design.md
 ├── solution-design/           # Solution designs
 │   └── component-design.md
 ├── contracts/                 # API contracts
-│   └── NEEDS-CLARIFICATION.md
+│   └── contracts.md
 ├── data-design/              # Data models
-│   └── NEEDS-CLARIFICATION.md
+│   └── data-design.md
 └── security-architecture/    # Security architecture
     └── security-design.md
 ```

@@ -39,9 +39,9 @@ The Test phase establishes comprehensive testing strategies to ensure GRCTool me
 ├── test-plan/                # Test strategy
 │   └── testing-strategy.md
 ├── test-procedures/          # Test procedures
-│   └── NEEDS-CLARIFICATION.md
+│   └── test-procedures.md
 └── security-tests/           # Security test plans
-    └── NEEDS-CLARIFICATION.md
+    └── security-tests.md
 ```
 
 ## Entry Criteria

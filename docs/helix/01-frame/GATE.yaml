@@ -1,0 +1,70 @@
+phase: frame
+number: "01"
+
+entry_requirements:
+  automated: []
+  manual:
+    - "Problem or opportunity identified and documented"
+    - "Time allocated for analysis confirmed"
+
+exit_requirements:
+  automated:
+    # Core artifact existence checks
+    - check: file_exists
+      path: docs/helix/01-frame/prd.md
+      description: "PRD document must exist"
+
+    - check: file_exists
+      path: docs/helix/01-frame/principles.md
+      description: "Principles document must exist"
+
+    - check: file_exists
+      path: docs/helix/01-frame/feature-registry.md
+      description: "Feature registry must exist"
+
+    - check: dir_not_empty
+      path: docs/helix/01-frame/user-stories
+      description: "User stories directory must contain files"
+
+    - check: dir_not_empty
+      path: docs/helix/01-frame/features
+      description: "Feature specifications directory must contain files"
+
+    # Quality checks - no unresolved markers
+    - check: grep_absent
+      pattern: "\\[NEEDS CLARIFICATION\\]"
+      path: docs/helix/01-frame/**/*.md
+      description: "No unresolved clarification markers in P0 specs"
+
+    - check: grep_absent
+      pattern: "\\[TBD\\]"
+      path: docs/helix/01-frame/prd.md
+      description: "No TBD markers in PRD"
+
+    - check: grep_absent
+      pattern: "\\[TODO\\]"
+      path: docs/helix/01-frame/prd.md
+      description: "No TODO markers in PRD"
+
+    # Format validation
+    - check: grep_present
+      pattern: "As a .* I want .* [Ss]o that"
+      path: docs/helix/01-frame/user-stories/**/*.md
+      description: "User stories follow correct format"
+
+    - check: grep_present
+      pattern: "FEAT-[0-9]+"
+      path: docs/helix/01-frame/feature-registry.md
+      description: "Feature registry contains FEAT-XXX identifiers"
+
+    # Success metrics must be quantified
+    - check: grep_present
+      pattern: "[0-9]+%|[0-9]+ (ms|seconds|minutes)|[<>][0-9]+"
+      path: docs/helix/01-frame/prd.md
+      description: "Success metrics contain numeric targets"
+
+  manual:
+    - "Stakeholder sign-off on PRD obtained"
+    - "Product Owner approval confirmed"
+
+next_phase: design

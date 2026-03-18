@@ -1,0 +1,95 @@
+phase: build
+number: "04"
+
+entry_requirements:
+  automated:
+    - check: previous_phase_complete
+      phase: 03-test
+
+    - check: file_exists
+      path: docs/helix/03-test/test-plan.md
+      description: "Test plan from Test phase must exist"
+
+    - check: tests_exist
+      path: tests
+      description: "Test suites from Test phase must exist"
+
+    - check: tests_failing
+      command: "go test ./..."
+      description: "Tests must be failing (Red phase ready for implementation)"
+
+    - check: file_exists
+      path: .github/workflows/test.yml
+      fallback_paths:
+        - .github/workflows/ci.yml
+        - .gitlab-ci.yml
+      description: "CI/CD pipeline configured for tests"
+
+  manual:
+    - "Test suites reviewed and approved"
+    - "Security test suite validated"
+
+exit_requirements:
+  automated:
+    # All tests passing
+    - check: tests_passing
+      command: "go test ./..."
+      description: "All tests must pass"
+
+    # Coverage thresholds
+    - check: coverage_threshold
+      threshold: 80
+      command: "go test -cover ./..."
+      description: "Code coverage must be at least 80%"
+
+    # Security scan
+    - check: security_scan_clean
+      command: "gosec ./..."
+      severity: high
+      description: "No high or critical security vulnerabilities"
+
+    # Linting passes
+    - check: lint_clean
+      command: "golangci-lint run"
+      description: "No linting errors"
+
+    # Build artifacts
+    - check: file_exists
+      path: docs/helix/04-build/implementation-plan.md
+      description: "Implementation plan must exist"
+
+    - check: file_exists
+      path: docs/helix/04-build/secure-coding-checklist.md
+      description: "Secure coding checklist must exist"
+
+    # Source code exists
+    - check: dir_not_empty
+      path: cmd
+      fallback_paths:
+        - internal
+        - pkg
+      description: "Source code directory must contain implementation"
+
+    # Documentation updated
+    - check: file_exists
+      path: README.md
+      description: "README must exist"
+
+    - check: file_exists
+      path: CHANGELOG.md
+      description: "CHANGELOG must exist"
+
+    # No debug/development artifacts
+    - check: grep_absent
+      pattern: "fmt\\.Print|debugger"
+      path: cmd/**/*
+      fallback_paths:
+        - internal/**/*
+        - pkg/**/*
+      description: "No debug statements in production code"
+
+  manual:
+    - "Code review completed and approved"
+    - "Performance benchmarks validated"
+
+next_phase: deploy

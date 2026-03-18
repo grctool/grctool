@@ -45,13 +45,13 @@ The Frame phase establishes the foundation for GRCTool development by defining t
 ├── user-stories/              # User stories and scenarios
 │   └── stories.md
 ├── stakeholder-map/           # Stakeholder analysis
-│   └── NEEDS-CLARIFICATION.md
+│   └── stakeholder-map.md
 ├── compliance-requirements/   # Regulatory requirements
 │   └── requirements.md
 ├── security-requirements/     # Security requirements (extracted from compliance)
 │   └── requirements.md
 └── threat-model/              # Threat modeling
-    └── NEEDS-CLARIFICATION.md
+    └── threat-model.md
 ```
 
 ## Entry Criteria
