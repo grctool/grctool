@@ -1,0 +1,14 @@
+{
+  "id": "12345",
+  "reference_id": "POL-0001",
+  "name": "Access Control Policy",
+  "description": "Defines the organization's approach to managing logical and physical access to information assets.",
+  "framework": "SOC2",
+  "status": "active",
+  "category": "Security",
+  "content": "All access to production systems must be authorized, authenticated, and logged. Access reviews shall be conducted quarterly.",
+  "version_num": 1,
+  "control_count": 5,
+  "created_at": "2025-01-15T10:00:00Z",
+  "updated_at": "2025-01-15T10:00:00Z"
+}

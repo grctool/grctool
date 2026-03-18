@@ -1,0 +1,18 @@
+{
+  "id": 1001,
+  "reference_id": "CC-06.1",
+  "name": "Logical Access Security",
+  "description": "The entity implements logical access security software, infrastructure, and architectures over protected information assets.",
+  "category": "Common Criteria",
+  "framework": "SOC2",
+  "status": "implemented",
+  "risk": "medium",
+  "risk_level": "medium",
+  "is_auto_implemented": false,
+  "master_version_num": 1,
+  "master_control_id": 601,
+  "org_id": 100,
+  "org_scope_id": 1,
+  "recommended_evidence_count": 3,
+  "open_incident_count": 0
+}
