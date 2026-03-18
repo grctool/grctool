@@ -136,6 +136,10 @@ func (s *stubSyncProvider) DetectChanges(_ context.Context, _ time.Time) (*inter
 	return s.changeSet, nil
 }
 
+func (s *stubSyncProvider) ResolveConflict(_ context.Context, _ interfaces.Conflict, _ interfaces.ConflictResolution) error {
+	return fmt.Errorf("not implemented")
+}
+
 // --- Stub StorageService ---
 
 type stubStorageService struct {

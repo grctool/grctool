@@ -212,6 +212,10 @@ func (p *GDriveSyncProvider) DeleteEvidenceTask(ctx context.Context, id string) 
 	return p.driveClient.DeleteFile(ctx, id)
 }
 
+func (p *GDriveSyncProvider) ResolveConflict(ctx context.Context, conflict interfaces.Conflict, resolution interfaces.ConflictResolution) error {
+	return fmt.Errorf("gdrive: conflict resolution not yet implemented for %s %s", conflict.EntityType, conflict.EntityID)
+}
+
 func (p *GDriveSyncProvider) DetectChanges(ctx context.Context, since time.Time) (*interfaces.ChangeSet, error) {
 	files, err := p.driveClient.ListFiles(ctx, p.rootFolderID, "")
 	if err != nil {

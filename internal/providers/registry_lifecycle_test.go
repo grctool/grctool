@@ -191,3 +191,6 @@ func (s *stubSyncForLifecycle) DeleteEvidenceTask(ctx context.Context, id string
 func (s *stubSyncForLifecycle) DetectChanges(ctx context.Context, since time.Time) (*interfaces.ChangeSet, error) {
 	return &interfaces.ChangeSet{Provider: s.Name()}, nil
 }
+func (s *stubSyncForLifecycle) ResolveConflict(_ context.Context, _ interfaces.Conflict, _ interfaces.ConflictResolution) error {
+	return fmt.Errorf("not implemented")
+}

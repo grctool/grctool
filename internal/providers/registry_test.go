@@ -68,6 +68,10 @@ func (s *stubSyncProvider) DetectChanges(_ context.Context, _ time.Time) (*inter
 	return &interfaces.ChangeSet{Provider: s.Name()}, nil
 }
 
+func (s *stubSyncProvider) ResolveConflict(_ context.Context, _ interfaces.Conflict, _ interfaces.ConflictResolution) error {
+	return fmt.Errorf("not implemented")
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------

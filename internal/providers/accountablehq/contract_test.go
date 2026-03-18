@@ -219,6 +219,24 @@ func TestContract_DetectChanges(t *testing.T) {
 	assert.Equal(t, "ahq-1", changes.Changes[0].EntityID)
 }
 
+func TestContract_ResolveConflict_ReturnsNotImplemented(t *testing.T) {
+	t.Parallel()
+	p, s := newContractSetup(t)
+	defer s.Close()
+
+	conflict := interfaces.Conflict{
+		EntityType: "policy",
+		EntityID:   "POL-0001",
+		Provider:   "accountablehq",
+		LocalHash:  "abc",
+		RemoteHash: "def",
+		DetectedAt: time.Now(),
+	}
+	err := p.ResolveConflict(context.Background(), conflict, interfaces.ConflictResolutionLocalWins)
+	assert.Error(t, err, "ResolveConflict should return error (not yet implemented)")
+	assert.Contains(t, err.Error(), "not yet implemented")
+}
+
 // --- helpers ---
 
 func makeDomainPolicy(name, content string) domain.Policy {

@@ -118,6 +118,32 @@ type SyncProvider interface {
 
 	// DetectChanges returns entities that changed since the given time.
 	DetectChanges(ctx context.Context, since time.Time) (*ChangeSet, error)
+
+	// ResolveConflict applies a conflict resolution decision to an entity.
+	// Returns an error if the resolution cannot be applied (e.g., the entity
+	// was modified again since the conflict was detected).
+	ResolveConflict(ctx context.Context, conflict Conflict, resolution ConflictResolution) error
+}
+
+// ConflictResolution enumerates strategies for resolving sync conflicts.
+type ConflictResolution string
+
+const (
+	ConflictResolutionLocalWins  ConflictResolution = "local_wins"
+	ConflictResolutionRemoteWins ConflictResolution = "remote_wins"
+	ConflictResolutionNewestWins ConflictResolution = "newest_wins"
+	ConflictResolutionManual     ConflictResolution = "manual"
+)
+
+// Conflict represents a detected conflict between local and remote state
+// for a single entity.
+type Conflict struct {
+	EntityType string    `json:"entity_type"` // "policy", "control", "evidence_task"
+	EntityID   string    `json:"entity_id"`   // GRCTool-native ID
+	Provider   string    `json:"provider"`
+	LocalHash  string    `json:"local_hash"`
+	RemoteHash string    `json:"remote_hash"`
+	DetectedAt time.Time `json:"detected_at"`
 }
 
 // SubmissionMetadata provides context for an evidence submission.

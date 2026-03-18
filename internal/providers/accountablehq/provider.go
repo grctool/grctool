@@ -171,6 +171,13 @@ func (p *AccountableHQSyncProvider) DeleteEvidenceTask(ctx context.Context, id s
 	return fmt.Errorf("evidence tasks not managed in AccountableHQ")
 }
 
+func (p *AccountableHQSyncProvider) ResolveConflict(ctx context.Context, conflict interfaces.Conflict, resolution interfaces.ConflictResolution) error {
+	// Conflict resolution workflow is not yet implemented.
+	// Detection is supported via DetectChanges; resolution requires the
+	// user-facing workflow design (SD-004 Open Question #3).
+	return fmt.Errorf("accountablehq: conflict resolution not yet implemented for %s %s", conflict.EntityType, conflict.EntityID)
+}
+
 func (p *AccountableHQSyncProvider) DetectChanges(ctx context.Context, since time.Time) (*interfaces.ChangeSet, error) {
 	// Fetch all policies and filter by UpdatedAt > since
 	ahqPolicies, _, err := p.client.ListPolicies(ctx, 0, 1000)

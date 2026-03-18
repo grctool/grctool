@@ -24,6 +24,7 @@ import (
 	"github.com/grctool/grctool/internal/domain"
 	"github.com/grctool/grctool/internal/interfaces"
 	"github.com/grctool/grctool/internal/testhelpers"
+	"github.com/stretchr/testify/assert"
 )
 
 // ---------------------------------------------------------------------------
@@ -115,6 +116,50 @@ func (s *stubSyncProvider) DetectChanges(_ context.Context, _ time.Time) (*inter
 		return nil, s.detectErr
 	}
 	return s.changeSet, nil
+}
+
+func (s *stubSyncProvider) ResolveConflict(_ context.Context, _ interfaces.Conflict, _ interfaces.ConflictResolution) error {
+	return fmt.Errorf("not implemented")
+}
+
+// ---------------------------------------------------------------------------
+// Conflict resolution types
+// ---------------------------------------------------------------------------
+
+func TestConflictResolutionConstants(t *testing.T) {
+	t.Parallel()
+	// Verify the four canonical strategies are distinct non-empty strings
+	strategies := []interfaces.ConflictResolution{
+		interfaces.ConflictResolutionLocalWins,
+		interfaces.ConflictResolutionRemoteWins,
+		interfaces.ConflictResolutionNewestWins,
+		interfaces.ConflictResolutionManual,
+	}
+	seen := make(map[interfaces.ConflictResolution]bool)
+	for _, s := range strategies {
+		assert.NotEmpty(t, string(s), "strategy must be non-empty")
+		assert.False(t, seen[s], "duplicate strategy: %s", s)
+		seen[s] = true
+	}
+}
+
+func TestConflictStructFields(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	c := interfaces.Conflict{
+		EntityType: "policy",
+		EntityID:   "POL-0001",
+		Provider:   "tugboat",
+		LocalHash:  "abc123",
+		RemoteHash: "def456",
+		DetectedAt: now,
+	}
+	assert.Equal(t, "policy", c.EntityType)
+	assert.Equal(t, "POL-0001", c.EntityID)
+	assert.Equal(t, "tugboat", c.Provider)
+	assert.Equal(t, "abc123", c.LocalHash)
+	assert.Equal(t, "def456", c.RemoteHash)
+	assert.Equal(t, now, c.DetectedAt)
 }
 
 // ---------------------------------------------------------------------------
