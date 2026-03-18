@@ -1,0 +1,321 @@
+// Copyright 2024 GRCTool Authors
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"text/tabwriter"
+	"time"
+
+	"github.com/grctool/grctool/internal/config"
+	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/scheduler"
+	"github.com/spf13/cobra"
+)
+
+// scheduleCmd is the parent command for schedule management.
+var scheduleCmd = &cobra.Command{
+	Use:   "schedule",
+	Short: "Manage evidence collection schedules",
+	Long: `Manage cron-based evidence collection schedules.
+
+Schedules define when evidence collection tasks run automatically.
+Use subcommands to list, check status, and execute scheduled tasks.`,
+}
+
+// scheduleListCmd shows all configured schedules.
+var scheduleListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List all configured schedules",
+	Long:  `Display all configured schedules with their cron expression, enabled state, scope, provider, last run, and next due time.`,
+	RunE:  runScheduleList,
+}
+
+// scheduleStatusCmd shows what's due.
+var scheduleStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "Show schedule status and what's due",
+	Long:  `Show which schedules are due now, upcoming, and recently completed.`,
+	RunE:  runScheduleStatus,
+}
+
+// scheduleRunCmd executes due schedules.
+var scheduleRunCmd = &cobra.Command{
+	Use:   "run [schedule-name]",
+	Short: "Execute due schedules",
+	Long: `Execute all due schedules, or a specific named schedule.
+
+By default, only schedules that are currently due will be executed.
+Use --force to run a schedule regardless of whether it is due.
+Use --dry-run to preview what would be executed without making changes.
+
+Note: Actual tool execution will be wired in the orchestration bead.
+Currently this command marks schedules as completed after printing what would run.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runScheduleRun,
+}
+
+func init() {
+	rootCmd.AddCommand(scheduleCmd)
+	scheduleCmd.AddCommand(scheduleListCmd)
+	scheduleCmd.AddCommand(scheduleStatusCmd)
+	scheduleCmd.AddCommand(scheduleRunCmd)
+
+	// Flags for schedule run
+	scheduleRunCmd.Flags().Bool("dry-run", false, "show what would execute without running")
+	scheduleRunCmd.Flags().Bool("force", false, "run even if not due")
+}
+
+// loadScheduler creates a Scheduler from the current config.
+func loadScheduler() (*scheduler.Scheduler, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, fmt.Errorf("loading config: %w", err)
+	}
+
+	// Use data_dir for state storage; fall back to current directory.
+	stateDir := "."
+	if cfg.Storage.DataDir != "" {
+		stateDir = filepath.Join(cfg.Storage.DataDir, ".state")
+	}
+
+	log := logger.WithComponent("scheduler")
+	return scheduler.NewScheduler(cfg.Schedules.Schedules, stateDir, log), nil
+}
+
+func runScheduleList(cmd *cobra.Command, args []string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	schedules := cfg.Schedules.Schedules
+	if len(schedules) == 0 {
+		fmt.Fprintln(cmd.OutOrStdout(), "No schedules configured.")
+		fmt.Fprintln(cmd.OutOrStdout(), "Add schedules to your .grctool.yaml under the 'schedules' section.")
+		return nil
+	}
+
+	s, err := loadScheduler()
+	if err != nil {
+		return err
+	}
+
+	state, err := s.GetStatus()
+	if err != nil {
+		return fmt.Errorf("loading schedule state: %w", err)
+	}
+
+	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 4, 2, ' ', 0)
+	fmt.Fprintln(w, "NAME\tCRON\tENABLED\tSCOPE\tPROVIDER\tLAST RUN\tNEXT DUE")
+	fmt.Fprintln(w, "----\t----\t-------\t-----\t--------\t--------\t--------")
+
+	for _, sc := range schedules {
+		enabled := "yes"
+		if !sc.Enabled {
+			enabled = "no"
+		}
+
+		scope := sc.Scope
+		if scope == "" {
+			scope = "all"
+		}
+		provider := sc.Provider
+		if provider == "" {
+			provider = "-"
+		}
+
+		lastRun := "-"
+		nextDue := "-"
+		if ss, ok := state.Schedules[sc.Name]; ok {
+			if !ss.LastRun.IsZero() {
+				lastRun = ss.LastRun.Format(time.RFC3339)
+			}
+			if !ss.NextDue.IsZero() {
+				nextDue = ss.NextDue.Format(time.RFC3339)
+			}
+		}
+
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			sc.Name, sc.Cron, enabled, scope, provider, lastRun, nextDue)
+	}
+
+	return w.Flush()
+}
+
+func runScheduleStatus(cmd *cobra.Command, args []string) error {
+	s, err := loadScheduler()
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	due, err := s.GetDueSchedules(now)
+	if err != nil {
+		return fmt.Errorf("checking due schedules: %w", err)
+	}
+
+	state, err := s.GetStatus()
+	if err != nil {
+		return fmt.Errorf("loading schedule state: %w", err)
+	}
+
+	out := cmd.OutOrStdout()
+
+	// Due Now
+	fmt.Fprintln(out, "=== Due Now ===")
+	if len(due) == 0 {
+		fmt.Fprintln(out, "  No schedules are currently due.")
+	} else {
+		for _, d := range due {
+			fmt.Fprintf(out, "  %s  (cron: %s, scope: %s)\n", d.Name, d.Cron, d.Scope)
+		}
+	}
+	fmt.Fprintln(out)
+
+	// Recently Completed (schedules that have run and have state)
+	fmt.Fprintln(out, "=== Recently Completed ===")
+	hasCompleted := false
+	for name, ss := range state.Schedules {
+		if !ss.LastRun.IsZero() {
+			hasCompleted = true
+			status := "ok"
+			if ss.LastError != "" {
+				status = fmt.Sprintf("error: %s", ss.LastError)
+			}
+			fmt.Fprintf(out, "  %s  last_run: %s  runs: %d  status: %s\n",
+				name, ss.LastRun.Format(time.RFC3339), ss.RunCount, status)
+		}
+	}
+	if !hasCompleted {
+		fmt.Fprintln(out, "  No schedules have run yet.")
+	}
+
+	return nil
+}
+
+func runScheduleRun(cmd *cobra.Command, args []string) error {
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	force, _ := cmd.Flags().GetBool("force")
+
+	s, err := loadScheduler()
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	out := cmd.OutOrStdout()
+
+	// If a specific schedule name is given, filter to just that one.
+	if len(args) == 1 {
+		name := args[0]
+		return runNamedSchedule(cmd, s, name, now, dryRun, force)
+	}
+
+	// Run all due schedules.
+	due, err := s.GetDueSchedules(now)
+	if err != nil {
+		return fmt.Errorf("checking due schedules: %w", err)
+	}
+
+	if len(due) == 0 && !force {
+		fmt.Fprintln(out, "No schedules are currently due.")
+		return nil
+	}
+
+	for _, d := range due {
+		if dryRun {
+			fmt.Fprintf(out, "[dry-run] Would execute schedule: %s (scope: %s, provider: %s)\n",
+				d.Name, d.Scope, d.Provider)
+			continue
+		}
+
+		// TODO(c6w.3): Wire actual tool execution via orchestration.
+		fmt.Fprintf(out, "Executing schedule: %s (scope: %s, provider: %s)\n",
+			d.Name, d.Scope, d.Provider)
+		fmt.Fprintf(out, "  -> Actual execution will be wired in orchestration bead.\n")
+
+		if err := s.MarkCompleted(d.Name, now); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", d.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// runNamedSchedule runs a specific schedule by name.
+func runNamedSchedule(cmd *cobra.Command, s *scheduler.Scheduler, name string, now time.Time, dryRun, force bool) error {
+	out := cmd.OutOrStdout()
+
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
+	// Find the named schedule.
+	var found *config.ScheduleConfig
+	for i := range cfg.Schedules.Schedules {
+		if cfg.Schedules.Schedules[i].Name == name {
+			found = &cfg.Schedules.Schedules[i]
+			break
+		}
+	}
+
+	if found == nil {
+		return fmt.Errorf("schedule %q not found in configuration", name)
+	}
+
+	if !force {
+		// Check if it's due.
+		due, err := s.GetDueSchedules(now)
+		if err != nil {
+			return fmt.Errorf("checking due schedules: %w", err)
+		}
+
+		isDue := false
+		for _, d := range due {
+			if d.Name == name {
+				isDue = true
+				break
+			}
+		}
+
+		if !isDue {
+			fmt.Fprintf(out, "Schedule %q is not currently due. Use --force to run anyway.\n", name)
+			return nil
+		}
+	}
+
+	if dryRun {
+		fmt.Fprintf(out, "[dry-run] Would execute schedule: %s (scope: %s, provider: %s)\n",
+			found.Name, found.Scope, found.Provider)
+		return nil
+	}
+
+	// TODO(c6w.3): Wire actual tool execution via orchestration.
+	fmt.Fprintf(out, "Executing schedule: %s (scope: %s, provider: %s)\n",
+		found.Name, found.Scope, found.Provider)
+	fmt.Fprintf(out, "  -> Actual execution will be wired in orchestration bead.\n")
+
+	if err := s.MarkCompleted(name, now); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", name, err)
+	}
+
+	return nil
+}
