@@ -45,6 +45,7 @@ func (t *TugboatToDomain) ConvertPolicy(apiPolicy interface{}) domain.Policy {
 			Status:      p.Status,
 			CreatedAt:   p.CreatedAt.Time,
 			UpdatedAt:   p.UpdatedAt.Time,
+			ExternalIDs: map[string]string{"tugboat": p.ID.String()},
 		}
 	case tugboatmodels.PolicyDetails:
 		policy := domain.Policy{
@@ -55,6 +56,7 @@ func (t *TugboatToDomain) ConvertPolicy(apiPolicy interface{}) domain.Policy {
 			Status:      p.Status,
 			CreatedAt:   p.CreatedAt.Time,
 			UpdatedAt:   p.UpdatedAt.Time,
+			ExternalIDs: map[string]string{"tugboat": p.ID.String()},
 			// Reference and categorization fields from API
 			Category:         p.Category,
 			MasterPolicyID:   p.MasterPolicyID.String(),
@@ -134,8 +136,9 @@ func (t *TugboatToDomain) ConvertControl(apiControl interface{}) domain.Control 
 			riskLevel = *c.RiskLevel
 		}
 
+		controlID := strconv.Itoa(c.ID)
 		return domain.Control{
-			ID:                strconv.Itoa(c.ID),
+			ID:                controlID,
 			Name:              c.Name,
 			Description:       c.Body, // API uses "body" field
 			Category:          c.Category,
@@ -148,6 +151,7 @@ func (t *TugboatToDomain) ConvertControl(apiControl interface{}) domain.Control 
 			ImplementedDate:   implementedDate,
 			TestedDate:        testedDate,
 			Codes:             c.Codes,
+			ExternalIDs:       map[string]string{"tugboat": controlID},
 		}
 	case tugboatmodels.ControlDetails:
 		// First convert the basic control
@@ -270,8 +274,9 @@ func (t *TugboatToDomain) ConvertEvidenceTask(apiTask interface{}) domain.Eviden
 			nextDue = computeNextDue(lastCollected, task.CollectionInterval)
 		}
 
+		taskID := strconv.Itoa(task.ID)
 		domainTask := domain.EvidenceTask{
-			ID:                 strconv.Itoa(task.ID),
+			ID:                 taskID,
 			Name:               task.Name,
 			Description:        task.Description,
 			Guidance:           "", // Not available in simplified API model
@@ -287,6 +292,7 @@ func (t *TugboatToDomain) ConvertEvidenceTask(apiTask interface{}) domain.Eviden
 			Sensitive:          false,   // Not available in simplified API model
 			CreatedAt:          createdAt,
 			UpdatedAt:          updatedAt,
+			ExternalIDs:        map[string]string{"tugboat": taskID},
 		}
 
 		// Handle assignees - can be []string or []EvidenceAssignee depending on embeds

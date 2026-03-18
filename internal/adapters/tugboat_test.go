@@ -63,6 +63,15 @@ func TestPolicyRoundtrip(t *testing.T) {
 			t.Error("Policy Content not extracted - this is a critical issue")
 		}
 
+		// Verify ExternalIDs["tugboat"] is populated
+		if domainPolicy.ExternalIDs == nil {
+			t.Error("Policy ExternalIDs not populated")
+		} else if domainPolicy.ExternalIDs["tugboat"] == "" {
+			t.Error("Policy ExternalIDs[tugboat] not populated")
+		} else if domainPolicy.ExternalIDs["tugboat"] != domainPolicy.ID {
+			t.Errorf("Policy ExternalIDs[tugboat] = %q, want %q (same as ID)", domainPolicy.ExternalIDs["tugboat"], domainPolicy.ID)
+		}
+
 		t.Logf("✅ Policy roundtrip successful: %s (ID: %s, Content length: %d)",
 			domainPolicy.Name, domainPolicy.ID, len(domainPolicy.Content))
 	})
@@ -107,6 +116,15 @@ func TestControlRoundtrip(t *testing.T) {
 			if len(domainControl.Tags) == 0 {
 				t.Error("Control Tags not mapped despite API having tags")
 			}
+		}
+
+		// Verify ExternalIDs["tugboat"] is populated
+		if domainControl.ExternalIDs == nil {
+			t.Error("Control ExternalIDs not populated")
+		} else if domainControl.ExternalIDs["tugboat"] == "" {
+			t.Error("Control ExternalIDs[tugboat] not populated")
+		} else if domainControl.ExternalIDs["tugboat"] != domainControl.ID {
+			t.Errorf("Control ExternalIDs[tugboat] = %q, want %q (same as ID)", domainControl.ExternalIDs["tugboat"], domainControl.ID)
 		}
 
 		t.Logf("✅ Control roundtrip successful: %s (ID: %s, Description length: %d)",
@@ -180,6 +198,15 @@ func TestEvidenceTaskRoundtrip(t *testing.T) {
 		if apiTask.Usage != nil {
 			t.Logf("📊 Usage statistics available in API - ViewCount: %d, DownloadCount: %d",
 				domainTask.ViewCount, domainTask.DownloadCount)
+		}
+
+		// Verify ExternalIDs["tugboat"] is populated
+		if domainTask.ExternalIDs == nil {
+			t.Error("EvidenceTask ExternalIDs not populated")
+		} else if domainTask.ExternalIDs["tugboat"] == "" {
+			t.Error("EvidenceTask ExternalIDs[tugboat] not populated")
+		} else if domainTask.ExternalIDs["tugboat"] != domainTask.ID {
+			t.Errorf("EvidenceTask ExternalIDs[tugboat] = %q, want %q (same as ID)", domainTask.ExternalIDs["tugboat"], domainTask.ID)
 		}
 
 		t.Logf("✅ Evidence Task roundtrip successful: %s (ID: %s, Controls: %d, Guidance length: %d, MasterContent: %v)",

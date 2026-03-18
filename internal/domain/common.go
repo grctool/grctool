@@ -98,6 +98,20 @@ type JiraIssue struct {
 	Reporter  string    `json:"reporter"`
 }
 
+// SyncMetadata tracks multi-provider synchronization state for an entity.
+type SyncMetadata struct {
+	// LastSyncTime records when each provider last synced this entity.
+	// Key: provider name (e.g., "tugboat", "accountablehq", "gdrive")
+	LastSyncTime map[string]time.Time `json:"last_sync_time,omitempty"`
+
+	// ContentHash stores a content hash per provider for change detection.
+	ContentHash map[string]string `json:"content_hash,omitempty"`
+
+	// ConflictState tracks whether this entity has unresolved conflicts.
+	// Values: "" (none), "local_modified", "remote_modified", "both_modified", "resolved"
+	ConflictState string `json:"conflict_state,omitempty"`
+}
+
 // Relationship represents relationships between domain entities
 type Relationship struct {
 	SourceType string `json:"source_type"` // policy, control, evidence_task

@@ -80,6 +80,12 @@ type EvidenceTask struct {
 	// Master content and associations
 	MasterContent *EvidenceTaskMasterContent `json:"master_content,omitempty"`
 	Associations  *EvidenceTaskAssociations  `json:"associations,omitempty"`
+	// Multi-provider fields
+	// ExternalIDs maps provider names to their external ID for this entity.
+	// e.g., {"tugboat": "12345", "accountablehq": "et-abc-123"}
+	ExternalIDs  map[string]string `json:"external_ids,omitempty"`
+	// SyncMetadata tracks multi-provider sync state.
+	SyncMetadata *SyncMetadata     `json:"sync_metadata,omitempty"`
 }
 
 // UnmarshalJSON implements custom unmarshaling for EvidenceTask to handle

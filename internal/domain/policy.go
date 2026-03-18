@@ -60,6 +60,12 @@ type Policy struct {
 	LastDownloadedAt *time.Time `json:"last_downloaded_at,omitempty"`
 	ReferenceCount   int        `json:"reference_count"`
 	LastReferencedAt *time.Time `json:"last_referenced_at,omitempty"`
+	// Multi-provider fields
+	// ExternalIDs maps provider names to their external ID for this entity.
+	// e.g., {"tugboat": "12345", "accountablehq": "pol-abc-123"}
+	ExternalIDs  map[string]string `json:"external_ids,omitempty"`
+	// SyncMetadata tracks multi-provider sync state.
+	SyncMetadata *SyncMetadata     `json:"sync_metadata,omitempty"`
 }
 
 // PolicyVersion represents a version of a policy document

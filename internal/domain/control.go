@@ -67,6 +67,12 @@ type Control struct {
 	MasterContent      *ControlMasterContent   `json:"master_content,omitempty"`
 	Associations       *ControlAssociations    `json:"associations,omitempty"`
 	OrgEvidenceMetrics *ControlEvidenceMetrics `json:"org_evidence_metrics,omitempty"`
+	// Multi-provider fields
+	// ExternalIDs maps provider names to their external ID for this entity.
+	// e.g., {"tugboat": "12345", "accountablehq": "ctrl-abc-123"}
+	ExternalIDs  map[string]string `json:"external_ids,omitempty"`
+	// SyncMetadata tracks multi-provider sync state.
+	SyncMetadata *SyncMetadata     `json:"sync_metadata,omitempty"`
 }
 
 // ControlMasterContent represents the master content for a control
