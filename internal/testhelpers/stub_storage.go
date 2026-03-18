@@ -135,6 +135,43 @@ func (s *StubStorageService) GetPolicySummary() (*domain.PolicySummary, error) {
 }
 
 // ---------------------------------------------------------------------------
+// GetByExternalID lookups
+// ---------------------------------------------------------------------------
+
+func (s *StubStorageService) GetPolicyByExternalID(provider, externalID string) (*domain.Policy, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, p := range s.policies {
+		if p.ExternalIDs != nil && p.ExternalIDs[provider] == externalID {
+			return p, nil
+		}
+	}
+	return nil, fmt.Errorf("policy not found for provider %q with external ID %q", provider, externalID)
+}
+
+func (s *StubStorageService) GetControlByExternalID(provider, externalID string) (*domain.Control, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, c := range s.controls {
+		if c.ExternalIDs != nil && c.ExternalIDs[provider] == externalID {
+			return c, nil
+		}
+	}
+	return nil, fmt.Errorf("control not found for provider %q with external ID %q", provider, externalID)
+}
+
+func (s *StubStorageService) GetEvidenceTaskByExternalID(provider, externalID string) (*domain.EvidenceTask, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, t := range s.tasks {
+		if t.ExternalIDs != nil && t.ExternalIDs[provider] == externalID {
+			return t, nil
+		}
+	}
+	return nil, fmt.Errorf("evidence task not found for provider %q with external ID %q", provider, externalID)
+}
+
+// ---------------------------------------------------------------------------
 // Control operations
 // ---------------------------------------------------------------------------
 

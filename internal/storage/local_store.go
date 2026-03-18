@@ -263,6 +263,48 @@ func (lds *LocalDataStore) GetLastDataUpdate() (time.Time, error) {
 	return latestTime, nil
 }
 
+// GetPolicyByExternalID retrieves a policy by provider name and external ID.
+func (lds *LocalDataStore) GetPolicyByExternalID(provider, externalID string) (*domain.Policy, error) {
+	policies, err := lds.GetAllPolicies()
+	if err != nil {
+		return nil, err
+	}
+	for i := range policies {
+		if policies[i].ExternalIDs != nil && policies[i].ExternalIDs[provider] == externalID {
+			return &policies[i], nil
+		}
+	}
+	return nil, fmt.Errorf("policy not found for provider %q with external ID %q", provider, externalID)
+}
+
+// GetControlByExternalID retrieves a control by provider name and external ID.
+func (lds *LocalDataStore) GetControlByExternalID(provider, externalID string) (*domain.Control, error) {
+	controls, err := lds.GetAllControls()
+	if err != nil {
+		return nil, err
+	}
+	for i := range controls {
+		if controls[i].ExternalIDs != nil && controls[i].ExternalIDs[provider] == externalID {
+			return &controls[i], nil
+		}
+	}
+	return nil, fmt.Errorf("control not found for provider %q with external ID %q", provider, externalID)
+}
+
+// GetEvidenceTaskByExternalID retrieves an evidence task by provider name and external ID.
+func (lds *LocalDataStore) GetEvidenceTaskByExternalID(provider, externalID string) (*domain.EvidenceTask, error) {
+	tasks, err := lds.GetAllEvidenceTasks()
+	if err != nil {
+		return nil, err
+	}
+	for i := range tasks {
+		if tasks[i].ExternalIDs != nil && tasks[i].ExternalIDs[provider] == externalID {
+			return &tasks[i], nil
+		}
+	}
+	return nil, fmt.Errorf("evidence task not found for provider %q with external ID %q", provider, externalID)
+}
+
 // Policy operations
 func (lds *LocalDataStore) SavePolicy(policy *domain.Policy) error {
 	filename := lds.filenameGenerator.GenerateFilename(

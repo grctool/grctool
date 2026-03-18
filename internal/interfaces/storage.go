@@ -37,6 +37,11 @@ type StorageService interface {
 	GetAllControls() ([]domain.Control, error)
 	GetControlSummary() (*domain.ControlSummary, error)
 
+	// GetByExternalID lookups
+	GetPolicyByExternalID(provider, externalID string) (*domain.Policy, error)
+	GetControlByExternalID(provider, externalID string) (*domain.Control, error)
+	GetEvidenceTaskByExternalID(provider, externalID string) (*domain.EvidenceTask, error)
+
 	// Evidence task operations
 	SaveEvidenceTask(task *domain.EvidenceTask) error
 	GetEvidenceTask(id string) (*domain.EvidenceTask, error)

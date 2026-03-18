@@ -238,6 +238,79 @@ func TestStubStorageService_Summaries(t *testing.T) {
 	assert.Equal(t, 1, ts.Total)
 }
 
+func TestStubStorageService_GetPolicyByExternalID(t *testing.T) {
+	t.Parallel()
+	s := NewStubStorageService()
+
+	policy := SamplePolicy()
+	policy.ExternalIDs = map[string]string{"tugboat": "123"}
+	require.NoError(t, s.SavePolicy(policy))
+
+	got, err := s.GetPolicyByExternalID("tugboat", "123")
+	require.NoError(t, err)
+	assert.Equal(t, policy.ID, got.ID)
+
+	_, err = s.GetPolicyByExternalID("tugboat", "nonexistent")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "policy not found")
+
+	_, err = s.GetPolicyByExternalID("accountablehq", "123")
+	assert.Error(t, err)
+}
+
+func TestStubStorageService_GetControlByExternalID(t *testing.T) {
+	t.Parallel()
+	s := NewStubStorageService()
+
+	control := SampleControl()
+	control.ExternalIDs = map[string]string{"tugboat": "456"}
+	require.NoError(t, s.SaveControl(control))
+
+	got, err := s.GetControlByExternalID("tugboat", "456")
+	require.NoError(t, err)
+	assert.Equal(t, control.ID, got.ID)
+
+	_, err = s.GetControlByExternalID("tugboat", "nonexistent")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "control not found")
+}
+
+func TestStubStorageService_GetEvidenceTaskByExternalID(t *testing.T) {
+	t.Parallel()
+	s := NewStubStorageService()
+
+	task := SampleEvidenceTask()
+	task.ExternalIDs = map[string]string{"tugboat": "789"}
+	require.NoError(t, s.SaveEvidenceTask(task))
+
+	got, err := s.GetEvidenceTaskByExternalID("tugboat", "789")
+	require.NoError(t, err)
+	assert.Equal(t, task.ID, got.ID)
+
+	_, err = s.GetEvidenceTaskByExternalID("tugboat", "nonexistent")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "evidence task not found")
+}
+
+func TestStubStorageService_GetByExternalID_NilExternalIDs(t *testing.T) {
+	t.Parallel()
+	s := NewStubStorageService()
+
+	// Entities without ExternalIDs (nil map)
+	require.NoError(t, s.SavePolicy(SamplePolicy()))
+	require.NoError(t, s.SaveControl(SampleControl()))
+	require.NoError(t, s.SaveEvidenceTask(SampleEvidenceTask()))
+
+	_, err := s.GetPolicyByExternalID("tugboat", "123")
+	assert.Error(t, err)
+
+	_, err = s.GetControlByExternalID("tugboat", "456")
+	assert.Error(t, err)
+
+	_, err = s.GetEvidenceTaskByExternalID("tugboat", "789")
+	assert.Error(t, err)
+}
+
 func TestStubStorageService_NilInputs(t *testing.T) {
 	t.Parallel()
 	s := NewStubStorageService()
