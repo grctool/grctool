@@ -28,43 +28,58 @@ This solution design extends GRCTool's Google Workspace integration with write-b
 
 ```
 internal/
-+-- adapters/
++-- providers/
 |   +-- gdrive/
-|   |   +-- adapter.go          # GDriveSyncAdapter (implements SyncAdapter interface)
-|   |   +-- converter.go        # Markdown <-> Google Docs structural content
+|   |   +-- provider.go         # GDriveSyncProvider (implements interfaces.SyncProvider)
 |   |   +-- sheets.go           # Control matrix <-> Google Sheets conversion
 |   |   +-- revision.go         # Revision tracking and change detection
 |   |   +-- ratelimit.go        # Google API rate limiter
 |   |   +-- config.go           # Drive sync configuration parsing
-|   |   +-- adapter_test.go     # Unit tests
-|   |   +-- converter_test.go   # Round-trip fidelity tests
+|   |   +-- provider_test.go    # Unit + contract tests
++-- gdocs/
+|   +-- converter.go            # Markdown <-> Google Docs structural content (DONE)
+|   +-- converter_test.go       # Round-trip fidelity tests (DONE)
 +-- tools/
 |   +-- google_workspace.go     # UNCHANGED - existing read-only evidence tool
 ```
 
-### Adapter Interface
+### Provider Interface
 
-> **NOTE: These interfaces are superseded by the canonical `DataProvider`/`SyncProvider` interfaces defined in SD-004 and ADR-011. This adapter will implement SD-004's `SyncProvider` interface. The interfaces shown here are retained for historical context but will not be implemented as described.**
-
-The `GDriveSyncAdapter` implements the standard adapter interface defined by the hexagonal architecture (ADR-006):
+The `GDriveSyncProvider` implements `interfaces.SyncProvider` from SD-004/ADR-011:
 
 ```go
-// SyncAdapter defines bidirectional sync with an external system.
-// This interface is shared across all integration adapters.
-type SyncAdapter interface {
-    // Import pulls changes from the external system into the master index.
-    Import(ctx context.Context, opts ImportOptions) (*SyncResult, error)
+// From internal/interfaces/provider.go (canonical definition):
 
-    // Export pushes changes from the master index to the external system.
-    Export(ctx context.Context, opts ExportOptions) (*SyncResult, error)
+type DataProvider interface {
+    Name() string
+    TestConnection(ctx context.Context) error
+    ListPolicies(ctx context.Context, opts ListOptions) ([]domain.Policy, int, error)
+    GetPolicy(ctx context.Context, id string) (*domain.Policy, error)
+    ListControls(ctx context.Context, opts ListOptions) ([]domain.Control, int, error)
+    GetControl(ctx context.Context, id string) (*domain.Control, error)
+    ListEvidenceTasks(ctx context.Context, opts ListOptions) ([]domain.EvidenceTask, int, error)
+    GetEvidenceTask(ctx context.Context, id string) (*domain.EvidenceTask, error)
+}
 
-    // Sync performs bidirectional reconciliation.
-    Sync(ctx context.Context, opts SyncOptions) (*SyncResult, error)
-
-    // Status returns the current sync state for all tracked artifacts.
-    Status(ctx context.Context) (*SyncStatus, error)
+type SyncProvider interface {
+    DataProvider
+    PushPolicy(ctx context.Context, policy *domain.Policy) error
+    PushControl(ctx context.Context, control *domain.Control) error
+    PushEvidenceTask(ctx context.Context, task *domain.EvidenceTask) error
+    DeletePolicy(ctx context.Context, id string) error
+    DeleteControl(ctx context.Context, id string) error
+    DeleteEvidenceTask(ctx context.Context, id string) error
+    DetectChanges(ctx context.Context, since time.Time) (*ChangeSet, error)
 }
 ```
+
+The GDrive adapter maps these to Google API operations:
+- `ListPolicies` → Drive Files.List in policies folder
+- `GetPolicy` → Docs.Get + converter.DocToMarkdown → domain.Policy
+- `PushPolicy` → converter.MarkdownToDoc + Docs.BatchUpdate (or Docs.Create)
+- `DetectChanges` → Drive Revisions.List since timestamp
+
+The Markdown ↔ Google Docs format converter is implemented in `internal/gdocs/converter.go` (grct-8kp.2, complete).
 
 ### Integration with Existing Code
 
