@@ -20,32 +20,33 @@ This document describes the solution design for a bidirectional integration adap
 
 ### Hexagonal Placement
 
-The AccountableHQ adapter is an **infrastructure adapter** (driven side) in GRCTool's hexagonal architecture. Domain logic defines the port interface; the adapter implements it for AccountableHQ's specific API.
+The AccountableHQ adapter is an **infrastructure adapter** (driven side) in GRCTool's hexagonal architecture. It implements `interfaces.SyncProvider` from SD-004/ADR-011.
 
 ```
                     +----------------------------+
                     |       Domain Core          |
                     |                            |
-                    |  PolicyService             |
-                    |  MasterIndex               |
+                    |  ProviderRegistry          |
                     |  SyncOrchestrator          |
+                    |  ConflictResolver          |
                     |                            |
                     +------+----------+----------+
                            |          |
                     [Port] |          | [Port]
                            |          |
               +------------+--+  +----+---------------+
-              | ImportAdapter |  | ExportAdapter       |
-              | (interface)   |  | (interface)         |
+              | DataProvider  |  | SyncProvider        |
+              | (interface)   |  | (extends DataProv.) |
               +------+--------+  +----+----------------+
                      |                |
-          +----------+----------+    +----------+-----------+
-          | AccountableHQImport |    | AccountableHQExport  |
-          | Adapter             |    | Adapter              |
-          +---------------------+    +----------------------+
-                     |                        |
-                     v                        v
+          +----------+----------------+-----------+
+          | AccountableHQSyncProvider             |
+          | (internal/providers/accountablehq/)   |
+          +---------------------------------------+
+                     |
+                     v
               [AccountableHQ REST API]
+              (via AccountableHQClient interface)
 ```
 
 ### Port Interfaces
