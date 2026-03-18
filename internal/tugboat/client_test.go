@@ -13,13 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build disabled
-// +build disabled
+//go:build integration
+// +build integration
 
-// NOTE: These tests are temporarily disabled due to VCR cassette hash mismatches.
-// The cassettes need to be re-recorded with updated request parameters.
-// To re-enable: change build tag back to "integration" and run:
+// NOTE: These tests require VCR cassettes recorded against the live Tugboat API.
+// To re-record cassettes:
 //   VCR_MODE=record TUGBOAT_BEARER=<token> go test -tags=integration -v ./internal/tugboat/...
+// To run in playback mode (default):
+//   go test -tags=integration -v ./internal/tugboat/...
 
 package tugboat
 
