@@ -22,9 +22,12 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"context"
+
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/scheduler"
+	"github.com/grctool/grctool/internal/tools"
 	"github.com/spf13/cobra"
 )
 
@@ -64,8 +67,8 @@ By default, only schedules that are currently due will be executed.
 Use --force to run a schedule regardless of whether it is due.
 Use --dry-run to preview what would be executed without making changes.
 
-Note: Actual tool execution will be wired in the orchestration bead.
-Currently this command marks schedules as completed after printing what would run.`,
+Tool execution is performed via the evidence collection orchestrator.
+Schedules are marked completed/failed after execution.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runScheduleRun,
 }
@@ -239,6 +242,8 @@ func runScheduleRun(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	orch := loadOrchestrator(s)
+
 	for _, d := range due {
 		if dryRun {
 			fmt.Fprintf(out, "[dry-run] Would execute schedule: %s (scope: %s, provider: %s)\n",
@@ -246,13 +251,20 @@ func runScheduleRun(cmd *cobra.Command, args []string) error {
 			continue
 		}
 
-		// TODO(c6w.3): Wire actual tool execution via orchestration.
 		fmt.Fprintf(out, "Executing schedule: %s (scope: %s, provider: %s)\n",
 			d.Name, d.Scope, d.Provider)
-		fmt.Fprintf(out, "  -> Actual execution will be wired in orchestration bead.\n")
 
-		if err := s.MarkCompleted(d.Name, now); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", d.Name, err)
+		summary := executeSchedule(cmd.Context(), orch, d)
+		printCollectionSummary(out, summary)
+
+		if summary.Failed > 0 {
+			if err := s.MarkFailed(d.Name, now, fmt.Sprintf("%d tools failed", summary.Failed)); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", d.Name, err)
+			}
+		} else {
+			if err := s.MarkCompleted(d.Name, now); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", d.Name, err)
+			}
 		}
 	}
 
@@ -308,14 +320,56 @@ func runNamedSchedule(cmd *cobra.Command, s *scheduler.Scheduler, name string, n
 		return nil
 	}
 
-	// TODO(c6w.3): Wire actual tool execution via orchestration.
 	fmt.Fprintf(out, "Executing schedule: %s (scope: %s, provider: %s)\n",
 		found.Name, found.Scope, found.Provider)
-	fmt.Fprintf(out, "  -> Actual execution will be wired in orchestration bead.\n")
 
-	if err := s.MarkCompleted(name, now); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", name, err)
+	orch := loadOrchestrator(s)
+	summary := executeSchedule(cmd.Context(), orch, scheduler.Schedule{
+		Name: found.Name, Cron: found.Cron, Enabled: found.Enabled,
+		Scope: found.Scope, Provider: found.Provider,
+	})
+	printCollectionSummary(out, summary)
+
+	if summary.Failed > 0 {
+		if err := s.MarkFailed(name, now, fmt.Sprintf("%d tools failed", summary.Failed)); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", name, err)
+		}
+	} else {
+		if err := s.MarkCompleted(name, now); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to save state for %s: %v\n", name, err)
+		}
 	}
 
 	return nil
+}
+
+// loadOrchestrator creates an Orchestrator from schedule-task-tool mappings.
+func loadOrchestrator(_ *scheduler.Scheduler) *scheduler.Orchestrator {
+	log := logger.WithComponent("orchestrator")
+	return scheduler.NewOrchestrator(nil, log)
+}
+
+// toolExecutor wraps the global tool registry ExecuteTool as the executor
+// function expected by Orchestrator.Execute.
+func toolExecutor(ctx context.Context, toolName string, params map[string]interface{}) (string, error) {
+	result, _, err := tools.ExecuteTool(ctx, toolName, params)
+	return result, err
+}
+
+// executeSchedule runs a single schedule through the orchestrator.
+func executeSchedule(ctx context.Context, orch *scheduler.Orchestrator, sched scheduler.Schedule) *scheduler.CollectionSummary {
+	mappings := orch.GetMappingsForSchedule(sched.Name)
+	var taskRefs []string
+	for _, m := range mappings {
+		taskRefs = append(taskRefs, m.TaskRef)
+	}
+	plan := orch.BuildPlan(taskRefs)
+	return orch.Execute(ctx, plan, toolExecutor)
+}
+
+// printCollectionSummary outputs the results of a collection run.
+func printCollectionSummary(out interface{ Write([]byte) (int, error) }, summary *scheduler.CollectionSummary) {
+	fmt.Fprintf(out, "  Tasks: %d | Tools: %d | Succeeded: %d | Failed: %d | Skipped: %d | Duration: %s\n",
+		summary.TotalTasks, summary.TotalTools, summary.Succeeded, summary.Failed, summary.Skipped,
+		summary.Duration.Round(time.Millisecond))
 }
