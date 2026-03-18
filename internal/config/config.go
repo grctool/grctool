@@ -36,6 +36,43 @@ type Config struct {
 	Logging       LoggingConfig       `mapstructure:"logging" yaml:"logging"`
 	Interpolation InterpolationConfig `mapstructure:"interpolation" yaml:"interpolation"`
 	Auth          AuthConfig          `mapstructure:"auth" yaml:"auth"`
+	Providers     ProvidersConfig     `mapstructure:"providers" yaml:"providers,omitempty"`
+	Schedules     SchedulesConfig     `mapstructure:"schedules" yaml:"schedules,omitempty"`
+	Lifecycle     LifecycleConfig     `mapstructure:"lifecycle" yaml:"lifecycle,omitempty"`
+}
+
+// ProviderConfig holds configuration for a single data/sync provider
+type ProviderConfig struct {
+	Name     string            `yaml:"name" mapstructure:"name"`
+	Type     string            `yaml:"type" mapstructure:"type"` // "tugboat", "accountablehq", "gdrive"
+	Enabled  bool              `yaml:"enabled" mapstructure:"enabled"`
+	Settings map[string]string `yaml:"settings,omitempty" mapstructure:"settings"`
+}
+
+// ProvidersConfig holds configuration for all registered providers
+type ProvidersConfig struct {
+	Providers []ProviderConfig `yaml:"providers,omitempty" mapstructure:"providers"`
+}
+
+// ScheduleConfig holds configuration for a single scheduled task
+type ScheduleConfig struct {
+	Name     string `yaml:"name" mapstructure:"name"`
+	Cron     string `yaml:"cron" mapstructure:"cron"`
+	Enabled  bool   `yaml:"enabled" mapstructure:"enabled"`
+	Scope    string `yaml:"scope,omitempty" mapstructure:"scope"`       // "all", "policies", "controls", "evidence"
+	Provider string `yaml:"provider,omitempty" mapstructure:"provider"` // provider name reference
+}
+
+// SchedulesConfig holds configuration for all scheduled tasks
+type SchedulesConfig struct {
+	Schedules []ScheduleConfig `yaml:"schedules,omitempty" mapstructure:"schedules"`
+}
+
+// LifecycleConfig holds configuration for lifecycle state machine cadences
+type LifecycleConfig struct {
+	PolicyReviewCadence string `yaml:"policy_review_cadence,omitempty" mapstructure:"policy_review_cadence"` // e.g., "90d"
+	ControlTestCadence  string `yaml:"control_test_cadence,omitempty" mapstructure:"control_test_cadence"`   // e.g., "quarterly"
+	EvidenceRetention   string `yaml:"evidence_retention,omitempty" mapstructure:"evidence_retention"`       // e.g., "7y"
 }
 
 // TugboatConfig holds Tugboat Logic API configuration
@@ -397,6 +434,9 @@ func validateConfigStructure() {
 		"logging":       true,
 		"interpolation": true,
 		"auth":          true,
+		"providers":     true,
+		"schedules":     true,
+		"lifecycle":     true,
 	}
 
 	// Check top-level keys
