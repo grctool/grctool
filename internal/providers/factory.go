@@ -18,6 +18,33 @@ type ProviderFactoryFunc func(pc config.ProviderConfig, log logger.Logger) (inte
 // factories maps provider type names to their factory functions.
 var factories = map[string]ProviderFactoryFunc{}
 
+// globalRegistry is the application-wide provider registry, populated
+// during startup via InitGlobalRegistry. Access via GlobalRegistry().
+var globalRegistry *ProviderRegistry
+
+// GlobalRegistry returns the application-wide provider registry.
+// Returns nil if InitGlobalRegistry has not been called.
+func GlobalRegistry() *ProviderRegistry {
+	return globalRegistry
+}
+
+// InitGlobalRegistry creates the global provider registry, registers
+// providers from config, and returns the registry. Subsequent calls
+// to GlobalRegistry() return this instance.
+func InitGlobalRegistry(cfg config.ProvidersConfig, log logger.Logger) *ProviderRegistry {
+	globalRegistry = NewProviderRegistry()
+	count, errs := InitFromConfig(cfg, globalRegistry, log)
+	if len(errs) > 0 {
+		log.Warn("Some providers failed to initialize",
+			logger.Field{Key: "registered", Value: count},
+			logger.Field{Key: "errors", Value: len(errs)})
+	} else if count > 0 {
+		log.Info("Provider registry initialized from config",
+			logger.Field{Key: "registered", Value: count})
+	}
+	return globalRegistry
+}
+
 // RegisterFactory registers a factory function for a provider type.
 // Call this from provider packages' init() or from explicit setup code.
 func RegisterFactory(typeName string, factory ProviderFactoryFunc) {

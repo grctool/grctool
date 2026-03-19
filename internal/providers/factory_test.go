@@ -186,3 +186,50 @@ func TestRegisterFactory(t *testing.T) {
 	types := RegisteredFactoryTypes()
 	assert.Contains(t, types, "test-type")
 }
+
+func TestGlobalRegistry_BeforeInit(t *testing.T) {
+	saved := globalRegistry
+	globalRegistry = nil
+	defer func() { globalRegistry = saved }()
+
+	assert.Nil(t, GlobalRegistry())
+}
+
+func TestInitGlobalRegistry_Empty(t *testing.T) {
+	log := testLogger(t)
+	saved := globalRegistry
+	defer func() { globalRegistry = saved }()
+
+	reg := InitGlobalRegistry(config.ProvidersConfig{}, log)
+	require.NotNil(t, reg)
+	assert.Equal(t, 0, reg.Count())
+	assert.Same(t, reg, GlobalRegistry())
+}
+
+func TestInitGlobalRegistry_WithProviders(t *testing.T) {
+	log := testLogger(t)
+
+	savedReg := globalRegistry
+	savedFactories := factories
+	factories = map[string]ProviderFactoryFunc{"stub": stubFactory}
+	defer func() {
+		globalRegistry = savedReg
+		factories = savedFactories
+	}()
+
+	cfg := config.ProvidersConfig{
+		Providers: []config.ProviderConfig{
+			{Name: "alpha", Type: "stub", Enabled: true},
+			{Name: "beta", Type: "stub", Enabled: true},
+			{Name: "gamma", Type: "stub", Enabled: false},
+		},
+	}
+
+	reg := InitGlobalRegistry(cfg, log)
+	require.NotNil(t, reg)
+	assert.Equal(t, 2, reg.Count())
+	assert.True(t, reg.Has("alpha"))
+	assert.True(t, reg.Has("beta"))
+	assert.False(t, reg.Has("gamma"))
+	assert.Same(t, reg, GlobalRegistry())
+}

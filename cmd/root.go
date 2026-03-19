@@ -21,6 +21,7 @@ import (
 
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
+	"github.com/grctool/grctool/internal/providers"
 	"github.com/grctool/grctool/internal/tools"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -255,7 +256,8 @@ func initLogging() {
 	)
 }
 
-// initToolRegistry initializes the global tool registry after config and logging are ready
+// initToolRegistry initializes the global tool registry and provider registry
+// after config and logging are ready.
 func initToolRegistry() {
 	// Config and logger are already initialized by initConfig()
 	cfg, err := config.Load()
@@ -266,8 +268,12 @@ func initToolRegistry() {
 
 	log := logger.WithComponent("tools") // Get the global logger with tools component
 
-	// Initialize once globally - registry will be empty on first call
+	// Initialize tool registry
 	if err := tools.InitializeToolRegistry(cfg, log); err != nil {
 		log.Warn("Failed to initialize tool registry", logger.Error(err))
 	}
+
+	// Initialize global provider registry from config
+	provLog := logger.WithComponent("providers")
+	providers.InitGlobalRegistry(cfg.Providers, provLog)
 }
