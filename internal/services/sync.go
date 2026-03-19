@@ -18,6 +18,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -514,18 +515,170 @@ func (s *SyncService) fetchAllEvidenceTasks(ctx context.Context, provider interf
 }
 
 func (s *SyncService) syncSubmissions(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
-	// Get all evidence tasks first (we need their IDs to fetch submissions)
+	// Try provider-based path: resolve EvidenceSubmitter from registry
+	submitter := s.resolveEvidenceSubmitter("tugboat")
+	if submitter != nil {
+		return s.syncSubmissionsViaProvider(ctx, opts, stats, submitter)
+	}
+
+	// Fallback: direct Tugboat client (legacy path)
+	if s.tugboatClient == nil {
+		return fmt.Errorf("no evidence submitter available: tugboat provider not registered and no direct client configured")
+	}
+	return s.syncSubmissionsLegacy(ctx, opts, stats)
+}
+
+// resolveEvidenceSubmitter checks the registry for a provider that implements EvidenceSubmitter.
+func (s *SyncService) resolveEvidenceSubmitter(providerName string) interfaces.EvidenceSubmitter {
+	provider, err := s.registry.Get(providerName)
+	if err != nil {
+		return nil
+	}
+	if es, ok := provider.(interfaces.EvidenceSubmitter); ok {
+		return es
+	}
+	return nil
+}
+
+// syncSubmissionsViaProvider syncs submissions using the EvidenceSubmitter interface.
+func (s *SyncService) syncSubmissionsViaProvider(ctx context.Context, opts SyncOptions, stats *SyncStats, submitter interfaces.EvidenceSubmitter) error {
+	// Get all evidence tasks via the registry (already provider-based)
+	tasks, err := s.getAllEvidenceTasksFromProvider(ctx, opts.Framework)
+	if err != nil {
+		return fmt.Errorf("failed to get evidence tasks for submission sync: %w", err)
+	}
+
+	totalAttachments := 0
+
+	for _, task := range tasks {
+		taskID := task.ID
+		if extID, ok := task.ExternalIDs["tugboat"]; ok {
+			taskID = extID
+		}
+
+		atts, _, err := submitter.ListAttachments(ctx, taskID, interfaces.ListOptions{})
+		if err != nil {
+			s.logger.Warn("Failed to list attachments for evidence task",
+				logger.String("task_id", taskID),
+				logger.Error(err))
+			stats.Errors++
+			continue
+		}
+
+		totalAttachments += len(atts)
+
+		if err := s.saveInterfaceAttachmentsForTask(ctx, task, atts, submitter, stats); err != nil {
+			s.logger.Warn("Failed to save attachments for evidence task",
+				logger.String("task_id", taskID),
+				logger.Error(err))
+			stats.Errors++
+			continue
+		}
+
+		stats.Synced++
+	}
+
+	stats.Total = totalAttachments
+	stats.Detailed = totalAttachments - stats.Errors
+	return nil
+}
+
+// saveInterfaceAttachmentsForTask saves attachments retrieved via the EvidenceSubmitter interface.
+func (s *SyncService) saveInterfaceAttachmentsForTask(ctx context.Context, task domain.EvidenceTask, atts []interfaces.Attachment, submitter interfaces.EvidenceSubmitter, stats *SyncStats) error {
+	if len(atts) == 0 {
+		return nil
+	}
+
+	taskRef := task.ReferenceID
+	if taskRef == "" {
+		s.logger.Warn("Evidence task has no reference ID, skipping attachment save",
+			logger.String("task_id", task.ID))
+		return nil
+	}
+
+	// Group by window
+	windowMap := make(map[string][]interfaces.Attachment)
+	for _, att := range atts {
+		window := s.getWindowFromDate(att.CollectedDate)
+		windowMap[window] = append(windowMap[window], att)
+	}
+
+	for window, windowAtts := range windowMap {
+		taskDirName := naming.GetEvidenceTaskDirName(task.Name, taskRef, task.ID)
+		evidenceDir := filepath.Join(s.baseDir, "evidence", taskDirName, window, naming.SubfolderArchive)
+		if err := os.MkdirAll(evidenceDir, 0755); err != nil {
+			stats.Errors++
+			continue
+		}
+
+		for _, att := range windowAtts {
+			if att.Type == "url" {
+				filename := fmt.Sprintf("url_reference_%s.txt", att.ID)
+				destPath := filepath.Join(evidenceDir, filename)
+				urlContent := fmt.Sprintf("URL: %s\nNotes: %s\nCollected: %s\n", att.URL, att.Notes, att.CollectedDate)
+				if err := os.WriteFile(destPath, []byte(urlContent), 0644); err != nil {
+					stats.Errors++
+				} else {
+					stats.Downloaded++
+				}
+			} else if att.Filename != "" {
+				// Download via interface
+				reader, _, err := submitter.DownloadAttachment(ctx, att.ID)
+				if err != nil {
+					s.logger.Warn("Failed to download attachment via provider",
+						logger.String("attachment_id", att.ID),
+						logger.Error(err))
+					stats.Errors++
+					continue
+				}
+				if reader != nil {
+					destPath := filepath.Join(evidenceDir, att.Filename)
+					data, err := io.ReadAll(reader)
+					reader.Close()
+					if err != nil {
+						stats.Errors++
+						continue
+					}
+					if err := os.WriteFile(destPath, data, 0644); err != nil {
+						stats.Errors++
+						continue
+					}
+					stats.Downloaded++
+				} else {
+					stats.Skipped++
+				}
+			} else {
+				stats.Skipped++
+			}
+		}
+	}
+
+	return nil
+}
+
+// getAllEvidenceTasksFromProvider fetches all evidence tasks from the first registered provider.
+func (s *SyncService) getAllEvidenceTasksFromProvider(ctx context.Context, framework string) ([]domain.EvidenceTask, error) {
+	names := s.registry.List()
+	if len(names) == 0 {
+		return nil, fmt.Errorf("no providers registered")
+	}
+	provider, err := s.registry.Get(names[0])
+	if err != nil {
+		return nil, err
+	}
+	return s.fetchAllEvidenceTasks(ctx, provider, framework)
+}
+
+// syncSubmissionsLegacy is the original direct Tugboat client submission sync.
+func (s *SyncService) syncSubmissionsLegacy(ctx context.Context, opts SyncOptions, stats *SyncStats) error {
 	apiTasks, err := s.tugboatClient.GetAllEvidenceTasks(ctx, opts.OrgID, opts.Framework)
 	if err != nil {
 		return fmt.Errorf("failed to get evidence tasks for submission sync: %w", err)
 	}
 
-	// Track total attachments across all tasks
 	totalAttachments := 0
 
-	// For each evidence task, get its submitted attachments
 	for _, apiTask := range apiTasks {
-		// Get all attachments for this task
 		attachments, err := s.tugboatClient.GetEvidenceAttachmentsByTask(ctx, apiTask.ID)
 		if err != nil {
 			s.logger.Warn("Failed to get attachments for evidence task",
@@ -537,7 +690,6 @@ func (s *SyncService) syncSubmissions(ctx context.Context, opts SyncOptions, sta
 
 		totalAttachments += len(attachments)
 
-		// Group attachments by collection date (window) and save
 		if err := s.saveAttachmentsForTask(ctx, apiTask.ID, attachments, stats); err != nil {
 			s.logger.Warn("Failed to save attachments for evidence task",
 				logger.Int("task_id", apiTask.ID),
@@ -551,7 +703,6 @@ func (s *SyncService) syncSubmissions(ctx context.Context, opts SyncOptions, sta
 
 	stats.Total = totalAttachments
 	stats.Detailed = totalAttachments - stats.Errors
-
 	return nil
 }
 
