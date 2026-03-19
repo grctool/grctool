@@ -44,7 +44,7 @@ type GitHubWorkflowAnalyzer struct {
 // NewGitHubWorkflowAnalyzer creates a new GitHub workflow analyzer
 func NewGitHubWorkflowAnalyzer(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubWorkflowAnalyzer{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }
@@ -199,7 +199,7 @@ type GitHubReviewAnalyzer struct {
 // NewGitHubReviewAnalyzer creates a new GitHub PR review analyzer
 func NewGitHubReviewAnalyzer(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubReviewAnalyzer{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }
@@ -369,7 +369,7 @@ type GitHubEnhancedTool struct {
 // NewGitHubEnhancedTool creates a new enhanced GitHub searcher tool
 func NewGitHubEnhancedTool(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubEnhancedTool{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }
@@ -577,7 +577,7 @@ type GitHubTool struct {
 // NewGitHubTool creates a new GitHub tool (legacy compatibility)
 func NewGitHubTool(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubTool{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }

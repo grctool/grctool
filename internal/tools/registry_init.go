@@ -41,6 +41,11 @@ func InitializeToolRegistry(cfg *config.Config, log logger.Logger) error {
 		logger.Field{Key: "github_auth", Value: sharedAuth.GitHub.Name()},
 		logger.Field{Key: "tugboat_auth", Value: sharedAuth.Tugboat.Name()})
 
+	// Initialize shared GitHub client with the centralized auth provider.
+	// All GitHub tools in the github package use GetOrCreateClient which
+	// returns this shared instance instead of creating their own.
+	github.InitSharedClient(cfg, log, sharedAuth.GitHub)
+
 	// Initialize singleton template manager
 	if _, err := templates.GetSingleton(log); err != nil {
 		log.Error("Failed to initialize singleton template manager", logger.Field{Key: "error", Value: err})

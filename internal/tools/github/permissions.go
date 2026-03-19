@@ -44,7 +44,7 @@ type GitHubPermissionsTool struct {
 // NewGitHubPermissionsTool creates a new GitHub permissions extraction tool
 func NewGitHubPermissionsTool(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubPermissionsTool{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }
@@ -271,7 +271,7 @@ type GitHubDeploymentAccessTool struct {
 // NewGitHubDeploymentAccessTool creates a new GitHub deployment access extraction tool
 func NewGitHubDeploymentAccessTool(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubDeploymentAccessTool{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }
@@ -476,7 +476,7 @@ type GitHubSecurityFeaturesTool struct {
 // NewGitHubSecurityFeaturesTool creates a new GitHub security features extraction tool
 func NewGitHubSecurityFeaturesTool(cfg *config.Config, log logger.Logger) types.LegacyTool {
 	return &GitHubSecurityFeaturesTool{
-		client: NewGitHubClient(cfg, log),
+		client: GetOrCreateClient(cfg, log),
 		logger: log,
 	}
 }
