@@ -23,6 +23,7 @@ import (
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
+	"github.com/grctool/grctool/internal/providers"
 	"github.com/grctool/grctool/internal/services/submission"
 	"github.com/grctool/grctool/internal/services/validation"
 	"github.com/grctool/grctool/internal/storage"
@@ -45,19 +46,26 @@ func NewEvidenceSubmitterTool(cfg *config.Config, log logger.Logger) (*EvidenceS
 		return nil, fmt.Errorf("failed to initialize storage: %w", err)
 	}
 
-	// Initialize Tugboat client (may be nil if not configured)
-	var tugboatClient *tugboat.Client
-	if cfg.Tugboat.BaseURL != "" {
-		tugboatClient = tugboat.NewClient(&cfg.Tugboat, nil)
+	// Initialize submission service — prefer registry-based path
+	var submissionService *submission.SubmissionService
+	if reg := providers.GlobalRegistry(); reg != nil {
+		if svc, err := submission.NewSubmissionServiceWithRegistry(storage, reg, "tugboat", cfg.Tugboat.CollectorURLs); err == nil {
+			submissionService = svc
+		}
 	}
-
-	// Initialize submission service
-	submissionService := submission.NewSubmissionService(
-		storage,
-		tugboatClient,
-		cfg.Tugboat.OrgID,
-		cfg.Tugboat.CollectorURLs,
-	)
+	if submissionService == nil {
+		// Fallback: direct Tugboat client
+		var tugboatClient *tugboat.Client
+		if cfg.Tugboat.BaseURL != "" {
+			tugboatClient = tugboat.NewClient(&cfg.Tugboat, nil)
+		}
+		submissionService = submission.NewSubmissionService(
+			storage,
+			tugboatClient,
+			cfg.Tugboat.OrgID,
+			cfg.Tugboat.CollectorURLs,
+		)
+	}
 
 	return &EvidenceSubmitterTool{
 		config:            cfg,

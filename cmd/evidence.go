@@ -33,6 +33,7 @@ import (
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/models"
 	"github.com/grctool/grctool/internal/naming"
+	"github.com/grctool/grctool/internal/providers"
 	"github.com/grctool/grctool/internal/services"
 	"github.com/grctool/grctool/internal/services/evidence"
 	"github.com/grctool/grctool/internal/services/submission"
@@ -677,19 +678,28 @@ func runEvidenceSubmit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to initialize storage: %w", err)
 	}
 
-	// Initialize Tugboat client (only if not dry-run)
-	var tugboatClient *tugboat.Client
+	// Initialize submission service — prefer registry-based path, fall back to direct client
+	var submissionService *submission.SubmissionService
 	if !dryRun {
-		tugboatClient = tugboat.NewClient(&cfg.Tugboat, nil) // nil VCR config for production use
+		if reg := providers.GlobalRegistry(); reg != nil {
+			if svc, err := submission.NewSubmissionServiceWithRegistry(storage, reg, "tugboat", cfg.Tugboat.CollectorURLs); err == nil {
+				submissionService = svc
+			}
+		}
 	}
-
-	// Initialize submission service
-	submissionService := submission.NewSubmissionService(
-		storage,
-		tugboatClient,
-		cfg.Tugboat.OrgID,
-		cfg.Tugboat.CollectorURLs,
-	)
+	if submissionService == nil {
+		// Fallback: direct Tugboat client (backward compat, dry-run, or no registry)
+		var tugboatClient *tugboat.Client
+		if !dryRun {
+			tugboatClient = tugboat.NewClient(&cfg.Tugboat, nil)
+		}
+		submissionService = submission.NewSubmissionService(
+			storage,
+			tugboatClient,
+			cfg.Tugboat.OrgID,
+			cfg.Tugboat.CollectorURLs,
+		)
+	}
 
 	// Build submission request
 	req := &submission.SubmitRequest{
