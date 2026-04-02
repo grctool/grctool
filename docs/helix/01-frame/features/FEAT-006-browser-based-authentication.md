@@ -19,7 +19,6 @@ backfill: true
 |-------|-------|
 | Status | Implemented |
 | Priority | P0 |
-| Owner | Erik LaBianca |
 | Implementation | `internal/auth/`, `cmd/auth.go` |
 
 ---

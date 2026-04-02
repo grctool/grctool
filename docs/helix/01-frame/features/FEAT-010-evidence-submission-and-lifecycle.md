@@ -19,8 +19,7 @@ backfill: true
 |-------|-------|
 | Status | Implemented |
 | Priority | P0 |
-| Owner | Erik LaBianca |
-| Implementation | `internal/services/submission/`, `internal/services/validation/`, `cmd/evidence.go` |
+| Implementation | `internal/services/submission/`, `internal/services/validation/`, `internal/storage/submission_storage.go`, `internal/tugboat/evidence_submission.go`, `cmd/evidence.go`, `cmd/evidence_setup.go` |
 
 ---
 
@@ -194,7 +193,7 @@ Generated evidence is only valuable if it can be validated, reviewed, and submit
 
 ### Related Artifacts
 - **Parent PRD Section**: Core Capabilities — Evidence Submission API; Key Workflows — Review and Approval
-- **Implementation**: `internal/services/submission/`, `internal/services/validation/`, `cmd/evidence.go`
+- **Implementation**: `internal/services/submission/`, `internal/services/validation/`, `internal/storage/submission_storage.go`, `internal/tugboat/evidence_submission.go`, `cmd/evidence.go`, `cmd/evidence_setup.go`
 
 ### Feature Dependencies
 - **Depends On**: FEAT-005 (config), FEAT-006 (auth), FEAT-007 (synced data), FEAT-009 (generated evidence)

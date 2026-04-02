@@ -19,7 +19,6 @@ backfill: true
 |-------|-------|
 | Status | Implemented |
 | Priority | P0 |
-| Owner | Erik LaBianca |
 | Implementation | `cmd/`, `internal/config/` |
 
 ---
@@ -68,7 +67,7 @@ Compliance teams need a tool that fits into existing developer and DevOps workfl
 
 **Acceptance Criteria:**
 
-- [x] `grctool init` creates `.grctool.yaml` with documented defaults
+- [x] `grctool config init` creates `.grctool.yaml` with documented defaults
 - [x] Init is idempotent — running multiple times does not overwrite existing configuration
 - [x] Init generates a `CLAUDE.md` guide file for AI assistant context
 - [x] Default configuration includes all supported sections with commented examples
@@ -131,7 +130,7 @@ Compliance teams need a tool that fits into existing developer and DevOps workfl
 
 ## Edge Cases and Error Handling
 
-- Missing `.grctool.yaml`: Commands that require configuration fail with a clear message directing the user to run `grctool init`
+- Missing `.grctool.yaml`: Commands that require configuration fail with a clear message directing the user to run `grctool config init`
 - Malformed YAML: Parse errors include line numbers and field context
 - Undefined environment variables in `${VAR}` substitutions: Logged as warning, value left as empty string
 - Conflicting flag and config values: CLI flags take precedence over config file values
@@ -162,7 +161,7 @@ Compliance teams need a tool that fits into existing developer and DevOps workfl
 - GUI or web-based configuration interface
 - Remote/cloud configuration storage
 - Multi-user configuration profiles
-- Interactive configuration wizard (beyond `grctool init`)
+- Interactive configuration wizard (beyond `grctool config init`)
 
 ---
 

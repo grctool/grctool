@@ -19,8 +19,7 @@ backfill: true
 |-------|-------|
 | Status | Implemented |
 | Priority | P0 |
-| Owner | Erik LaBianca |
-| Implementation | `internal/evidence/`, `internal/services/evidence/`, `internal/orchestrator/` |
+| Implementation | `internal/evidence/`, `internal/services/evidence.go`, `internal/services/evidence/`, `cmd/evidence.go` |
 
 ---
 
@@ -178,7 +177,7 @@ Even with automated tool data, converting raw infrastructure outputs into audito
 
 ### Related Artifacts
 - **Parent PRD Section**: Core Capabilities — AI-Powered Evidence Generation; Agentic Workflow
-- **Implementation**: `internal/evidence/`, `internal/services/evidence/`, `internal/orchestrator/`, `cmd/evidence.go`
+- **Implementation**: `internal/evidence/`, `internal/services/evidence.go`, `internal/services/evidence/`, `cmd/evidence.go`
 
 ### Feature Dependencies
 - **Depends On**: FEAT-005 (config), FEAT-007 (synced data), FEAT-008 (tools)
