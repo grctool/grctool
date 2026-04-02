@@ -331,7 +331,10 @@ func TestConvertToDomain(t *testing.T) {
 	assert.Equal(t, "active", pol.Status)
 	assert.Equal(t, "Security", pol.Category)
 	assert.Equal(t, "ahq-99", pol.ExternalIDs["accountablehq"])
-	assert.Equal(t, "v7", pol.SyncMetadata.ContentHash["accountablehq"])
+	// convertToDomain initializes SyncMetadata with LastSyncTime but not ContentHash.
+	// ContentHash is set separately by setContentHash after conversion.
+	assert.NotNil(t, pol.SyncMetadata)
+	assert.NotNil(t, pol.SyncMetadata.LastSyncTime["accountablehq"])
 }
 
 func TestConvertFromDomain(t *testing.T) {
@@ -342,4 +345,109 @@ func TestConvertFromDomain(t *testing.T) {
 	assert.Equal(t, "# Content", ahq.Content)
 	assert.Equal(t, "draft", ahq.Status)
 	assert.Equal(t, "Compliance", ahq.Category)
+}
+
+func TestListPolicies_SetsContentHash(t *testing.T) {
+	t.Parallel()
+	stub := &stubAHQClient{
+		policies: []AHQPolicy{
+			{ID: "p1", Title: "Policy One", Content: "Content A", Version: 1,
+				CreatedAt: time.Now(), UpdatedAt: time.Now()},
+		},
+	}
+	log := testhelpers.NewStubLogger()
+	p := NewAccountableHQSyncProvider(stub, log)
+
+	policies, _, err := p.ListPolicies(context.Background(), interfaces.ListOptions{PageSize: 10})
+	require.NoError(t, err)
+	require.Len(t, policies, 1)
+
+	// ContentHash should be a 64-char SHA-256 hex from domain.ComputeContentHash
+	hash := policies[0].SyncMetadata.ContentHash["accountablehq"]
+	assert.NotEmpty(t, hash, "ContentHash should be set")
+	assert.Len(t, hash, 64, "ContentHash should be SHA-256 hex (64 chars)")
+
+	// Determinism: same input should produce same hash
+	policies2, _, _ := p.ListPolicies(context.Background(), interfaces.ListOptions{PageSize: 10})
+	assert.Equal(t, hash, policies2[0].SyncMetadata.ContentHash["accountablehq"],
+		"ContentHash should be deterministic")
+}
+
+func TestDetectChanges_UsesContentHash(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	stub := &stubAHQClient{
+		policies: []AHQPolicy{
+			{ID: "p1", Title: "Changed Policy", Content: "New content", Version: 2,
+				UpdatedAt: now, CreatedAt: now.Add(-time.Hour)},
+		},
+	}
+	log := testhelpers.NewStubLogger()
+	p := NewAccountableHQSyncProvider(stub, log)
+
+	changes, err := p.DetectChanges(context.Background(), now.Add(-time.Minute))
+	require.NoError(t, err)
+	require.Len(t, changes.Changes, 1)
+
+	// Hash should be a proper SHA-256 hex, not the old "v2" format
+	assert.Len(t, changes.Changes[0].Hash, 64, "ChangeEntry.Hash should be SHA-256 hex")
+	assert.NotEqual(t, "2", changes.Changes[0].Hash, "Hash should not be plain version number")
+}
+
+func TestResolveConflict_AllStrategies(t *testing.T) {
+	t.Parallel()
+	log := testhelpers.NewStubLogger()
+	p := NewAccountableHQSyncProvider(&stubAHQClient{}, log)
+
+	conflict := interfaces.Conflict{
+		EntityType: "policy",
+		EntityID:   "POL-0001",
+		Provider:   "accountablehq",
+		LocalHash:  "abc",
+		RemoteHash: "def",
+	}
+
+	for _, strategy := range []interfaces.ConflictResolution{
+		interfaces.ConflictResolutionLocalWins,
+		interfaces.ConflictResolutionRemoteWins,
+		interfaces.ConflictResolutionNewestWins,
+		interfaces.ConflictResolutionManual,
+	} {
+		t.Run(string(strategy), func(t *testing.T) {
+			err := p.ResolveConflict(context.Background(), conflict, strategy)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestResolveConflict_RejectsNonPolicy(t *testing.T) {
+	t.Parallel()
+	log := testhelpers.NewStubLogger()
+	p := NewAccountableHQSyncProvider(&stubAHQClient{}, log)
+
+	conflict := interfaces.Conflict{EntityType: "control", EntityID: "C1"}
+	err := p.ResolveConflict(context.Background(), conflict, interfaces.ConflictResolutionLocalWins)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "only policy conflicts")
+}
+
+func TestAuditLog_RecordsEntries(t *testing.T) {
+	t.Parallel()
+	stub := newStubClient()
+	log := testhelpers.NewStubLogger()
+	p := NewAccountableHQSyncProvider(stub, log)
+
+	// PushPolicy should record an audit entry
+	pol := &domain.Policy{ID: "POL-0001", Name: "Test"}
+	require.NoError(t, p.PushPolicy(context.Background(), pol))
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "exported", entries[0].Action)
+	assert.Equal(t, "outbound", entries[0].Direction)
+	assert.Equal(t, "POL-0001", entries[0].PolicyID)
+
+	// ClearAuditLog resets
+	p.ClearAuditLog()
+	assert.Empty(t, p.AuditLog())
 }

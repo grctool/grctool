@@ -219,7 +219,7 @@ func TestContract_DetectChanges(t *testing.T) {
 	assert.Equal(t, "ahq-1", changes.Changes[0].EntityID)
 }
 
-func TestContract_ResolveConflict_ReturnsNotImplemented(t *testing.T) {
+func TestContract_ResolveConflict_AllStrategies(t *testing.T) {
 	t.Parallel()
 	p, s := newContractSetup(t)
 	defer s.Close()
@@ -232,9 +232,56 @@ func TestContract_ResolveConflict_ReturnsNotImplemented(t *testing.T) {
 		RemoteHash: "def",
 		DetectedAt: time.Now(),
 	}
+
+	for _, strategy := range []interfaces.ConflictResolution{
+		interfaces.ConflictResolutionLocalWins,
+		interfaces.ConflictResolutionRemoteWins,
+		interfaces.ConflictResolutionNewestWins,
+		interfaces.ConflictResolutionManual,
+	} {
+		err := p.ResolveConflict(context.Background(), conflict, strategy)
+		assert.NoError(t, err, "ResolveConflict(%s) should succeed", strategy)
+	}
+}
+
+func TestContract_ResolveConflict_UnsupportedEntityType(t *testing.T) {
+	t.Parallel()
+	p, s := newContractSetup(t)
+	defer s.Close()
+
+	conflict := interfaces.Conflict{
+		EntityType: "control",
+		EntityID:   "CC-06.1",
+		Provider:   "accountablehq",
+	}
 	err := p.ResolveConflict(context.Background(), conflict, interfaces.ConflictResolutionLocalWins)
-	assert.Error(t, err, "ResolveConflict should return error (not yet implemented)")
-	assert.Contains(t, err.Error(), "not yet implemented")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "only policy conflicts")
+}
+
+func TestContract_ResolveConflict_AuditTrail(t *testing.T) {
+	t.Parallel()
+	p, s := newContractSetup(t)
+	defer s.Close()
+
+	conflict := interfaces.Conflict{
+		EntityType: "policy",
+		EntityID:   "POL-0001",
+		Provider:   "accountablehq",
+		LocalHash:  "abc",
+		RemoteHash: "def",
+		DetectedAt: time.Now(),
+	}
+
+	p.ClearAuditLog()
+	require.NoError(t, p.ResolveConflict(context.Background(), conflict, interfaces.ConflictResolutionLocalWins))
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "conflict_resolved", entries[0].Action)
+	assert.Equal(t, "local_wins", entries[0].Resolution)
+	assert.Equal(t, "local", entries[0].Winner)
+	assert.Equal(t, "POL-0001", entries[0].PolicyID)
 }
 
 // --- helpers ---

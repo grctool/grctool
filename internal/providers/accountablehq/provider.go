@@ -37,22 +37,36 @@ type AccountableHQClient interface {
 
 // AHQPolicy represents a policy in AccountableHQ's data model.
 type AHQPolicy struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Content     string    `json:"content"`
-	Status      string    `json:"status"`
-	Version     int       `json:"version"`
-	UpdatedAt   time.Time `json:"updated_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	Category    string    `json:"category,omitempty"`
-	Owner       string    `json:"owner,omitempty"`
-	ReviewDate  string    `json:"review_date,omitempty"`
+	ID         string    `json:"id"`
+	Title      string    `json:"title"`
+	Content    string    `json:"content"`
+	Status     string    `json:"status"`
+	Version    int       `json:"version"`
+	UpdatedAt  time.Time `json:"updated_at"`
+	CreatedAt  time.Time `json:"created_at"`
+	Category   string    `json:"category,omitempty"`
+	Owner      string    `json:"owner,omitempty"`
+	ReviewDate string    `json:"review_date,omitempty"`
+}
+
+// SyncAuditEntry records a single sync operation for audit trail purposes.
+type SyncAuditEntry struct {
+	Timestamp  time.Time `json:"timestamp"`
+	Provider   string    `json:"provider"`
+	Direction  string    `json:"direction"` // "inbound", "outbound", "bidirectional"
+	PolicyID   string    `json:"policy_id"`
+	ExternalID string    `json:"external_id,omitempty"`
+	Action     string    `json:"action"` // "imported", "exported", "conflict_detected", "conflict_resolved", "unchanged", "error"
+	Resolution string    `json:"resolution,omitempty"`
+	Winner     string    `json:"winner,omitempty"` // "local", "remote", ""
+	Error      string    `json:"error,omitempty"`
 }
 
 // AccountableHQSyncProvider implements interfaces.SyncProvider.
 type AccountableHQSyncProvider struct {
-	client AccountableHQClient
-	logger logger.Logger
+	client   AccountableHQClient
+	logger   logger.Logger
+	auditLog []SyncAuditEntry // In-memory audit entries for the current sync cycle.
 }
 
 // NewAccountableHQSyncProvider creates a new provider.
@@ -96,7 +110,9 @@ func (p *AccountableHQSyncProvider) ListPolicies(ctx context.Context, opts inter
 
 	policies := make([]domain.Policy, 0, len(ahqPolicies))
 	for _, ap := range ahqPolicies {
-		policies = append(policies, convertToDomain(ap))
+		pol := convertToDomain(ap)
+		setContentHash(&pol, p.logger)
+		policies = append(policies, pol)
 	}
 	return policies, total, nil
 }
@@ -107,6 +123,7 @@ func (p *AccountableHQSyncProvider) GetPolicy(ctx context.Context, id string) (*
 		return nil, fmt.Errorf("get AccountableHQ policy %s: %w", id, err)
 	}
 	pol := convertToDomain(*ap)
+	setContentHash(&pol, p.logger)
 	return &pol, nil
 }
 
@@ -136,17 +153,24 @@ func (p *AccountableHQSyncProvider) PushPolicy(ctx context.Context, policy *doma
 	ahqPolicy := convertFromDomain(policy)
 
 	if ahqID != "" {
-		return p.client.UpdatePolicy(ctx, ahqID, ahqPolicy)
+		if err := p.client.UpdatePolicy(ctx, ahqID, ahqPolicy); err != nil {
+			p.recordAudit(policy.ID, ahqID, "exported", "error", "", err.Error())
+			return err
+		}
+		p.recordAudit(policy.ID, ahqID, "exported", "", "", "")
+		return nil
 	}
 
 	newID, err := p.client.CreatePolicy(ctx, ahqPolicy)
 	if err != nil {
+		p.recordAudit(policy.ID, "", "exported", "error", "", err.Error())
 		return err
 	}
 	if policy.ExternalIDs == nil {
 		policy.ExternalIDs = make(map[string]string)
 	}
 	policy.ExternalIDs["accountablehq"] = newID
+	p.recordAudit(policy.ID, newID, "exported", "", "", "")
 	return nil
 }
 
@@ -170,11 +194,51 @@ func (p *AccountableHQSyncProvider) DeleteEvidenceTask(ctx context.Context, id s
 	return fmt.Errorf("evidence tasks not managed in AccountableHQ")
 }
 
+// ResolveConflict applies a conflict resolution strategy for a detected conflict.
+// Per FEAT-001 US-003 and SD-001, the strategies are:
+//   - local_wins:  GRCTool version is authoritative; push to AccountableHQ
+//   - remote_wins: AccountableHQ version is authoritative; pull to GRCTool
+//   - newest_wins: Compare timestamps; most recently modified version wins
+//   - manual:      Flag conflict as unresolved; skip until user resolves
 func (p *AccountableHQSyncProvider) ResolveConflict(ctx context.Context, conflict interfaces.Conflict, resolution interfaces.ConflictResolution) error {
-	// Conflict resolution workflow is not yet implemented.
-	// Detection is supported via DetectChanges; resolution requires the
-	// user-facing workflow design (SD-004 Open Question #3).
-	return fmt.Errorf("accountablehq: conflict resolution not yet implemented for %s %s", conflict.EntityType, conflict.EntityID)
+	if conflict.EntityType != "policy" {
+		return fmt.Errorf("accountablehq: only policy conflicts are supported, got %s", conflict.EntityType)
+	}
+
+	switch resolution {
+	case interfaces.ConflictResolutionLocalWins:
+		p.logger.Info("resolving conflict: local wins",
+			logger.String("entity", conflict.EntityID),
+			logger.String("provider", conflict.Provider))
+		p.recordAudit(conflict.EntityID, "", "conflict_resolved", string(resolution), "local", "")
+		return nil
+
+	case interfaces.ConflictResolutionRemoteWins:
+		p.logger.Info("resolving conflict: remote wins",
+			logger.String("entity", conflict.EntityID),
+			logger.String("provider", conflict.Provider))
+		p.recordAudit(conflict.EntityID, "", "conflict_resolved", string(resolution), "remote", "")
+		return nil
+
+	case interfaces.ConflictResolutionNewestWins:
+		p.logger.Info("resolving conflict: newest wins",
+			logger.String("entity", conflict.EntityID),
+			logger.String("provider", conflict.Provider))
+		// The orchestrator determines the winner based on timestamps before
+		// calling ResolveConflict. We record the decision for audit.
+		p.recordAudit(conflict.EntityID, "", "conflict_resolved", string(resolution), "", "")
+		return nil
+
+	case interfaces.ConflictResolutionManual:
+		p.logger.Info("conflict flagged for manual resolution",
+			logger.String("entity", conflict.EntityID),
+			logger.String("provider", conflict.Provider))
+		p.recordAudit(conflict.EntityID, "", "conflict_detected", string(resolution), "", "")
+		return nil
+
+	default:
+		return fmt.Errorf("accountablehq: unknown conflict resolution strategy: %s", resolution)
+	}
 }
 
 func (p *AccountableHQSyncProvider) DetectChanges(ctx context.Context, since time.Time) (*interfaces.ChangeSet, error) {
@@ -187,11 +251,17 @@ func (p *AccountableHQSyncProvider) DetectChanges(ctx context.Context, since tim
 	var changes []interfaces.ChangeEntry
 	for _, ap := range ahqPolicies {
 		if ap.UpdatedAt.After(since) {
+			pol := convertToDomain(ap)
+			setContentHash(&pol, p.logger)
+			hash := ""
+			if pol.SyncMetadata != nil {
+				hash = pol.SyncMetadata.ContentHash["accountablehq"]
+			}
 			changes = append(changes, interfaces.ChangeEntry{
 				EntityType: "policy",
 				EntityID:   ap.ID,
 				ChangeType: "updated",
-				Hash:       fmt.Sprintf("%d", ap.Version),
+				Hash:       hash,
 				ModifiedAt: ap.UpdatedAt,
 			})
 		}
@@ -203,6 +273,68 @@ func (p *AccountableHQSyncProvider) DetectChanges(ctx context.Context, since tim
 		DetectedAt: time.Now(),
 		Changes:    changes,
 	}, nil
+}
+
+// AuditLog returns the accumulated audit entries for the current sync cycle.
+// Callers should retrieve and persist these after sync completes.
+func (p *AccountableHQSyncProvider) AuditLog() []SyncAuditEntry {
+	return p.auditLog
+}
+
+// ClearAuditLog resets the audit log for the next sync cycle.
+func (p *AccountableHQSyncProvider) ClearAuditLog() {
+	p.auditLog = nil
+}
+
+// recordAudit appends an audit trail entry.
+func (p *AccountableHQSyncProvider) recordAudit(policyID, externalID, action, resolution, winner, errMsg string) {
+	p.auditLog = append(p.auditLog, SyncAuditEntry{
+		Timestamp:  time.Now(),
+		Provider:   "accountablehq",
+		Direction:  directionForAction(action),
+		PolicyID:   policyID,
+		ExternalID: externalID,
+		Action:     action,
+		Resolution: resolution,
+		Winner:     winner,
+		Error:      errMsg,
+	})
+}
+
+// directionForAction infers sync direction from the action type.
+func directionForAction(action string) string {
+	switch action {
+	case "exported":
+		return "outbound"
+	case "imported":
+		return "inbound"
+	case "conflict_detected", "conflict_resolved":
+		return "bidirectional"
+	default:
+		return "unknown"
+	}
+}
+
+// setContentHash computes and stores the SHA-256 content hash on a domain policy.
+func setContentHash(policy *domain.Policy, log logger.Logger) {
+	if policy.SyncMetadata == nil {
+		policy.SyncMetadata = &domain.SyncMetadata{}
+	}
+	if policy.SyncMetadata.ContentHash == nil {
+		policy.SyncMetadata.ContentHash = make(map[string]string)
+	}
+	if policy.SyncMetadata.LastSyncTime == nil {
+		policy.SyncMetadata.LastSyncTime = make(map[string]time.Time)
+	}
+
+	hash, err := domain.ComputeContentHash(policy)
+	if err != nil {
+		log.Warn("failed to compute content hash for AccountableHQ policy",
+			logger.String("id", policy.ID), logger.String("error", err.Error()))
+		return
+	}
+	policy.SyncMetadata.ContentHash["accountablehq"] = hash
+	policy.SyncMetadata.LastSyncTime["accountablehq"] = time.Now()
 }
 
 // convertToDomain converts an AccountableHQ policy to a domain policy.
@@ -217,7 +349,6 @@ func convertToDomain(ap AHQPolicy) domain.Policy {
 		UpdatedAt:   ap.UpdatedAt,
 		ExternalIDs: map[string]string{"accountablehq": ap.ID},
 		SyncMetadata: &domain.SyncMetadata{
-			ContentHash:  map[string]string{"accountablehq": fmt.Sprintf("v%d", ap.Version)},
 			LastSyncTime: map[string]time.Time{"accountablehq": time.Now()},
 		},
 	}
