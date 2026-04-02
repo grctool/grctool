@@ -4,10 +4,10 @@ phase: "01-frame"
 category: "features"
 tags: ["provider-framework", "domain-model", "master-index", "sync", "architecture"]
 related: ["adr-010", "adr-006", "FEAT-001", "FEAT-002", "FEAT-003"]
-status: "Proposed"
+status: "In Progress"
 priority: "P0"
 created: 2026-03-17
-updated: 2026-04-01
+updated: 2026-04-02
 ---
 
 # FEAT-004: Universal Document Provider Framework
@@ -16,30 +16,48 @@ updated: 2026-04-01
 
 | Field | Value |
 |-------|-------|
-| Status | Proposed |
+| Status | In Progress |
 | Priority | P0 |
 | Owner | TBD |
 | Target Phase | Phase 1 (Foundation) |
 
-This feature defines the target provider-framework and master-index foundation.
-It should not be read as proof that the current shipped product is already a
-multi-provider system of record; today the live product remains primarily
-Tugboat-centric, with this feature capturing the roadmap path away from that
-constraint.
+**Implementation status (2026-04-02):** The provider-framework foundation is
+partially shipped. Domain model unification (string IDs, `ExternalIDs`,
+`SyncMetadata`), the `DataProvider` and `SyncProvider` interfaces, the provider
+registry, and the refactored `TugboatDataProvider` are implemented and tested
+(22 of 33 acceptance criteria satisfied). Remaining work includes: ContentHash
+computation in providers, `grctool index list` CLI surface, ProviderInfo in
+registry List(), append-only ID enforcement, and write-idempotency tests. See
+the alignment review (AR-2026-04-01-repo) for the full acceptance matrix.
 
 ---
 
 ## Problem Statement
 
-GRCTool has no universal abstraction for compliance data sources. The Tugboat Logic integration is hardwired: the `SyncService` directly orchestrates Tugboat API calls through a bespoke `TugboatToDomain` adapter, the `StorageService` interface exposes entity-specific `Save`/`Get`/`GetAll` methods with no provider awareness, and the domain model itself has inconsistent ID types (`Policy.ID` is `string`, while `Control.ID` and `EvidenceTask.ID` are `int`). No mechanism exists for multi-provider sync, external ID tracking, or conflict resolution.
+GRCTool originally had no universal abstraction for compliance data sources.
+The Tugboat Logic integration was hardwired and the domain model had
+inconsistent ID types (`Policy.ID` was `string`, while `Control.ID` and
+`EvidenceTask.ID` were `int`).
 
-This matters because three committed features depend on a provider abstraction that does not exist:
+**Current state (2026-04-02):** The foundational provider abstractions are now
+implemented. All domain entity IDs are unified as `string`. `ExternalIDs` and
+`SyncMetadata` fields exist on all domain entities. The `DataProvider`,
+`SyncProvider`, and `ProviderRegistry` interfaces are defined and tested. The
+Tugboat adapter has been refactored to implement `DataProvider` and populates
+`ExternalIDs["tugboat"]`. The `SyncService` uses the provider registry.
 
-- **FEAT-001** (AccountableHQ Bidirectional Policy Sync) needs a `SyncProvider` interface with conflict detection and write-back capability.
-- **FEAT-002** (Google Drive Bidirectional Sync) needs a `DataProvider` interface to read/write compliance documents from Drive.
-- **FEAT-003** (Audit Lifecycle Scheduler) needs a provider registry to route scheduled sync operations across multiple providers.
+**Remaining gaps:** The provider framework is not yet complete. ContentHash
+computation is unimplemented in providers (change detection is non-functional).
+The `grctool index list` CLI command does not exist. `ProviderRegistry.List()`
+returns names only, not capability/health metadata. Append-only ID assignment
+and write idempotency are not enforced or tested. These gaps are tracked in
+dedicated execution issues (hx-be3a9c50, hx-cb8e54b8, hx-e5b310b6).
 
-Without this foundational framework, each integration will reinvent its own adapter pattern, ID mapping, and sync state tracking -- producing inconsistent behavior, duplicated logic, and a codebase that resists extension.
+Three committed features depend on completing this framework:
+
+- **FEAT-001** (AccountableHQ Bidirectional Policy Sync) needs a concrete `SyncProvider` with conflict detection and write-back capability.
+- **FEAT-002** (Google Drive Bidirectional Sync) needs a concrete `DataProvider`/`SyncProvider` to read/write compliance documents from Drive.
+- **FEAT-003** (Audit Lifecycle Scheduler) needs the provider registry to route scheduled sync operations across multiple providers.
 
 ---
 
@@ -219,10 +237,10 @@ Without this foundational framework, each integration will reinvent its own adap
 |------------|------|--------|-------|
 | ADR-010: System of Record Architecture | Architecture | Accepted | Defines master index, provider model, conflict resolution strategies, and sync state semantics |
 | ADR-006: Hexagonal Architecture | Architecture | Accepted | Defines port/adapter pattern that DataProvider and SyncProvider implement |
-| Domain model (internal/domain/) | Technical | Exists | Must be modified: unify ID types, add ExternalIDs and SyncMetadata |
-| StorageService (internal/interfaces/storage.go) | Technical | Exists | Must be extended to support master index operations and provider-aware queries |
-| Tugboat adapter (internal/adapters/tugboat.go) | Technical | Exists | Must be refactored to implement DataProvider |
-| SyncService (internal/services/sync.go) | Technical | Exists | Must be refactored to use provider registry instead of direct Tugboat coupling |
+| Domain model (internal/domain/) | Technical | Done | IDs unified to string; ExternalIDs and SyncMetadata added to all entities |
+| StorageService (internal/interfaces/storage.go) | Technical | Done | Extended with GetByExternalID for provider-aware queries |
+| Tugboat adapter (internal/providers/tugboat/) | Technical | Done | Refactored to implement DataProvider; populates ExternalIDs |
+| SyncService (internal/services/sync.go) | Technical | Done | Uses provider registry; still retains direct tugboat.Client reference alongside registry |
 
 ---
 

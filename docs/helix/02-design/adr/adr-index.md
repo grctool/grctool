@@ -27,7 +27,7 @@ This document captures the significant architectural decisions made during GRCTo
 | ADR-008 | zerolog for structured logging | Accepted | High | 2025-01-10 |
 | ADR-009 | Agentic workflow architecture for evidence coordination | Accepted | Med | 2025-01-10 |
 | ADR-010 | System of record architecture | Accepted | Med | 2026-03-17 |
-| ADR-011 | Universal document provider framework | Proposed | Med | 2026-03-17 |
+| ADR-011 | Universal document provider framework | Accepted | Med | 2026-03-17 |
 
 ---
 
@@ -581,14 +581,23 @@ GRCTool will become the **system of record** for compliance data. Policies, cont
 
 | Date | Status | Deciders | Related | Confidence |
 |------|--------|----------|---------|------------|
-| 2026-03-17 | Proposed | Engineering Team | ADR-006, ADR-010 | Med |
+| 2026-03-17 | Accepted | Engineering Team | ADR-006, ADR-010 | Med |
+
+**Implementation status (2026-04-02):** This ADR's decision has been partially
+implemented. All domain entity IDs are unified as `string`. `ExternalIDs` and
+`SyncMetadata` fields exist on all domain entities. `DataProvider`,
+`SyncProvider`, and `ProviderRegistry` interfaces are defined and tested. The
+Tugboat adapter is refactored as `TugboatDataProvider`. Remaining gaps:
+ContentHash computation, CLI index surface, ProviderInfo metadata.
+Status upgraded from "Proposed" to "Accepted" to reflect that the architectural
+decision is committed and partially shipped.
 
 ### Context
 
 | Aspect | Description |
 |--------|-------------|
-| Problem | GRCTool's domain model has inconsistent ID types: `Policy.ID` is `string`, while `Control.ID` and `EvidenceTask.ID` are `int`. Tugboat Logic is the only data source, hardwired through `SyncService` which directly references `*tugboat.Client` and `*adapters.TugboatToDomain`. The system-of-record vision (ADR-010) requires pluggable providers, but no provider abstraction exists. GitHub, Google Workspace, and Terraform tools return unstructured strings, not domain entities. Adding a new compliance platform today would require duplicating the entire Tugboat sync pattern. |
-| Current State | `SyncService` in `internal/services/sync.go` directly depends on `*tugboat.Client` and `*adapters.TugboatToDomain`. Domain ID types are inconsistent: `Policy.ID` is `string` (converted from `p.ID.String()` in the adapter), `Control.ID` is `int` (assigned directly from `c.ID`), and `EvidenceTask.ID` is `int` (assigned directly from `task.ID`). No external ID tracking exists — Tugboat numeric IDs are used as the canonical domain IDs for controls and evidence tasks. The `StorageService` interface has entity-specific methods (`SavePolicy`, `GetControl`, etc.) with no provider awareness. |
+| Problem | GRCTool's domain model originally had inconsistent ID types: `Policy.ID` was `string`, while `Control.ID` and `EvidenceTask.ID` were `int`. Tugboat Logic was the only data source, hardwired through `SyncService`. The system-of-record vision (ADR-010) required pluggable providers, but no provider abstraction existed. |
+| Current State | As of 2026-04-02, the core provider framework is implemented: all domain IDs are `string`, `ExternalIDs` and `SyncMetadata` fields exist on all entities, `DataProvider`/`SyncProvider`/`ProviderRegistry` interfaces are defined in `internal/interfaces/provider.go`, and the Tugboat adapter implements `DataProvider`. The `SyncService` uses the provider registry alongside a direct `tugboat.Client` reference. ContentHash computation and some CLI surfaces remain unimplemented. |
 | Requirements | Pluggable data providers that return domain entities; consistent ID types across all domain entities; external ID tracking per provider; backward-compatible migration path for existing Tugboat-synced data; conflict detection for bidirectional sync scenarios |
 
 ### Decision

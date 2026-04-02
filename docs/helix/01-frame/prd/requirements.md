@@ -285,13 +285,13 @@ GRCTool coordinates compliance work across teams and auditors using a predictabl
 | FEAT-009 | AI-Powered Evidence Generation | P0 | Implemented |
 | FEAT-010 | Evidence Submission & Lifecycle Management | P0 | Implemented |
 
-### Planned
-| Feature | Name | Priority | Status |
-|---------|------|----------|--------|
-| FEAT-001 | AccountableHQ Bidirectional Policy Sync | P1 | Proposed |
-| FEAT-002 | Google Drive Bidirectional Sync | P1 | Proposed |
-| FEAT-003 | Document & Audit Lifecycle Scheduler | P0 | Proposed |
-| FEAT-004 | Universal Document Provider Framework | P0 | Proposed |
+### Planned / In Progress
+| Feature | Name | Priority | Status | Notes |
+|---------|------|----------|--------|-------|
+| FEAT-001 | AccountableHQ Bidirectional Policy Sync | P1 | Proposed | Provider stub exists; no real API integration yet |
+| FEAT-002 | Google Drive Bidirectional Sync | P1 | Proposed | Provider stub exists; no real Google API integration yet |
+| FEAT-003 | Document & Audit Lifecycle Scheduler | P0 | In Progress | Lifecycle state machines and scheduler code exist; persistence/execution incomplete |
+| FEAT-004 | Universal Document Provider Framework | P0 | In Progress | 22/33 acceptance criteria satisfied; interfaces, registry, domain model, Tugboat adapter done |
 
 ## References
 

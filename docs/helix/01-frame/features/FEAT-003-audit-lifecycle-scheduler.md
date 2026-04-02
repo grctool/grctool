@@ -3,12 +3,12 @@ title: "Feature: Document & Audit Lifecycle Scheduler"
 feature_id: "FEAT-003"
 phase: "01-frame"
 category: "features"
-status: "Proposed"
+status: "In Progress"
 priority: "P0"
 tags: ["lifecycle", "scheduler", "evidence-collection", "audit", "orchestration"]
 related: ["adr-010", "data-design", "evidence-state", "contracts"]
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-04-02
 ---
 
 # FEAT-003: Document & Audit Lifecycle Scheduler
@@ -17,14 +17,32 @@ updated: 2026-03-17
 
 | Field | Value |
 |-------|-------|
-| Status | Proposed |
+| Status | In Progress |
 | Priority | P0 (foundational for system-of-record operations) |
 | Owner | TBD |
 | Target | TBD |
 
+**Implementation status (2026-04-02):** Lifecycle state machines for policies,
+controls, and evidence tasks are implemented in `internal/lifecycle/`. A
+scheduler package exists in `internal/scheduler/` with cron expression support
+and an orchestrator. CLI commands exist under `grctool lifecycle` and
+`grctool schedule`. Remaining work: persistent lifecycle state storage,
+schedule execution end-to-end wiring, and audit period management. Tracked in
+hx-4585e374.
+
 ## Problem Statement
 
-Evidence collection in GRCTool is currently ad-hoc. Compliance managers must remember which tasks are due, manually trigger collection runs, and track progress through external spreadsheets or memory. There is no formal lifecycle model for policies, controls, or evidence tasks, and no scheduler that orchestrates evidence collection on defined cadences aligned with audit periods.
+Evidence collection in GRCTool was originally ad-hoc, with no formal lifecycle
+model for policies, controls, or evidence tasks, and no scheduler for
+evidence collection cadences.
+
+**Current state (2026-04-02):** Lifecycle state machines (policy, control,
+evidence task) are implemented with validated transitions. A scheduler package
+with cron expression support and an orchestrator exists. CLI surfaces for
+`grctool lifecycle` and `grctool schedule` are registered. However, lifecycle
+state persistence and end-to-end schedule execution are not yet complete —
+the scheduler code exists but cannot durably store state across runs or
+execute a full evidence collection cycle autonomously.
 
 Organizations operating under SOC 2 Type II and ISO 27001 need:
 
@@ -207,8 +225,9 @@ Key behaviors:
 | ADR-010 | Master index / system-of-record architecture | Accepted |
 | `evidence_state.go` | Existing evidence state machine and `StateCache` | Implemented |
 | Tool interface (API-002) | Tool registry for task-to-tool mapping | Implemented |
-| Storage interface (API-004) | File-based storage for lifecycle state | Implemented |
+| Storage interface (API-004) | File-based storage for lifecycle state | Implemented (lifecycle persistence incomplete) |
 | Configuration interface (API-005) | `.grctool.yaml` schema extension | Implemented |
+| FEAT-004 provider registry | Provider routing for scheduled sync operations | In Progress |
 
 ## Risks and Mitigations
 

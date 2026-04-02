@@ -7,7 +7,7 @@ related: ["adr-010", "data-design", "contracts", "SD-001"]
 status: "Proposed"
 priority: "P1"
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-04-02
 ---
 
 # FEAT-001: AccountableHQ Bidirectional Policy Sync
@@ -26,6 +26,14 @@ updated: 2026-03-17
 ## Problem Statement
 
 Organizations using AccountableHQ for policy management need their policies synchronized with GRCTool's master index without manual import/export. Today, compliance teams maintain policies in AccountableHQ and separately manage compliance artifacts in GRCTool, leading to drift between systems, duplicated effort, and ambiguous source-of-truth ownership. As GRCTool transitions to system of record (ADR-010), AccountableHQ must become a bidirectional integration target -- policies flow in both directions with conflict detection, audit trails, and configurable automation.
+
+**Foundation status (2026-04-02):** The provider framework that FEAT-001
+depends on (FEAT-004) is partially implemented. The `DataProvider`,
+`SyncProvider`, and `ProviderRegistry` interfaces exist. Domain entities have
+`ExternalIDs` and `SyncMetadata` fields. An AccountableHQ provider stub exists
+in `internal/providers/accountablehq/` but has no real API integration. The
+AccountableHQ API itself requires discovery and credential setup before
+implementation can proceed.
 
 ---
 
@@ -113,9 +121,10 @@ Organizations using AccountableHQ for policy management need their policies sync
 | Dependency | Type | Status | Notes |
 |------------|------|--------|-------|
 | ADR-010: System of Record Architecture | Architecture | Accepted | Defines the master index, adapter interfaces, and conflict resolution model |
-| Master Index Implementation | Technical | Not started | FEAT-001 requires the master index and GRCTool-native ID assignment. **NOTE: Per SD-004 and ADR-011, the master index is implemented as the existing `StorageService` enriched with `ExternalIDs` and `SyncMetadata` fields. No separate `.index/` directory is needed.** |
+| Master Index Implementation | Technical | In Progress | Domain entities have `ExternalIDs` and `SyncMetadata`. Storage supports `GetByExternalID`. CLI surface (`grctool index list`) and ContentHash computation remain unimplemented. |
 | ADR-006: Hexagonal Architecture | Architecture | Accepted | AccountableHQ adapter implements the standard port/adapter pattern |
-| FEAT-003: Task Scheduler | Feature | Proposed | Required for US-005 (scheduled sync) |
+| FEAT-004: Universal Document Provider | Feature | In Progress | `DataProvider`, `SyncProvider`, `ProviderRegistry` interfaces implemented. Provider stub exists in `internal/providers/accountablehq/`. |
+| FEAT-003: Task Scheduler | Feature | In Progress | Lifecycle state machines and scheduler package exist; persistence incomplete |
 | AccountableHQ API Access | External | TBD | API documentation, authentication credentials, and rate limit details needed |
 
 ---

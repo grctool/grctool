@@ -7,7 +7,7 @@ priority: "P1"
 tags: ["google-drive", "bidirectional-sync", "integration", "system-of-record"]
 related: ["adr-010", "adr-006", "data-design", "SD-002"]
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-04-02
 ---
 
 # FEAT-002: Google Drive Bidirectional Sync
@@ -27,6 +27,14 @@ updated: 2026-03-17
 Compliance teams collaborate on policies and controls in Google Docs and Sheets. GRCTool is evolving to become the system of record for compliance data (ADR-010), but the current Google Workspace integration (`google_workspace.go`) is read-only -- it extracts evidence from Docs, Sheets, Drive, and Forms but cannot write back.
 
 This creates a gap: policies and controls managed in GRCTool's master index cannot be published to Google Drive for collaborative review, and edits made by compliance team members in Google Docs are invisible to GRCTool. Organizations need their compliance artifacts accessible in the tools their teams already use, while maintaining GRCTool as the authoritative source.
+
+**Foundation status (2026-04-02):** The provider framework that FEAT-002
+depends on (FEAT-004) is partially implemented. The `DataProvider`,
+`SyncProvider`, and `ProviderRegistry` interfaces exist. Domain entities have
+`ExternalIDs` and `SyncMetadata` fields. A GDrive provider stub exists in
+`internal/providers/gdrive/` but has no real Google API integration. The
+existing read-only `google_workspace.go` tool is unaffected and continues to
+work for evidence extraction.
 
 Without bidirectional sync, teams face:
 
@@ -129,9 +137,9 @@ Without bidirectional sync, teams face:
 |------------|------|--------|-------|
 | ADR-010: System of Record | Architecture | Accepted | Master index provides canonical data to sync |
 | Google Workspace OAuth setup | Infrastructure | Existing | Service account auth pattern in `google_workspace.go`; needs expanded scopes for write access |
-| Master index | Data | In progress | Canonical registry of policies, controls, evidence tasks |
+| FEAT-004: Universal Document Provider | Feature | In Progress | `DataProvider`, `SyncProvider`, `ProviderRegistry` interfaces implemented. Provider stub exists in `internal/providers/gdrive/`. |
 | ADR-006: Hexagonal architecture | Architecture | Accepted | Adapter interface pattern for sync integration |
-| FEAT-003: Task Scheduler | Feature | Proposed | Scheduled sync execution (not blocking; on-demand works independently) |
+| FEAT-003: Task Scheduler | Feature | In Progress | Lifecycle state machines and scheduler package exist; persistence incomplete |
 
 ## Risks
 
