@@ -55,6 +55,7 @@ temp_coverage.out
 .crush.json
 .runtime/
 
-# Dolt database files (added by bd init)
+# Beads / Dolt (retired)
+.beads/
 .dolt/
 *.db
