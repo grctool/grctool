@@ -5,7 +5,7 @@ category: "solution-design"
 tags: ["provider", "adapter", "multi-source", "domain-model", "sync", "hexagonal-architecture"]
 related: ["adr-006", "adr-010", "adr-011", "SD-001", "data-design"]
 created: 2026-03-17
-updated: 2026-04-01
+updated: 2026-04-02
 ---
 
 # SD-004: Universal Document Provider Framework
@@ -400,41 +400,60 @@ type ChangeEntry struct {
 }
 ```
 
-### ProviderRegistry
+### ProviderInfo
+
+**CONTRACT DECISION (hx-be3a9c50, 2026-04-02):** `ProviderInfo` does NOT
+include `LastSyncTime`. Sync timestamps are per-entity-per-provider, stored in
+`SyncMetadata` on domain entities and queried via `StorageService`. A single
+provider-level timestamp would obscure per-entity sync freshness. Health is
+checked on demand, with the check timestamp recorded in `LastChecked`.
 
 ```go
 // ProviderInfo summarizes a registered provider's state.
-// (NEW) Not yet in code.
+// (NEW) Not yet in code — to be added to internal/interfaces/provider.go.
 type ProviderInfo struct {
     Name         string               `json:"name"`
     Capabilities ProviderCapabilities `json:"capabilities"`
     Healthy      bool                 `json:"healthy"`
-    LastSyncTime *time.Time           `json:"last_sync_time,omitempty"`
+    LastChecked  *time.Time           `json:"last_checked,omitempty"`
 }
 ```
 
-### ProviderRegistry
+### ProviderRegistry Interface
 
-The registry is currently a concrete struct in `internal/providers/registry.go`.
-**Target**: Extract a `ProviderRegistry` interface into `internal/interfaces/provider.go`
-so that services depend on the interface, not the concrete type.
+The `ProviderRegistry` interface is defined in `internal/interfaces/provider.go`
+and implemented by `internal/providers/registry.go`. Services depend on the
+interface, not the concrete type.
 
-**Current signatures** (in `internal/providers/registry.go`):
+**Canonical contract** (interface in `internal/interfaces/provider.go`):
 
 ```go
-type ProviderRegistry struct { /* ... */ }
-
-func NewProviderRegistry() *ProviderRegistry
-func (r *ProviderRegistry) Register(provider interfaces.DataProvider) error
-func (r *ProviderRegistry) Get(name string) (interfaces.DataProvider, error)
-func (r *ProviderRegistry) GetSyncProvider(name string) (interfaces.SyncProvider, error)
-func (r *ProviderRegistry) List() []string
-func (r *ProviderRegistry) ListSyncProviders() []string
-func (r *ProviderRegistry) Remove(name string)
-func (r *ProviderRegistry) Count() int
-func (r *ProviderRegistry) Has(name string) bool
-func (r *ProviderRegistry) HealthCheck(ctx context.Context) map[string]error
+type ProviderRegistry interface {
+    Register(provider DataProvider) error
+    Get(name string) (DataProvider, error)
+    GetSyncProvider(name string) (SyncProvider, error)
+    List() []string                                         // lightweight: names only
+    ListSyncProviders() []string                            // names of SyncProvider impls
+    HealthCheck(ctx context.Context) map[string]error       // batch health check
+    ListProviderInfo(ctx context.Context) ([]ProviderInfo, error) // (NEW) rich metadata
+}
 ```
+
+**`ListProviderInfo(ctx)`** composes `ProviderInfo` by iterating registered
+providers, calling `Name()`, `Capabilities()`, and `TestConnection(ctx)` on
+each. It runs health checks inline and populates `LastChecked` with the current
+time. The existing `List() []string` is retained for lightweight name-only
+queries where health checks are unnecessary. `HealthCheck(ctx)` remains for
+batch health checks that return errors directly.
+
+**Additional concrete-only methods** (on the struct, not the interface):
+`Remove(name)`, `Count()`, `Has(name)` — these are implementation conveniences
+not needed by service consumers.
+
+**CLI surface mapping:**
+- `grctool provider status` → calls `ListProviderInfo(ctx)` → displays table of providers
+- `grctool index list` → calls `StorageService.GetAll*()` → displays entity index
+- `grctool sync status` → calls `StorageService.GetAll*()` → reports per-entity sync metadata
 
 ---
 
@@ -740,8 +759,8 @@ This is the comprehensive list based on grep analysis of the codebase:
 | File | Purpose |
 |------|---------|
 | `internal/domain/sync_metadata.go` | `SyncMetadata` struct and conflict state constants |
-| `internal/interfaces/provider.go` | (EXISTS) Add `ProviderCapabilities`, `Capabilities()`, `Conflict`, `ConflictResolution`, `ResolveConflict()`, `ProviderInfo` |
-| `internal/providers/registry.go` | (EXISTS) Concrete `ProviderRegistry` — extract interface into `internal/interfaces/` |
+| `internal/interfaces/provider.go` | (EXISTS) Add `ProviderInfo` struct and `ListProviderInfo(ctx)` to `ProviderRegistry` interface |
+| `internal/providers/registry.go` | (EXISTS) Concrete `ProviderRegistry` — add `ListProviderInfo(ctx)` method |
 | `internal/providers/tugboat/provider.go` | (EXISTS) `TugboatDataProvider` implementing `DataProvider`, `EvidenceSubmitter`, `RelationshipQuerier` |
 
 ---

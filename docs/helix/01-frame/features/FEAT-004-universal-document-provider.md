@@ -169,7 +169,7 @@ Three committed features depend on completing this framework:
 - The index is append-only for ID assignment: once a native ID is assigned, it is never reassigned to a different entity
 - Re-running sync with any provider does not create duplicate index entries; existing mappings are updated in place
 - The index file can be committed to git and merged without conflicts under normal operation (no concurrent writes to the same entry)
-- `grctool index list` (or equivalent) displays the index with filtering by entity type and provider
+- `grctool index list` (or equivalent) displays the index with filtering by entity type and provider. **CONTRACT DECISION (hx-be3a9c50): This is a `StorageService` query — it reads all entities from local storage and displays reference IDs, external IDs, and sync state. It is NOT a ProviderRegistry operation. The CLI command queries `StorageService.GetAll{Policies,Controls,EvidenceTasks}()` and formats entity metadata for display. This keeps the master index concern (local storage) separate from the provider registry concern (remote provider management).**
 
 **Dependencies**: ADR-010 (master index specification)
 
@@ -181,13 +181,15 @@ Three committed features depend on completing this framework:
 
 **Acceptance Criteria**:
 
-- A `ProviderRegistry` struct (or interface) supports `Register(provider DataProvider) error`, `Get(name string) (DataProvider, error)`, `List() []ProviderInfo`, and `Remove(name string) error`
+- A `ProviderRegistry` interface supports `Register(provider DataProvider) error`, `Get(name string) (DataProvider, error)`, `GetSyncProvider(name string) (SyncProvider, error)`, `List() []string`, `ListSyncProviders() []string`, `HealthCheck(ctx) map[string]error`, and `ListProviderInfo(ctx) ([]ProviderInfo, error)`
 - Registration validates that no two providers share the same name
-- `ProviderInfo` includes: name, capabilities (entity types, read/write), health status, last sync time
-- The registry distinguishes between `DataProvider` (read-only) and `SyncProvider` (read-write) registrations
+- `ProviderInfo` includes: `Name string`, `Capabilities ProviderCapabilities`, `Healthy bool`, `LastChecked *time.Time`. **CONTRACT DECISION (hx-be3a9c50): `ProviderInfo` does NOT include `LastSyncTime`. Sync timestamps are per-entity-per-provider, stored in `SyncMetadata` on domain entities and queried via `StorageService`, not aggregated at the provider level. This avoids a misleading single timestamp that would obscure per-entity sync freshness.**
+- `ListProviderInfo(ctx)` composes `ProviderInfo` by iterating registered providers, calling `Name()`, `Capabilities()`, and `TestConnection(ctx)` on each. It runs health checks inline and reports the result. The existing `List() []string` is retained for lightweight name-only queries where health checks are unnecessary.
+- The registry distinguishes between `DataProvider` (read-only) and `SyncProvider` (read-write) registrations via `GetSyncProvider()` and `ListSyncProviders()`
 - The `SyncService` is refactored to iterate over registered providers rather than hard-coding Tugboat
 - Provider configuration is declarative in `.grctool.yaml` (provider name, type, connection parameters)
 - The registry is safe for concurrent access (multiple goroutines can read provider state)
+- **CLI surface**: `grctool provider status` (or equivalent) calls `ListProviderInfo(ctx)` to display registered providers with their capabilities and health. This is the operator-facing provider management command. It is separate from `grctool index list` (which queries the master index via StorageService) and from `grctool sync status` (which reports entity-level sync metadata).
 
 **Dependencies**: ADR-006 (hexagonal architecture, port registry pattern)
 
@@ -241,6 +243,45 @@ Three committed features depend on completing this framework:
 | StorageService (internal/interfaces/storage.go) | Technical | Done | Extended with GetByExternalID for provider-aware queries |
 | Tugboat adapter (internal/providers/tugboat/) | Technical | Done | Refactored to implement DataProvider; populates ExternalIDs |
 | SyncService (internal/services/sync.go) | Technical | Done | Uses provider registry; still retains direct tugboat.Client reference alongside registry |
+
+---
+
+## Contract Decisions (hx-be3a9c50, 2026-04-02)
+
+These decisions resolve the mismatches identified in the alignment review
+(AR-2026-04-01-repo) between the FEAT-004 spec and the shipped provider runtime.
+Downstream build issues (hx-cb8e54b8, hx-e5b310b6) target these contracts.
+
+### CD-1: ProviderInfo excludes LastSyncTime
+
+`ProviderInfo` reports provider-level metadata: name, capabilities, health, and
+check timestamp. It does NOT include `LastSyncTime`. Sync timestamps are
+per-entity-per-provider, stored in `SyncMetadata` on domain entities. A single
+provider-level timestamp would be misleading because different entities sync at
+different times. Entity-level sync freshness is queried via `StorageService`.
+
+### CD-2: Two-tier registry listing
+
+The `ProviderRegistry` interface provides two listing methods:
+- `List() []string` — lightweight, no I/O, for internal routing
+- `ListProviderInfo(ctx) ([]ProviderInfo, error)` — rich, calls `TestConnection()` on each provider, for operator-facing display
+
+This avoids forcing health checks on callers that only need provider names.
+
+### CD-3: Index listing is a StorageService concern
+
+`grctool index list` queries local storage (`StorageService.GetAll*()`) to
+display entities with their reference IDs, external IDs, and sync state. It is
+NOT a `ProviderRegistry` operation. This keeps the master index concern (local
+storage) separate from the provider registry concern (remote provider management).
+
+### CD-4: Three distinct CLI surfaces
+
+| Command | Data Source | Purpose |
+|---------|------------|---------|
+| `grctool provider status` | `ProviderRegistry.ListProviderInfo(ctx)` | Show registered providers, capabilities, health |
+| `grctool index list` | `StorageService.GetAll*()` | Show entity index with reference IDs and external IDs |
+| `grctool sync status` | `StorageService.GetAll*()` + `SyncMetadata` | Show entity-level sync freshness, conflicts, staleness |
 
 ---
 
