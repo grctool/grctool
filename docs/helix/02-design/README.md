@@ -43,8 +43,10 @@ The Design phase translates requirements from Phase 1 into concrete architectura
 │   └── adr-index.md
 ├── architecture/              # System architecture
 │   └── system-design.md
-├── solution-design/           # Solution designs
-│   └── component-design.md
+├── solution-designs/          # Canonical solution designs (SD-XXX)
+│   └── SD-001-example-feature.md
+├── research/                  # Supporting design references and spikes
+│   └── accountablehq-api-discovery.md
 ├── contracts/                 # API contracts
 │   └── contracts.md
 ├── data-design/              # Data models

@@ -300,7 +300,7 @@ A: Yes, phases can have project-specific subdirectories. Document them in the ph
 A: No, code belongs in the project's source directories. Documentation only in helix.
 
 ### Q: How do I handle multiple features in parallel?
-A: Keep the shared project docs stable and add separate feature/story files in the canonical phase directories, for example `docs/helix/01-frame/features/FEAT-001-*.md`, `docs/helix/02-design/solution-designs/SD-001-*.md`, and `docs/helix/01-frame/user-stories/US-001-*.md`.
+A: Keep the shared project docs stable and add separate feature/story files in the canonical phase directories, for example `docs/helix/01-frame/features/FEAT-001-*.md`, `docs/helix/02-design/solution-designs/SD-042-*.md`, and `docs/helix/01-frame/user-stories/US-001-*.md`.
 
 ### Q: What about diagrams and images?
 A: Store them alongside the documents that reference them, or in a phase-level `images/` directory.

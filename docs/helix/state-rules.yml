@@ -138,7 +138,7 @@ naming_conventions:
     pattern: "{prefix}-{id}-{name}"
     examples:
       - "FEAT-001-evidence-collection"
-      - "SD-001-evidence-collection"
+      - "SD-042-example-feature"
     prefixes:
       FEAT: "Feature Specification"
       SD: "Solution Design"

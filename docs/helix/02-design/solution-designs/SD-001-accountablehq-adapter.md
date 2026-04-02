@@ -3,9 +3,9 @@ title: "SD-001: AccountableHQ Integration Adapter"
 phase: "02-design"
 category: "solution-design"
 tags: ["accountablehq", "adapter", "integration", "policy-sync", "hexagonal-architecture"]
-related: ["adr-006", "adr-010", "data-design", "contracts", "FEAT-001"]
+related: ["adr-006", "adr-010", "data-design", "contracts", "FEAT-001", "accountablehq-api-discovery", "accountablehq-scraping-evaluation"]
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-04-01
 ---
 
 # SD-001: AccountableHQ Integration Adapter
@@ -13,6 +13,10 @@ updated: 2026-03-17
 ## Overview
 
 This document describes the solution design for a bidirectional integration adapter between GRCTool and AccountableHQ's policy repository. The adapter follows the hexagonal architecture pattern (ADR-006) and implements the standard import/export/sync adapter interface defined by the system of record architecture (ADR-010). It integrates with the master index as the canonical data store and supports configurable conflict resolution, audit logging, and scheduled execution.
+
+Supporting research lives under `docs/helix/02-design/research/`. Historical
+aliases `SD-001-api-discovery` and `SD-001-scraping-evaluation` were retired so
+that `SD-001` now refers only to this solution design.
 
 ---
 

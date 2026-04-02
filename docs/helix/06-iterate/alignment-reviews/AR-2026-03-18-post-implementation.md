@@ -81,7 +81,7 @@
 | AccountableHQClient interface | **SATISFIED** | 6 methods, testable abstraction |
 | HTTP client implementation | **SATISFIED** | Bearer auth, envelope handling, error codes |
 | Domain conversion | **SATISFIED** | convertToDomain/convertFromDomain with ExternalIDs |
-| API discovery documented | **SATISFIED** | SD-001-api-discovery.md with validation checklist |
+| API discovery documented | **SATISFIED** | `research/accountablehq-api-discovery.md` (historically `SD-001-api-discovery.md`) with validation checklist |
 
 **FEAT-001: 100% SATISFIED** (API endpoints pending real-world validation)
 

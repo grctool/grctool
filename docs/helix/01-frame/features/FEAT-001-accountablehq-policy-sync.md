@@ -159,4 +159,6 @@ Organizations using AccountableHQ for policy management need their policies sync
 - [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
 - [Data Design: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md#system-of-record-architecture)
 - [SD-001: AccountableHQ Adapter Solution Design](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)
+- [AccountableHQ API Discovery Reference](/home/erik/Projects/grctool/docs/helix/02-design/research/accountablehq-api-discovery.md)
+- [AccountableHQ Scraping Evaluation Reference](/home/erik/Projects/grctool/docs/helix/02-design/research/accountablehq-scraping-evaluation.md)
 - [Interface Contracts](/home/erik/Projects/grctool/docs/helix/02-design/contracts/contracts.md)

@@ -125,7 +125,7 @@ Features represent collections of related stories:
 ### Naming Pattern
 ```
 Frame:   FEAT-001-evidence-collection.md
-Design:  SD-001-evidence-collection.md
+Design:  SD-042-example-feature.md
 ```
 
 ### Relationships
@@ -186,7 +186,7 @@ Each artifact references its dependencies:
 # TD-036-evidence-collection-api.md
 **User Story**: [[US-036-evidence-collection-api]]
 **Parent Feature**: [[FEAT-001-evidence-collection]]
-**Solution Design**: [[SD-001-evidence-collection]]
+**Solution Design**: [[SD-042-example-feature]]
 ```
 
 ### Traceability Chain
