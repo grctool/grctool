@@ -4,7 +4,7 @@ phase: "04-build"
 category: "implementation-plan"
 tags: ["feat-004", "provider-framework", "sequencing", "migration"]
 created: 2026-03-18
-updated: 2026-03-18
+updated: 2026-04-01
 ---
 
 # FEAT-004: Universal Document Provider Framework — Implementation Sequencing
@@ -12,6 +12,11 @@ updated: 2026-03-18
 ## Overview
 
 This document captures the actual implementation sequence for FEAT-004, based on the dependency graph defined in beads epic grct-3gl. FEAT-004 is the P0 foundation that FEAT-001 (AccountableHQ), FEAT-002 (GDrive), and FEAT-003 (Lifecycle/Scheduler) depend on.
+
+Terminology note: only the "Shadow Index" phase below should be treated as the
+current product posture. Later references to dual-write behavior or
+GRCTool-as-source are implementation roadmap stages, not statements about the
+repository's present-day runtime.
 
 ## Phase Ordering
 

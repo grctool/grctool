@@ -5,7 +5,7 @@ category: "solution-design"
 tags: ["provider", "adapter", "multi-source", "domain-model", "sync", "hexagonal-architecture"]
 related: ["adr-006", "adr-010", "adr-011", "SD-001", "data-design"]
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-04-01
 ---
 
 # SD-004: Universal Document Provider Framework
@@ -13,6 +13,13 @@ updated: 2026-03-17
 ## Overview
 
 This document describes the solution design for the Universal Document Provider Framework in GRCTool. The framework introduces a pluggable provider abstraction for compliance data sources, fixes inconsistent domain model ID types, adds external ID tracking for multi-provider scenarios, and refactors the existing Tugboat integration as the first provider implementation. It implements the system-of-record vision from ADR-010 and the provider framework decision from ADR-011.
+
+Scope note: this design is the target architecture for the provider-framework
+roadmap. The current shipped repository still operates primarily as a
+Tugboat-centered CLI with local persistence. Present-tense statements in this
+document describe the intended end state of FEAT-004 and related roadmap work,
+not a claim that GRCTool already behaves as a fully authoritative
+multi-provider system of record.
 
 ---
 

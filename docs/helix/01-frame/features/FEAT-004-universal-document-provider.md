@@ -7,7 +7,7 @@ related: ["adr-010", "adr-006", "FEAT-001", "FEAT-002", "FEAT-003"]
 status: "Proposed"
 priority: "P0"
 created: 2026-03-17
-updated: 2026-03-17
+updated: 2026-04-01
 ---
 
 # FEAT-004: Universal Document Provider Framework
@@ -20,6 +20,12 @@ updated: 2026-03-17
 | Priority | P0 |
 | Owner | TBD |
 | Target Phase | Phase 1 (Foundation) |
+
+This feature defines the target provider-framework and master-index foundation.
+It should not be read as proof that the current shipped product is already a
+multi-provider system of record; today the live product remains primarily
+Tugboat-centric, with this feature capturing the roadmap path away from that
+constraint.
 
 ---
 

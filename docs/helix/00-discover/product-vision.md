@@ -18,6 +18,15 @@ Eliminate the manual toil of compliance evidence collection by providing securit
 
 GRCTool is the compliance engineer's command line — a tool that understands your infrastructure (Terraform, GitHub, Google Workspace), knows your compliance framework (SOC 2, ISO 27001), and uses AI to generate audit-ready evidence automatically. It evolves from a compliance data aggregator into the **system of record** for an organization's GRC data, with bidirectional sync to any compliance platform.
 
+## Current Product Boundary
+
+As of 2026-04-01, the shipped product is still a Tugboat-centric CLI for sync,
+evidence collection, and evidence submission. Local JSON storage is the durable
+working store for synced artifacts and generated evidence, but it is not yet a
+fully authoritative multi-provider master index. References to GRCTool as a
+future system of record in this document describe roadmap intent, not current
+runtime guarantees.
+
 ## Problem Space
 
 ### The Compliance Evidence Gap
@@ -45,7 +54,7 @@ Modern SaaS companies invest heavily in security infrastructure — infrastructu
 
 ### For Compliance Teams
 - **80% reduction in manual evidence collection** through automated tool execution and AI generation
-- **Single source of truth** for policies, controls, and evidence across all compliance platforms
+- **Roadmap: single source of truth** for policies, controls, and evidence across compliance platforms once the master-index architecture is fully implemented
 - **Repeatable, auditable process** that eliminates tribal knowledge dependencies
 
 ### For Security Engineers
@@ -55,8 +64,8 @@ Modern SaaS companies invest heavily in security infrastructure — infrastructu
 
 ### For Organizations
 - **Data sovereignty** — all compliance data stored locally in human-readable formats, version-controlled via git
-- **No platform lock-in** — master index is always complete and self-contained; external platforms are integration targets, not dependencies
-- **Extensible architecture** — plugin-based integrations for connecting to any compliance platform
+- **Roadmap: no platform lock-in** — the planned master index will be complete and self-contained, with external platforms treated as integration targets rather than dependencies
+- **Extensible architecture** — today this is provider-framework groundwork around Tugboat; broader multi-platform adapters remain roadmap work
 
 ## Strategic Direction
 

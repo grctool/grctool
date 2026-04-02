@@ -5,7 +5,7 @@ category: "requirements"
 tags: ["product", "vision", "goals", "compliance", "grctool"]
 related: ["user-stories", "compliance-requirements", "security-requirements"]
 created: 2025-01-10
-updated: 2026-03-17
+updated: 2026-04-01
 helix_mapping: "Consolidated from 00-Overview/product-overview.md"
 ---
 
@@ -15,19 +15,42 @@ helix_mapping: "Consolidated from 00-Overview/product-overview.md"
 
 **GRCTool** is an agentic governance, risk, and compliance (GRC) command-line application that automates and coordinates compliance workflows through intelligent integration with Tugboat Logic. It bridges the gap between manual compliance processes and modern infrastructure automation, making evidence generation efficient, accurate, auditable, and easy to hand off between internal teams and auditors.
 
-## Product Vision: GRCTool as System of Record
+## Current Product Boundary
+
+As of 2026-04-01, GRCTool's current runtime remains centered on Tugboat Logic
+for authentication, sync, and submission workflows. The local filesystem holds
+durable synced data, prompts, and evidence artifacts, but the repository should
+not yet be described as a fully authoritative multi-provider system of record.
+Any statements below about a master index, provider plurality, or GRCTool-owned
+artifact lifecycles are roadmap requirements rather than current-product claims.
+
+## Roadmap Vision: GRCTool as System of Record
 
 ### From Aggregator to System of Record
 
 GRCTool is evolving from a compliance data aggregator — one that syncs policies, controls, and evidence tasks from Tugboat Logic — into the **system of record** for an organization's GRC data. This shift means that policies, controls, control mappings, and evidence tasks become first-class entities owned and managed by GRCTool, not merely cached copies of a remote system.
 
-### Master Index
+### Master Index (Target State)
 
-GRCTool provides the **master index**: the canonical registry of all compliance artifacts. Every policy, control, control mapping, and evidence task has a GRCTool-native identifier and lifecycle, independent of any external platform. The master index is the single source of truth that all integrations read from and write to. External systems may hold copies, but GRCTool is authoritative.
+The roadmap target is for GRCTool to provide the **master index**: the
+canonical registry of all compliance artifacts. In that target state, every
+policy, control, control mapping, and evidence task has a GRCTool-native
+identifier and lifecycle, independent of any external platform. The master
+index becomes the single source of truth that all integrations read from and
+write to. External systems may hold copies, but GRCTool is authoritative.
 
-### Bidirectional Integration Architecture
+Current state: synced Tugboat data and generated evidence are stored locally,
+but Tugboat remains the operational source of truth for the live compliance
+records managed by the product today.
 
-Integration points with external systems — Tugboat Logic, GitHub, Terraform, Google Workspace — become **bidirectional**. GRCTool does not merely pull data in; it pushes data out. Tugboat Logic becomes one integration target among many, not the upstream source of truth. The integration model follows a hub-and-spoke pattern:
+### Bidirectional Integration Architecture (Target State)
+
+Integration points with external systems — Tugboat Logic, GitHub, Terraform,
+Google Workspace — are intended to become **bidirectional** over time.
+GRCTool will not merely pull data in; it will push data out. In that target
+model, Tugboat Logic becomes one integration target among many, not the
+upstream source of truth. The integration model follows a hub-and-spoke
+pattern:
 
 - **Inbound**: Import compliance artifacts from external platforms (Tugboat, spreadsheets, other GRC tools) into the master index.
 - **Outbound**: Publish compliance artifacts, evidence, and status to external platforms (Tugboat submission, reporting dashboards, audit portals).
@@ -35,7 +58,18 @@ Integration points with external systems — Tugboat Logic, GitHub, Terraform, G
 
 ### Data Sovereignty
 
-Organizations own their compliance data locally. GRCTool stores all policies, controls, control mappings, and evidence tasks on the local filesystem in human-readable formats (JSON, YAML, Markdown), version-controlled via git. Cloud platforms receive data selectively — organizations choose what to sync, when to sync, and where to sync it. No platform lock-in; the local master index is always complete and self-contained.
+Organizations own their compliance data locally. GRCTool stores synced
+artifacts, control data, prompts, and evidence outputs on the local filesystem
+in human-readable formats (JSON, YAML, Markdown), version-controlled via git.
+Cloud platforms receive data selectively — organizations choose what to sync,
+when to sync, and where to sync it. The roadmap goal is no platform lock-in,
+with a complete and self-contained local master index once the provider
+framework is fully shipped.
+
+Current state: this local-first posture already applies to synced artifacts and
+generated evidence, but the "complete and self-contained master index" is still
+roadmap language until the provider framework and bidirectional adapters are
+fully shipped.
 
 ### Extensibility: Plugin-Based Integrations
 
