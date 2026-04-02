@@ -21,10 +21,11 @@ import (
 
 type stubDriveClient struct {
 	files       []DriveFile
-	contents    map[string]string // fileID → markdown content
-	created     []string          // track created doc IDs
-	updated     []string          // track updated fileIDs
-	deleted     []string          // track deleted fileIDs
+	contents    map[string]string    // fileID → markdown content
+	sheets      map[string]*SheetData // fileID → sheet data
+	created     []string              // track created doc IDs
+	updated     []string              // track updated fileIDs
+	deleted     []string              // track deleted fileIDs
 	connErr     error
 	listErr     error
 	getErr      error
@@ -37,6 +38,7 @@ type stubDriveClient struct {
 func newStubDriveClient() *stubDriveClient {
 	return &stubDriveClient{
 		contents:  make(map[string]string),
+		sheets:    make(map[string]*SheetData),
 		revisions: make(map[string][]Revision),
 	}
 }
@@ -99,6 +101,26 @@ func (s *stubDriveClient) DeleteFile(ctx context.Context, fileID string) error {
 
 func (s *stubDriveClient) GetRevisions(ctx context.Context, fileID string, since time.Time) ([]Revision, error) {
 	return s.revisions[fileID], nil
+}
+
+func (s *stubDriveClient) GetSheetData(ctx context.Context, fileID string) (*SheetData, error) {
+	sd, ok := s.sheets[fileID]
+	if !ok {
+		return nil, fmt.Errorf("sheet not found: %s", fileID)
+	}
+	return sd, nil
+}
+
+func (s *stubDriveClient) UpdateSheetData(ctx context.Context, fileID string, data *SheetData) error {
+	s.sheets[fileID] = data
+	return nil
+}
+
+func (s *stubDriveClient) CreateSheet(ctx context.Context, folderID, title string, data *SheetData) (string, error) {
+	id := fmt.Sprintf("new-sheet-%d", len(s.created)+1)
+	s.created = append(s.created, id)
+	s.sheets[id] = data
+	return id, nil
 }
 
 // --- Tests ---
@@ -411,4 +433,208 @@ func TestGDriveContract_ContextCancellation(t *testing.T) {
 	if !anyErr {
 		t.Log("NOTE: provider did not return an error for cancelled context (acceptable for stub-backed provider)")
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Conflict resolution tests
+// ---------------------------------------------------------------------------
+
+func TestGDrive_ResolveConflict_AllStrategies(t *testing.T) {
+	t.Parallel()
+	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
+
+	conflict := interfaces.Conflict{
+		EntityType: "policy",
+		EntityID:   "POL-0001",
+		Provider:   "gdrive",
+		LocalHash:  "abc",
+		RemoteHash: "def",
+	}
+
+	for _, strategy := range []interfaces.ConflictResolution{
+		interfaces.ConflictResolutionLocalWins,
+		interfaces.ConflictResolutionRemoteWins,
+		interfaces.ConflictResolutionNewestWins,
+		interfaces.ConflictResolutionManual,
+	} {
+		t.Run(string(strategy), func(t *testing.T) {
+			err := p.ResolveConflict(context.Background(), conflict, strategy)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestGDrive_ResolveConflict_UnknownStrategy(t *testing.T) {
+	t.Parallel()
+	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
+	conflict := interfaces.Conflict{EntityType: "policy", EntityID: "P1"}
+	err := p.ResolveConflict(context.Background(), conflict, "unknown_strategy")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unknown conflict resolution")
+}
+
+// ---------------------------------------------------------------------------
+// Controls via Sheets
+// ---------------------------------------------------------------------------
+
+func TestGDrive_ListControls_FromSheet(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.files = []DriveFile{
+		{ID: "sheet-1", Name: "Control Matrix", MimeType: "application/vnd.google-apps.spreadsheet"},
+	}
+	client.sheets["sheet-1"] = &SheetData{
+		Title:   "Control Matrix",
+		Headers: controlMatrixHeaders,
+		Rows: [][]string{
+			{"CC-06.1", "Logical Access", "implemented", "High", "SOC2", "Access Control", "2026-01-15", ""},
+		},
+	}
+
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	controls, count, err := p.ListControls(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	require.Len(t, controls, 1)
+	assert.Equal(t, "CC-06.1", controls[0].ReferenceID)
+	assert.Equal(t, "Logical Access", controls[0].Name)
+	assert.Equal(t, "sheet-1", controls[0].ExternalIDs["gdrive"])
+	assert.NotNil(t, controls[0].SyncMetadata)
+	assert.NotEmpty(t, controls[0].SyncMetadata.ContentHash["gdrive"])
+}
+
+// ---------------------------------------------------------------------------
+// Evidence Tasks via Sheets
+// ---------------------------------------------------------------------------
+
+func TestGDrive_ListEvidenceTasks_FromSheet(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.files = []DriveFile{
+		{ID: "sheet-2", Name: "Evidence Tasks", MimeType: "application/vnd.google-apps.spreadsheet"},
+	}
+	client.sheets["sheet-2"] = &SheetData{
+		Title:   "Evidence Tasks",
+		Headers: evidenceTaskHeaders,
+		Rows: [][]string{
+			{"ET-0047", "GitHub Repo Access", "pending", "High", "quarterly", "SOC2", "Infrastructure", "", ""},
+		},
+	}
+
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	tasks, count, err := p.ListEvidenceTasks(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	require.Len(t, tasks, 1)
+	assert.Equal(t, "ET-0047", tasks[0].ReferenceID)
+	assert.Equal(t, "GitHub Repo Access", tasks[0].Name)
+	assert.Equal(t, "sheet-2", tasks[0].ExternalIDs["gdrive"])
+	assert.NotNil(t, tasks[0].SyncMetadata)
+	assert.NotEmpty(t, tasks[0].SyncMetadata.ContentHash["gdrive"])
+}
+
+// ---------------------------------------------------------------------------
+// ContentHash
+// ---------------------------------------------------------------------------
+
+func TestGDrive_ListPolicies_ContentHash(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.files = []DriveFile{
+		{ID: "doc-1", Name: "Policy", MimeType: "application/vnd.google-apps.document"},
+	}
+	client.contents["doc-1"] = "# Policy\n\nContent."
+
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	policies, _, err := p.ListPolicies(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	require.Len(t, policies, 1)
+
+	hash := policies[0].SyncMetadata.ContentHash["gdrive"]
+	assert.NotEmpty(t, hash)
+	assert.Len(t, hash, 64, "ContentHash should be 64-char SHA-256 hex")
+
+	// Deterministic
+	policies2, _, _ := p.ListPolicies(context.Background(), interfaces.ListOptions{})
+	assert.Equal(t, hash, policies2[0].SyncMetadata.ContentHash["gdrive"])
+}
+
+// ---------------------------------------------------------------------------
+// Audit trail
+// ---------------------------------------------------------------------------
+
+func TestGDrive_AuditLog_PushPolicy(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	p.ClearAuditLog()
+	pol := &domain.Policy{ID: "POL-001", Name: "Test", Content: "# Test"}
+	require.NoError(t, p.PushPolicy(context.Background(), pol))
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "exported", entries[0].Action)
+	assert.Equal(t, "outbound", entries[0].Direction)
+	assert.Equal(t, "POL-001", entries[0].EntityID)
+}
+
+func TestGDrive_AuditLog_ResolveConflict(t *testing.T) {
+	t.Parallel()
+	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
+
+	p.ClearAuditLog()
+	conflict := interfaces.Conflict{EntityType: "policy", EntityID: "POL-001", Provider: "gdrive"}
+	require.NoError(t, p.ResolveConflict(context.Background(), conflict, interfaces.ConflictResolutionRemoteWins))
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "conflict_resolved", entries[0].Action)
+	assert.Equal(t, "remote_wins", entries[0].Resolution)
+	assert.Equal(t, "remote", entries[0].Winner)
+
+	p.ClearAuditLog()
+	assert.Empty(t, p.AuditLog())
+}
+
+// ---------------------------------------------------------------------------
+// DetectChanges entity type from MIME
+// ---------------------------------------------------------------------------
+
+func TestGDrive_DetectChanges_EntityTypeFromMIME(t *testing.T) {
+	t.Parallel()
+	now := time.Now()
+	client := newStubDriveClient()
+	client.files = []DriveFile{
+		{ID: "doc-1", Name: "Policy Doc", MimeType: "application/vnd.google-apps.document", Modified: now},
+		{ID: "sheet-1", Name: "Control Matrix", MimeType: "application/vnd.google-apps.spreadsheet", Modified: now},
+	}
+
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	changes, err := p.DetectChanges(context.Background(), now.Add(-time.Hour))
+	require.NoError(t, err)
+	require.Len(t, changes.Changes, 2)
+
+	// Verify entity types are derived from MIME
+	typeMap := map[string]string{}
+	for _, c := range changes.Changes {
+		typeMap[c.EntityID] = c.EntityType
+	}
+	assert.Equal(t, "policy", typeMap["doc-1"])
+	assert.Equal(t, "control", typeMap["sheet-1"])
+}
+
+// ---------------------------------------------------------------------------
+// Capabilities now include controls and evidence tasks
+// ---------------------------------------------------------------------------
+
+func TestGDrive_Capabilities_AllEntityTypes(t *testing.T) {
+	t.Parallel()
+	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
+	caps := p.Capabilities()
+	assert.True(t, caps.SupportsPolicies)
+	assert.True(t, caps.SupportsControls)
+	assert.True(t, caps.SupportsEvidenceTasks)
+	assert.True(t, caps.SupportsWrite)
+	assert.True(t, caps.SupportsChangeDetect)
 }
