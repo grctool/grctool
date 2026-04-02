@@ -287,7 +287,7 @@ The `testing.yml` advanced testing workflow runs weekly:
 | Deep coverage analysis | `coverage` | `advanced-coverage-reports` |
 | Performance benchmarks | `benchmarks` | `benchmark-results` |
 | Mutation testing | `mutation` | `mutation-report` |
-| Multi-version compatibility | `unit-tests` | CI logs (Go 1.22, 1.23) |
+| CI runtime baseline | `unit-tests` | CI logs (Go 1.24.12) |
 
 ### Manual Collection
 

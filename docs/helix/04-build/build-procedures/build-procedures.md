@@ -21,7 +21,7 @@ This document describes how to build, test, and release GRCTool. It covers local
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Go | 1.23+ (toolchain 1.24.12) | Compiler |
+| Go | 1.24+ (toolchain 1.24.12) | Compiler |
 | golangci-lint | v1.60.3+ | Linting |
 | gosec | Latest | Security scanning |
 | govulncheck | Latest | Dependency vulnerability check |

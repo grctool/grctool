@@ -21,7 +21,7 @@ This document provides step-by-step procedures for running, writing, and maintai
 
 | Tool | Purpose | Installation |
 |------|---------|-------------|
-| Go 1.23+ | Compiler and test runner | `go.dev/dl` |
+| Go 1.24+ | Compiler and test runner | `go.dev/dl` |
 | golangci-lint | Linting and static analysis | `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` |
 | gosec | Security scanning | `go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest` |
 | govulncheck | Dependency vulnerability checking | `go install golang.org/x/vuln/cmd/govulncheck@latest` |
@@ -430,7 +430,7 @@ quality-gates (aggregates all results)
 ### Weekly / Manual (`testing.yml`)
 
 ```
-unit-tests (Go 1.22 + 1.23 matrix)
+unit-tests (Go 1.24.12 baseline)
 integration-tests (VCR playback)
 functional-tests (CLI binary tests)
 coverage (deep analysis + Codecov)

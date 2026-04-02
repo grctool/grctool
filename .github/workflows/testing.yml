@@ -20,7 +20,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
           cache: true
 
       - name: Install lefthook
@@ -65,7 +65,7 @@ jobs:
       
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
           cache: true
       
       - name: Download baseline benchmarks
@@ -108,7 +108,7 @@ jobs:
       
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
           cache: true
       
       - name: Install mutation testing tools
@@ -139,7 +139,7 @@ jobs:
       
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
           cache: true
       
       - name: Download all artifacts
@@ -182,15 +182,12 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        go-version: ['1.22', '1.23']
     steps:
       - uses: actions/checkout@v4
       
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: '1.24.12'
           cache: true
       
       - name: Run unit tests
@@ -207,7 +204,7 @@ jobs:
       
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
           cache: true
       
       - name: Run integration tests
@@ -228,7 +225,7 @@ jobs:
       
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.24.12'
           cache: true
       
       - name: Build binary
