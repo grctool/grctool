@@ -268,3 +268,24 @@ func TestGetRegistryStats(t *testing.T) {
 	assert.NotNil(t, stats.ToolsByCategory)
 	assert.NotNil(t, stats.ToolNames)
 }
+
+// ---------------------------------------------------------------------------
+// Registry.Reset
+// ---------------------------------------------------------------------------
+
+func TestRegistry_Reset(t *testing.T) {
+	t.Parallel()
+
+	r := NewRegistry()
+	require.NoError(t, r.Register(&stubTool{name: "a"}))
+	require.NoError(t, r.Register(&stubTool{name: "b"}))
+	assert.Equal(t, 2, r.Count())
+
+	r.Reset()
+	assert.Equal(t, 0, r.Count())
+	assert.False(t, r.Exists("a"))
+
+	// Re-registration works after reset.
+	require.NoError(t, r.Register(&stubTool{name: "a"}))
+	assert.Equal(t, 1, r.Count())
+}

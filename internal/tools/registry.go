@@ -48,6 +48,15 @@ func NewRegistry() *Registry {
 	}
 }
 
+// Reset clears all registered tools. This makes InitializeToolRegistry
+// idempotent when called multiple times (e.g., in test suites where
+// cobra.OnInitialize fires per command execution).
+func (r *Registry) Reset() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+	r.tools = make(map[string]Tool)
+}
+
 // Register adds a tool to the registry
 func (r *Registry) Register(tool Tool) error {
 	r.mutex.Lock()

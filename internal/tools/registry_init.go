@@ -33,8 +33,13 @@ func GetSharedAuthProviders() *SharedAuthProviders {
 	return sharedAuth
 }
 
-// InitializeToolRegistry registers all available tools with the global registry
+// InitializeToolRegistry registers all available tools with the global registry.
+// Safe to call multiple times — resets the registry before re-registering.
 func InitializeToolRegistry(cfg *config.Config, log logger.Logger) error {
+	// Reset the global registry so repeated calls (e.g., from cobra.OnInitialize
+	// in test suites) don't produce "already registered" errors.
+	GlobalRegistry.Reset()
+
 	// Create shared auth providers once, reuse across all tools
 	sharedAuth = NewSharedAuthProviders(cfg, log)
 	log.Debug("Created shared auth providers",

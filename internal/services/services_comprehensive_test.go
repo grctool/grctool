@@ -475,7 +475,7 @@ func TestDocumentService_UnknownDocumentType(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestGenerateAgentDocs(t *testing.T) {
-	t.Parallel()
+	// NOT parallel: uses os.Chdir which is process-global.
 
 	// Save current dir and change to temp dir to control .grctool/ location
 	origDir, err := os.Getwd()
@@ -2496,7 +2496,7 @@ func TestBuildSuggestedTools_PersonnelCategory(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestGenerateAgentDocs_EmptyDataDir(t *testing.T) {
-	t.Parallel()
+	// NOT parallel: uses os.Chdir which is process-global.
 
 	origDir, err := os.Getwd()
 	require.NoError(t, err)

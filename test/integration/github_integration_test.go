@@ -465,11 +465,17 @@ func TestGitHubSecurity_ComprehensiveWorkflow(t *testing.T) {
 // Helper functions
 
 // skipIfGitHubAuthFails checks if the error is a GitHub authentication error
-// and skips the test with a descriptive message if so
+// or a missing VCR cassette, and skips the test with a descriptive message.
 func skipIfGitHubAuthFails(t *testing.T, err error) {
-	if err != nil && (strings.Contains(err.Error(), "Bad credentials") ||
-		strings.Contains(err.Error(), "401")) {
-		t.Skip("Skipping test: GitHub API credentials not available (401 error). Run with VCR_MODE=record and valid GITHUB_TOKEN to record cassettes.")
+	if err == nil {
+		return
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "Bad credentials") || strings.Contains(msg, "401") {
+		t.Skip("Skipping test: GitHub API credentials not available. Run with VCR_MODE=record and valid GITHUB_TOKEN to record cassettes.")
+	}
+	if strings.Contains(msg, "cassette not found") || strings.Contains(msg, "cassette file is missing") {
+		t.Skip("Skipping test: VCR cassette not recorded. Run with VCR_MODE=record to record cassettes.")
 	}
 }
 
