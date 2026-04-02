@@ -490,3 +490,119 @@ func TestTugboatDataProvider_GetEvidenceTask(t *testing.T) {
 		t.Errorf("GetEvidenceTask().Guidance = %q, want %q", task.Guidance, "Collect GitHub team permission screenshots")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// ContentHash verification
+// ---------------------------------------------------------------------------
+
+func TestTugboatDataProvider_ContentHash_Policy(t *testing.T) {
+	provider, server := setupTestProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		resp := map[string]interface{}{
+			"count": 1,
+			"results": []map[string]interface{}{
+				{"id": 100, "name": "Test Policy", "body": "Content"},
+			},
+			"num_pages": 1,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	policies, _, err := provider.ListPolicies(context.Background(), interfaces.ListOptions{Page: 1, PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListPolicies() error: %v", err)
+	}
+	if len(policies) == 0 {
+		t.Fatal("expected at least one policy")
+	}
+
+	p := policies[0]
+	if p.SyncMetadata == nil {
+		t.Fatal("SyncMetadata should not be nil")
+	}
+	hash, ok := p.SyncMetadata.ContentHash["tugboat"]
+	if !ok || hash == "" {
+		t.Error("ContentHash[tugboat] should be non-empty")
+	}
+	if len(hash) != 64 {
+		t.Errorf("ContentHash should be 64-char SHA-256 hex, got %d chars", len(hash))
+	}
+
+	// Verify determinism: calling again should produce the same hash.
+	policies2, _, _ := provider.ListPolicies(context.Background(), interfaces.ListOptions{Page: 1, PageSize: 10})
+	hash2 := policies2[0].SyncMetadata.ContentHash["tugboat"]
+	if hash != hash2 {
+		t.Errorf("ContentHash should be deterministic: %q != %q", hash, hash2)
+	}
+}
+
+func TestTugboatDataProvider_ContentHash_Control(t *testing.T) {
+	provider, server := setupTestProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		resp := map[string]interface{}{
+			"count": 1,
+			"results": []map[string]interface{}{
+				{"id": 200, "name": "Access Control", "body": "Controls access"},
+			},
+			"num_pages": 1,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	controls, _, err := provider.ListControls(context.Background(), interfaces.ListOptions{Page: 1, PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListControls() error: %v", err)
+	}
+	if len(controls) == 0 {
+		t.Fatal("expected at least one control")
+	}
+
+	c := controls[0]
+	if c.SyncMetadata == nil {
+		t.Fatal("SyncMetadata should not be nil")
+	}
+	hash, ok := c.SyncMetadata.ContentHash["tugboat"]
+	if !ok || hash == "" {
+		t.Error("ContentHash[tugboat] should be non-empty")
+	}
+	if len(hash) != 64 {
+		t.Errorf("ContentHash should be 64-char SHA-256 hex, got %d chars", len(hash))
+	}
+}
+
+func TestTugboatDataProvider_ContentHash_EvidenceTask(t *testing.T) {
+	provider, server := setupTestProvider(t, func(w http.ResponseWriter, r *http.Request) {
+		resp := map[string]interface{}{
+			"count": 1,
+			"results": []map[string]interface{}{
+				{"id": 300, "name": "Collect Evidence", "description": "Details"},
+			},
+			"num_pages": 1,
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+	defer server.Close()
+
+	tasks, _, err := provider.ListEvidenceTasks(context.Background(), interfaces.ListOptions{Page: 1, PageSize: 10})
+	if err != nil {
+		t.Fatalf("ListEvidenceTasks() error: %v", err)
+	}
+	if len(tasks) == 0 {
+		t.Fatal("expected at least one task")
+	}
+
+	task := tasks[0]
+	if task.SyncMetadata == nil {
+		t.Fatal("SyncMetadata should not be nil")
+	}
+	hash, ok := task.SyncMetadata.ContentHash["tugboat"]
+	if !ok || hash == "" {
+		t.Error("ContentHash[tugboat] should be non-empty")
+	}
+	if len(hash) != 64 {
+		t.Errorf("ContentHash should be 64-char SHA-256 hex, got %d chars", len(hash))
+	}
+}

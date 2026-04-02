@@ -18,6 +18,7 @@ package tugboat
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/grctool/grctool/internal/adapters"
 	"github.com/grctool/grctool/internal/domain"
@@ -78,6 +79,58 @@ func (p *TugboatDataProvider) TestConnection(ctx context.Context) error {
 	return nil
 }
 
+// ensureSyncMetadata initializes SyncMetadata on an entity if nil.
+func ensureSyncMetadata(sm **domain.SyncMetadata) {
+	if *sm == nil {
+		*sm = &domain.SyncMetadata{}
+	}
+	if (*sm).ContentHash == nil {
+		(*sm).ContentHash = make(map[string]string)
+	}
+	if (*sm).LastSyncTime == nil {
+		(*sm).LastSyncTime = make(map[string]time.Time)
+	}
+}
+
+// setPolicyContentHash computes and sets the content hash on a policy.
+func (p *TugboatDataProvider) setPolicyContentHash(policy *domain.Policy) {
+	ensureSyncMetadata(&policy.SyncMetadata)
+	hash, err := domain.ComputeContentHash(policy)
+	if err != nil {
+		p.logger.Warn("failed to compute content hash for policy",
+			logger.String("id", policy.ID), logger.String("error", err.Error()))
+		return
+	}
+	policy.SyncMetadata.ContentHash["tugboat"] = hash
+	policy.SyncMetadata.LastSyncTime["tugboat"] = time.Now()
+}
+
+// setControlContentHash computes and sets the content hash on a control.
+func (p *TugboatDataProvider) setControlContentHash(control *domain.Control) {
+	ensureSyncMetadata(&control.SyncMetadata)
+	hash, err := domain.ComputeContentHash(control)
+	if err != nil {
+		p.logger.Warn("failed to compute content hash for control",
+			logger.String("id", control.ID), logger.String("error", err.Error()))
+		return
+	}
+	control.SyncMetadata.ContentHash["tugboat"] = hash
+	control.SyncMetadata.LastSyncTime["tugboat"] = time.Now()
+}
+
+// setTaskContentHash computes and sets the content hash on an evidence task.
+func (p *TugboatDataProvider) setTaskContentHash(task *domain.EvidenceTask) {
+	ensureSyncMetadata(&task.SyncMetadata)
+	hash, err := domain.ComputeContentHash(task)
+	if err != nil {
+		p.logger.Warn("failed to compute content hash for evidence task",
+			logger.String("id", task.ID), logger.String("error", err.Error()))
+		return
+	}
+	task.SyncMetadata.ContentHash["tugboat"] = hash
+	task.SyncMetadata.LastSyncTime["tugboat"] = time.Now()
+}
+
 // ListPolicies wraps client.GetPolicies with ListOptions to PolicyListOptions translation.
 func (p *TugboatDataProvider) ListPolicies(ctx context.Context, opts interfaces.ListOptions) ([]domain.Policy, int, error) {
 	clientOpts := &tugboatclient.PolicyListOptions{
@@ -100,7 +153,9 @@ func (p *TugboatDataProvider) ListPolicies(ctx context.Context, opts interfaces.
 
 	policies := make([]domain.Policy, 0, len(results))
 	for _, r := range results {
-		policies = append(policies, p.adapter.ConvertPolicy(r))
+		pol := p.adapter.ConvertPolicy(r)
+		p.setPolicyContentHash(&pol)
+		policies = append(policies, pol)
 	}
 
 	// The underlying client does not expose the total count from pagination
@@ -118,6 +173,7 @@ func (p *TugboatDataProvider) GetPolicy(ctx context.Context, id string) (*domain
 	}
 
 	policy := p.adapter.ConvertPolicy(*details)
+	p.setPolicyContentHash(&policy)
 	return &policy, nil
 }
 
@@ -143,7 +199,9 @@ func (p *TugboatDataProvider) ListControls(ctx context.Context, opts interfaces.
 
 	controls := make([]domain.Control, 0, len(results))
 	for _, r := range results {
-		controls = append(controls, p.adapter.ConvertControl(r))
+		ctrl := p.adapter.ConvertControl(r)
+		p.setControlContentHash(&ctrl)
+		controls = append(controls, ctrl)
 	}
 
 	return controls, len(controls), nil
@@ -159,6 +217,7 @@ func (p *TugboatDataProvider) GetControl(ctx context.Context, id string) (*domai
 	}
 
 	control := p.adapter.ConvertControl(*details)
+	p.setControlContentHash(&control)
 	return &control, nil
 }
 
@@ -181,7 +240,9 @@ func (p *TugboatDataProvider) ListEvidenceTasks(ctx context.Context, opts interf
 
 	tasks := make([]domain.EvidenceTask, 0, len(results))
 	for _, r := range results {
-		tasks = append(tasks, p.adapter.ConvertEvidenceTask(r))
+		task := p.adapter.ConvertEvidenceTask(r)
+		p.setTaskContentHash(&task)
+		tasks = append(tasks, task)
 	}
 
 	return tasks, len(tasks), nil
@@ -197,5 +258,6 @@ func (p *TugboatDataProvider) GetEvidenceTask(ctx context.Context, id string) (*
 	}
 
 	task := p.adapter.ConvertEvidenceTask(*details)
+	p.setTaskContentHash(&task)
 	return &task, nil
 }
