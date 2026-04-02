@@ -239,12 +239,33 @@ GRCTool coordinates compliance work across teams and auditors using a predictabl
 - **Web interface** for non-technical users
 - **Integration marketplace** for common tools and platforms
 
+## Feature Registry
+
+### Implemented (Backfilled)
+| Feature | Name | Priority | Status |
+|---------|------|----------|--------|
+| FEAT-005 | CLI Framework & Configuration Management | P0 | Implemented |
+| FEAT-006 | Browser-Based Authentication | P0 | Implemented |
+| FEAT-007 | Tugboat Logic Data Synchronization | P0 | Implemented |
+| FEAT-008 | Evidence Collection Tool Framework (29 tools) | P0 | Implemented |
+| FEAT-009 | AI-Powered Evidence Generation | P0 | Implemented |
+| FEAT-010 | Evidence Submission & Lifecycle Management | P0 | Implemented |
+
+### Planned
+| Feature | Name | Priority | Status |
+|---------|------|----------|--------|
+| FEAT-001 | AccountableHQ Bidirectional Policy Sync | P1 | Proposed |
+| FEAT-002 | Google Drive Bidirectional Sync | P1 | Proposed |
+| FEAT-003 | Document & Audit Lifecycle Scheduler | P0 | Proposed |
+| FEAT-004 | Universal Document Provider Framework | P0 | Proposed |
+
 ## References
 
 - [[user-stories]] - Detailed user stories and personas
 - [[compliance-requirements]] - SOC2 and ISO27001 framework requirements
 - [[security-requirements]] - Security and privacy requirements
 - [[architecture-decisions]] - Technical architecture choices
+- [[product-vision]] - Product vision and strategic direction
 
 ---
 
