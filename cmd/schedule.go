@@ -162,6 +162,11 @@ func runScheduleList(cmd *cobra.Command, args []string) error {
 }
 
 func runScheduleStatus(cmd *cobra.Command, args []string) error {
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("loading config: %w", err)
+	}
+
 	s, err := loadScheduler()
 	if err != nil {
 		return err
@@ -181,13 +186,71 @@ func runScheduleStatus(cmd *cobra.Command, args []string) error {
 
 	out := cmd.OutOrStdout()
 
+	// Build lookup for due schedules.
+	dueSet := make(map[string]bool, len(due))
+	for _, d := range due {
+		dueSet[d.Name] = true
+	}
+
+	// Categorize schedules: overdue, due now, upcoming.
+	var overdue, dueNow, upcoming []string
+	for _, sc := range cfg.Schedules.Schedules {
+		if !sc.Enabled {
+			continue
+		}
+		if dueSet[sc.Name] {
+			// If it has run before and the last run had an error or it was due
+			// before the last run, it's overdue.
+			if ss, ok := state.Schedules[sc.Name]; ok && ss.LastError != "" {
+				overdue = append(overdue, sc.Name)
+			} else {
+				dueNow = append(dueNow, sc.Name)
+			}
+		} else {
+			upcoming = append(upcoming, sc.Name)
+		}
+	}
+
+	// Overdue
+	fmt.Fprintln(out, "=== Overdue ===")
+	if len(overdue) == 0 {
+		fmt.Fprintln(out, "  No overdue schedules.")
+	} else {
+		for _, name := range overdue {
+			ss := state.Schedules[name]
+			fmt.Fprintf(out, "  %s  last_error: %s  last_run: %s  runs: %d\n",
+				name, ss.LastError, ss.LastRun.Format(time.RFC3339), ss.RunCount)
+		}
+	}
+	fmt.Fprintln(out)
+
 	// Due Now
 	fmt.Fprintln(out, "=== Due Now ===")
-	if len(due) == 0 {
+	if len(dueNow) == 0 {
 		fmt.Fprintln(out, "  No schedules are currently due.")
 	} else {
-		for _, d := range due {
-			fmt.Fprintf(out, "  %s  (cron: %s, scope: %s)\n", d.Name, d.Cron, d.Scope)
+		for _, name := range dueNow {
+			for _, d := range due {
+				if d.Name == name {
+					fmt.Fprintf(out, "  %s  (cron: %s, scope: %s)\n", d.Name, d.Cron, d.Scope)
+					break
+				}
+			}
+		}
+	}
+	fmt.Fprintln(out)
+
+	// Upcoming
+	fmt.Fprintln(out, "=== Upcoming ===")
+	if len(upcoming) == 0 {
+		fmt.Fprintln(out, "  No upcoming schedules.")
+	} else {
+		for _, name := range upcoming {
+			nextDue := "-"
+			if ss, ok := state.Schedules[name]; ok && !ss.NextDue.IsZero() {
+				nextDue = ss.NextDue.Format(time.RFC3339)
+			}
+			fmt.Fprintf(out, "  %s  next_due: %s\n", name, nextDue)
 		}
 	}
 	fmt.Fprintln(out)
@@ -343,10 +406,27 @@ func runNamedSchedule(cmd *cobra.Command, s *scheduler.Scheduler, name string, n
 	return nil
 }
 
-// loadOrchestrator creates an Orchestrator from schedule-task-tool mappings.
+// loadOrchestrator creates an Orchestrator from schedule-task-tool mappings in config.
 func loadOrchestrator(_ *scheduler.Scheduler) *scheduler.Orchestrator {
 	log := logger.WithComponent("orchestrator")
-	return scheduler.NewOrchestrator(nil, log)
+
+	cfg, err := config.Load()
+	if err != nil {
+		log.Warn("failed to load config for task mappings; orchestrator will have no mappings",
+			logger.String("error", err.Error()))
+		return scheduler.NewOrchestrator(nil, log)
+	}
+
+	var mappings []scheduler.TaskToolMapping
+	for _, tm := range cfg.Schedules.TaskMappings {
+		mappings = append(mappings, scheduler.TaskToolMapping{
+			TaskRef:  tm.TaskRef,
+			Tools:    tm.Tools,
+			Schedule: tm.Schedule,
+		})
+	}
+
+	return scheduler.NewOrchestrator(mappings, log)
 }
 
 // toolExecutor wraps the global tool registry ExecuteTool as the executor

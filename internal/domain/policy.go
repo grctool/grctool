@@ -60,6 +60,8 @@ type Policy struct {
 	LastDownloadedAt *time.Time `json:"last_downloaded_at,omitempty"`
 	ReferenceCount   int        `json:"reference_count"`
 	LastReferencedAt *time.Time `json:"last_referenced_at,omitempty"`
+	// Lifecycle state (managed by lifecycle state machine)
+	LifecycleState string `json:"lifecycle_state,omitempty"`
 	// Multi-provider fields
 	// ExternalIDs maps provider names to their external ID for this entity.
 	// e.g., {"tugboat": "12345", "accountablehq": "pol-abc-123"}

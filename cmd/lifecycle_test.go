@@ -17,11 +17,57 @@ package cmd
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/grctool/grctool/internal/config"
+	"github.com/grctool/grctool/internal/domain"
+	"github.com/grctool/grctool/internal/storage"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// setupLifecycleTestConfig creates a temp directory with a minimal config and
+// a test policy entity, then configures viper to load from it.
+func setupLifecycleTestConfig(t *testing.T) string {
+	t.Helper()
+	tempDir := t.TempDir()
+	dataDir := filepath.Join(tempDir, "data")
+
+	// Write minimal config.
+	configContent := `
+tugboat:
+  base_url: "https://api-test.example.com"
+  org_id: "test"
+  timeout: "30s"
+  rate_limit: 10
+  cookie_header: "test-cookie"
+
+storage:
+  data_dir: "` + dataDir + `"
+`
+	configFile := filepath.Join(tempDir, ".grctool.yaml")
+	require.NoError(t, os.WriteFile(configFile, []byte(configContent), 0o644))
+
+	viper.Reset()
+	viper.SetConfigFile(configFile)
+	require.NoError(t, viper.ReadInConfig())
+
+	// Create a test policy entity through the storage layer so filenames are correct.
+	store, err := storage.NewStorage(config.StorageConfig{DataDir: dataDir})
+	require.NoError(t, err)
+
+	policy := &domain.Policy{
+		ID:          "12345",
+		ReferenceID: "POL-0001",
+		Name:        "Test Policy",
+	}
+	require.NoError(t, store.SavePolicy(policy))
+
+	return tempDir
+}
 
 func TestLifecycleCmd_HasSubcommands(t *testing.T) {
 	subcommands := lifecycleCmd.Commands()
@@ -128,13 +174,15 @@ func TestLifecycleTransitionCmd_InvalidEntityType(t *testing.T) {
 }
 
 func TestLifecycleTransitionCmd_InvalidTransition(t *testing.T) {
-	// Policy initial state is "draft". Trying to transition directly to "published"
-	// should fail since draft -> published is not a valid transition.
+	setupLifecycleTestConfig(t)
+
 	buf := new(bytes.Buffer)
 	cmd := lifecycleTransitionCmd
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
 
+	// Policy initial state is "draft". Trying to transition directly to "published"
+	// should fail since draft -> published is not a valid transition.
 	err := runLifecycleTransition(cmd, []string{"policy", "POL-0001", "published"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot transition")
@@ -143,17 +191,45 @@ func TestLifecycleTransitionCmd_InvalidTransition(t *testing.T) {
 }
 
 func TestLifecycleTransitionCmd_ValidTransition(t *testing.T) {
-	// Policy: draft -> review is valid.
+	setupLifecycleTestConfig(t)
+
 	buf := new(bytes.Buffer)
 	cmd := lifecycleTransitionCmd
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
 
+	// Policy: draft -> review is valid.
 	err := runLifecycleTransition(cmd, []string{"policy", "POL-0001", "review"})
 	require.NoError(t, err)
-	assert.Contains(t, buf.String(), "Transitioning")
+	assert.Contains(t, buf.String(), "Transitioned")
 	assert.Contains(t, buf.String(), "draft")
 	assert.Contains(t, buf.String(), "review")
+}
+
+func TestLifecycleTransitionCmd_PersistsState(t *testing.T) {
+	setupLifecycleTestConfig(t)
+
+	buf := new(bytes.Buffer)
+	cmd := lifecycleTransitionCmd
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// Transition draft -> review
+	err := runLifecycleTransition(cmd, []string{"policy", "POL-0001", "review"})
+	require.NoError(t, err)
+
+	// Now transition review -> approved (should work because state was persisted)
+	buf.Reset()
+	err = runLifecycleTransition(cmd, []string{"policy", "POL-0001", "approved"})
+	require.NoError(t, err)
+	assert.Contains(t, buf.String(), "review")
+	assert.Contains(t, buf.String(), "approved")
+
+	// Transitioning from draft should fail now (we're at approved, not draft)
+	buf.Reset()
+	err = runLifecycleTransition(cmd, []string{"policy", "POL-0001", "draft"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "cannot transition")
 }
 
 func TestLifecycleTransitionCmd_InvalidState(t *testing.T) {

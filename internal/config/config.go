@@ -63,9 +63,17 @@ type ScheduleConfig struct {
 	Provider string `yaml:"provider,omitempty" mapstructure:"provider"` // provider name reference
 }
 
+// TaskMappingConfig maps an evidence task to the tools that collect its evidence.
+type TaskMappingConfig struct {
+	TaskRef  string   `yaml:"task_ref" mapstructure:"task_ref"`
+	Tools    []string `yaml:"tools" mapstructure:"tools"`
+	Schedule string   `yaml:"schedule,omitempty" mapstructure:"schedule"`
+}
+
 // SchedulesConfig holds configuration for all scheduled tasks
 type SchedulesConfig struct {
-	Schedules []ScheduleConfig `yaml:"schedules,omitempty" mapstructure:"schedules"`
+	Schedules    []ScheduleConfig    `yaml:"schedules,omitempty" mapstructure:"schedules"`
+	TaskMappings []TaskMappingConfig `yaml:"task_mappings,omitempty" mapstructure:"task_mappings"`
 }
 
 // LifecycleConfig holds configuration for lifecycle state machine cadences

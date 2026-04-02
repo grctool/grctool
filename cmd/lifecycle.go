@@ -19,7 +19,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/lifecycle"
+	"github.com/grctool/grctool/internal/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -59,7 +61,7 @@ var lifecycleTransitionCmd = &cobra.Command{
 	Long: `Manually transition a compliance entity to a new lifecycle state.
 
 The transition is validated against the state machine to ensure it is allowed.
-Currently shows what would happen (actual persistence wired in orchestration bead).
+The new state is persisted to the entity's storage file.
 
 Valid entity types: policy, control, evidence_task`,
 	Args: cobra.ExactArgs(3),
@@ -170,11 +172,22 @@ func runLifecycleTransition(cmd *cobra.Command, args []string) error {
 			newState, entityType, joinStates(sm.States))
 	}
 
-	// For now, we assume the entity is in the initial state if we don't have
-	// persisted state. In practice, the orchestration layer will look up the
-	// actual current state from entity metadata.
-	// TODO(c6w.3): Look up actual current state from entity metadata.
-	currentState := sm.Initial
+	// Load config and storage to read/write entity state.
+	cfg, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to load config: %w", err)
+	}
+
+	store, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return fmt.Errorf("failed to initialize storage: %w", err)
+	}
+
+	// Look up current lifecycle state from the entity.
+	currentState, err := getEntityLifecycleState(store, entityType, entityID, sm)
+	if err != nil {
+		return err
+	}
 
 	if !sm.CanTransition(currentState, targetState) {
 		validNext := sm.ValidTransitionsFrom(currentState)
@@ -182,11 +195,79 @@ func runLifecycleTransition(cmd *cobra.Command, args []string) error {
 			entityType, entityID, currentState, newState, joinStates(validNext))
 	}
 
-	// TODO(c6w.3): Actually persist the state change.
-	fmt.Fprintf(out, "Transitioning %s %s: %s -> %s\n", entityType, entityID, currentState, targetState)
-	fmt.Fprintf(out, "  Transition validated successfully.\n")
+	// Persist the state change.
+	if err := setEntityLifecycleState(store, entityType, entityID, string(targetState)); err != nil {
+		return err
+	}
+
+	fmt.Fprintf(out, "Transitioned %s %s: %s -> %s\n", entityType, entityID, currentState, targetState)
 
 	return nil
+}
+
+// getEntityLifecycleState reads the lifecycle state for an entity from storage.
+// If the entity has no lifecycle state set, returns the state machine's initial state.
+func getEntityLifecycleState(store *storage.Storage, entityType, entityID string, sm *lifecycle.StateMachine) (lifecycle.State, error) {
+	switch entityType {
+	case "policy":
+		p, err := store.GetPolicy(entityID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get policy %s: %w", entityID, err)
+		}
+		if p.LifecycleState != "" {
+			return lifecycle.State(p.LifecycleState), nil
+		}
+		return sm.Initial, nil
+	case "control":
+		c, err := store.GetControl(entityID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get control %s: %w", entityID, err)
+		}
+		if c.LifecycleState != "" {
+			return lifecycle.State(c.LifecycleState), nil
+		}
+		return sm.Initial, nil
+	case "evidence_task":
+		t, err := store.GetEvidenceTask(entityID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get evidence task %s: %w", entityID, err)
+		}
+		if t.LifecycleState != "" {
+			return lifecycle.State(t.LifecycleState), nil
+		}
+		return sm.Initial, nil
+	default:
+		return "", fmt.Errorf("unknown entity type: %s", entityType)
+	}
+}
+
+// setEntityLifecycleState writes the lifecycle state for an entity to storage.
+func setEntityLifecycleState(store *storage.Storage, entityType, entityID, state string) error {
+	switch entityType {
+	case "policy":
+		p, err := store.GetPolicy(entityID)
+		if err != nil {
+			return fmt.Errorf("failed to get policy %s: %w", entityID, err)
+		}
+		p.LifecycleState = state
+		return store.SavePolicy(p)
+	case "control":
+		c, err := store.GetControl(entityID)
+		if err != nil {
+			return fmt.Errorf("failed to get control %s: %w", entityID, err)
+		}
+		c.LifecycleState = state
+		return store.SaveControl(c)
+	case "evidence_task":
+		t, err := store.GetEvidenceTask(entityID)
+		if err != nil {
+			return fmt.Errorf("failed to get evidence task %s: %w", entityID, err)
+		}
+		t.LifecycleState = state
+		return store.SaveEvidenceTask(t)
+	default:
+		return fmt.Errorf("unknown entity type: %s", entityType)
+	}
 }
 
 // joinStates formats a slice of States as a comma-separated string.

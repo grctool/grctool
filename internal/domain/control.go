@@ -67,6 +67,8 @@ type Control struct {
 	MasterContent      *ControlMasterContent   `json:"master_content,omitempty"`
 	Associations       *ControlAssociations    `json:"associations,omitempty"`
 	OrgEvidenceMetrics *ControlEvidenceMetrics `json:"org_evidence_metrics,omitempty"`
+	// Lifecycle state (managed by lifecycle state machine)
+	LifecycleState string `json:"lifecycle_state,omitempty"`
 	// Multi-provider fields
 	// ExternalIDs maps provider names to their external ID for this entity.
 	// e.g., {"tugboat": "12345", "accountablehq": "ctrl-abc-123"}

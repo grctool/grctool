@@ -80,6 +80,8 @@ type EvidenceTask struct {
 	// Master content and associations
 	MasterContent *EvidenceTaskMasterContent `json:"master_content,omitempty"`
 	Associations  *EvidenceTaskAssociations  `json:"associations,omitempty"`
+	// Lifecycle state (managed by lifecycle state machine)
+	LifecycleState string `json:"lifecycle_state,omitempty"`
 	// Multi-provider fields
 	// ExternalIDs maps provider names to their external ID for this entity.
 	// e.g., {"tugboat": "12345", "accountablehq": "et-abc-123"}
