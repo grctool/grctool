@@ -51,6 +51,16 @@ type ChangeSet struct {
 	Changes    []ChangeEntry `json:"changes,omitempty"`
 }
 
+// ProviderInfo summarizes a registered provider's state for operator display.
+// Per CD-1 (hx-be3a9c50): excludes LastSyncTime because sync timestamps are
+// per-entity-per-provider on SyncMetadata, not a provider-level attribute.
+type ProviderInfo struct {
+	Name         string               `json:"name"`
+	Capabilities ProviderCapabilities `json:"capabilities"`
+	Healthy      bool                 `json:"healthy"`
+	LastChecked  *time.Time           `json:"last_checked,omitempty"`
+}
+
 // ProviderRegistry manages registration and lookup of DataProvider instances.
 // Services depend on this interface rather than the concrete struct in
 // internal/providers, enabling mock injection in tests.
@@ -73,6 +83,12 @@ type ProviderRegistry interface {
 
 	// HealthCheck tests connectivity for all registered providers.
 	HealthCheck(ctx context.Context) map[string]error
+
+	// ListProviderInfo returns rich metadata for all registered providers,
+	// including capabilities and health status. Per CD-2 (hx-be3a9c50):
+	// this calls TestConnection on each provider, so it involves I/O.
+	// Use List() when only names are needed.
+	ListProviderInfo(ctx context.Context) ([]ProviderInfo, error)
 }
 
 // ProviderCapabilities reports which entity types and operations a provider supports.

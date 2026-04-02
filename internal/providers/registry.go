@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/grctool/grctool/internal/interfaces"
 )
@@ -154,4 +155,37 @@ func (r *ProviderRegistry) HealthCheck(ctx context.Context) map[string]error {
 		results[name] = p.TestConnection(ctx)
 	}
 	return results
+}
+
+// ListProviderInfo returns rich metadata for all registered providers,
+// including capabilities and health status from TestConnection.
+func (r *ProviderRegistry) ListProviderInfo(ctx context.Context) ([]interfaces.ProviderInfo, error) {
+	r.mu.RLock()
+	snapshot := make(map[string]interfaces.DataProvider, len(r.providers))
+	for name, p := range r.providers {
+		snapshot[name] = p
+	}
+	r.mu.RUnlock()
+
+	// Collect names and sort for deterministic output.
+	names := make([]string, 0, len(snapshot))
+	for name := range snapshot {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	now := time.Now()
+	infos := make([]interfaces.ProviderInfo, 0, len(names))
+	for _, name := range names {
+		p := snapshot[name]
+		healthy := p.TestConnection(ctx) == nil
+		checked := now
+		infos = append(infos, interfaces.ProviderInfo{
+			Name:         name,
+			Capabilities: p.Capabilities(),
+			Healthy:      healthy,
+			LastChecked:  &checked,
+		})
+	}
+	return infos, nil
 }

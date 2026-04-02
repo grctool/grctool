@@ -343,3 +343,58 @@ func TestConcurrentAccess(t *testing.T) {
 		t.Fatalf("expected %d providers, got %d", goroutines, reg.Count())
 	}
 }
+
+func TestListProviderInfo(t *testing.T) {
+	reg := NewProviderRegistry()
+	_ = reg.Register(testhelpers.NewStubDataProvider("alpha"))
+	_ = reg.Register(testhelpers.NewStubDataProvider("bravo"))
+
+	infos, err := reg.ListProviderInfo(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, infos, 2)
+
+	// Verify sorted order
+	assert.Equal(t, "alpha", infos[0].Name)
+	assert.Equal(t, "bravo", infos[1].Name)
+
+	// Verify capabilities come through
+	assert.True(t, infos[0].Capabilities.SupportsPolicies)
+	assert.True(t, infos[0].Capabilities.SupportsControls)
+	assert.True(t, infos[0].Capabilities.SupportsEvidenceTasks)
+
+	// Verify health check ran
+	assert.True(t, infos[0].Healthy)
+	assert.True(t, infos[1].Healthy)
+	assert.NotNil(t, infos[0].LastChecked)
+	assert.NotNil(t, infos[1].LastChecked)
+}
+
+func TestListProviderInfo_WithUnhealthy(t *testing.T) {
+	reg := NewProviderRegistry()
+
+	healthy := testhelpers.NewStubDataProvider("healthy")
+	_ = reg.Register(healthy)
+
+	failing := testhelpers.NewStubDataProvider("failing")
+	failing.ConnError = fmt.Errorf("connection refused")
+	_ = reg.Register(failing)
+
+	infos, err := reg.ListProviderInfo(context.Background())
+	require.NoError(t, err)
+	assert.Len(t, infos, 2)
+
+	// Sorted: failing, healthy
+	assert.Equal(t, "failing", infos[0].Name)
+	assert.False(t, infos[0].Healthy)
+
+	assert.Equal(t, "healthy", infos[1].Name)
+	assert.True(t, infos[1].Healthy)
+}
+
+func TestListProviderInfo_Empty(t *testing.T) {
+	reg := NewProviderRegistry()
+
+	infos, err := reg.ListProviderInfo(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, infos)
+}
