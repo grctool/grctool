@@ -5,6 +5,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -220,4 +221,253 @@ func TestSyncOrchestrator_GetLocalSyncMetadata_AllEntityTypes(t *testing.T) {
 	// Unknown type returns nil
 	meta = orch.getLocalSyncMetadata("widget", "ext-1", "prov")
 	assert.Nil(t, meta)
+}
+
+// TestPushEntity_Direct exercises pushEntity directly for all entity types and error paths.
+func TestPushEntity_Direct(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		entityType string
+		entityID   string
+		setup      func(*stubSyncProvider, *stubStorageService)
+		wantErr    string
+	}{
+		{
+			name:       "policy success",
+			entityType: "policy",
+			entityID:   "pol-1",
+			setup: func(sp *stubSyncProvider, ss *stubStorageService) {
+				_ = ss.SavePolicy(&domain.Policy{ID: "P1", ExternalIDs: map[string]string{"dp": "pol-1"}})
+			},
+		},
+		{
+			name:       "control success",
+			entityType: "control",
+			entityID:   "ctrl-1",
+			setup: func(sp *stubSyncProvider, ss *stubStorageService) {
+				_ = ss.SaveControl(&domain.Control{ID: "C1", ExternalIDs: map[string]string{"dp": "ctrl-1"}})
+			},
+		},
+		{
+			name:       "evidence_task success",
+			entityType: "evidence_task",
+			entityID:   "task-1",
+			setup: func(sp *stubSyncProvider, ss *stubStorageService) {
+				_ = ss.SaveEvidenceTask(&domain.EvidenceTask{ID: "T1", ExternalIDs: map[string]string{"dp": "task-1"}})
+			},
+		},
+		{
+			name:       "policy storage error",
+			entityType: "policy",
+			entityID:   "pol-missing",
+			setup:      func(sp *stubSyncProvider, ss *stubStorageService) {},
+			wantErr:    "load policy pol-missing for push",
+		},
+		{
+			name:       "control storage error",
+			entityType: "control",
+			entityID:   "ctrl-missing",
+			setup:      func(sp *stubSyncProvider, ss *stubStorageService) {},
+			wantErr:    "load control ctrl-missing for push",
+		},
+		{
+			name:       "evidence_task storage error",
+			entityType: "evidence_task",
+			entityID:   "task-missing",
+			setup:      func(sp *stubSyncProvider, ss *stubStorageService) {},
+			wantErr:    "load evidence_task task-missing for push",
+		},
+		{
+			name:       "unknown entity type",
+			entityType: "widget",
+			entityID:   "w-1",
+			setup:      func(sp *stubSyncProvider, ss *stubStorageService) {},
+			wantErr:    "unknown entity type: widget",
+		},
+		{
+			name:       "policy push rejected",
+			entityType: "policy",
+			entityID:   "pol-1",
+			setup: func(sp *stubSyncProvider, ss *stubStorageService) {
+				_ = ss.SavePolicy(&domain.Policy{ID: "P1", ExternalIDs: map[string]string{"dp": "pol-1"}})
+				sp.pushPolicyErr = fmt.Errorf("forbidden")
+			},
+			wantErr: "forbidden",
+		},
+		{
+			name:       "control push rejected",
+			entityType: "control",
+			entityID:   "ctrl-1",
+			setup: func(sp *stubSyncProvider, ss *stubStorageService) {
+				_ = ss.SaveControl(&domain.Control{ID: "C1", ExternalIDs: map[string]string{"dp": "ctrl-1"}})
+				sp.pushControlErr = fmt.Errorf("rate limited")
+			},
+			wantErr: "rate limited",
+		},
+		{
+			name:       "evidence_task push rejected",
+			entityType: "evidence_task",
+			entityID:   "task-1",
+			setup: func(sp *stubSyncProvider, ss *stubStorageService) {
+				_ = ss.SaveEvidenceTask(&domain.EvidenceTask{ID: "T1", ExternalIDs: map[string]string{"dp": "task-1"}})
+				sp.pushTaskErr = fmt.Errorf("conflict")
+			},
+			wantErr: "conflict",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sp := newStubSyncProvider("dp")
+			storage := newStubStorageService()
+			tt.setup(sp, storage)
+
+			reg := providers.NewProviderRegistry()
+			require.NoError(t, reg.Register(sp))
+
+			orch := NewSyncOrchestrator(reg, storage, ConflictPolicyRemoteWins, mustTestLogger(t))
+			err := orch.pushEntity(context.Background(), sp, tt.entityType, tt.entityID)
+
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestSyncOrchestrator_PushEntity_PolicyPushError tests pushEntity error when provider rejects policy push.
+func TestSyncOrchestrator_PushEntity_PolicyPushError(t *testing.T) {
+	t.Parallel()
+
+	sp := newStubSyncProvider("push-err")
+	sp.pushPolicyErr = fmt.Errorf("remote rejected push")
+	sp.changeSet = &interfaces.ChangeSet{
+		Provider: "push-err",
+		Changes: []interfaces.ChangeEntry{
+			{EntityType: "policy", EntityID: "pol-1", ChangeType: "updated", Hash: "remote-hash"},
+		},
+	}
+	storage := newStubStorageService()
+	_ = storage.SavePolicy(&domain.Policy{
+		ID: "POL-1", ExternalIDs: map[string]string{"push-err": "pol-1"},
+		SyncMetadata: &domain.SyncMetadata{ContentHash: map[string]string{"push-err": "old-hash", "local": "local-new"}},
+	})
+	storage.saved = nil
+
+	reg := providers.NewProviderRegistry()
+	require.NoError(t, reg.Register(sp))
+
+	orch := NewSyncOrchestrator(reg, storage, ConflictPolicyLocalWins, mustTestLogger(t))
+	result, err := orch.SyncProvider(context.Background(), "push-err", time.Time{})
+	require.NoError(t, err)
+	assert.True(t, len(result.Errors) > 0, "expected push error for rejected policy")
+	assert.Equal(t, 0, result.PushCount)
+}
+
+// TestSyncOrchestrator_PushEntity_ControlPushError tests pushEntity error when provider rejects control push.
+func TestSyncOrchestrator_PushEntity_ControlPushError(t *testing.T) {
+	t.Parallel()
+
+	sp := newStubSyncProvider("push-ctrl-err")
+	sp.pushControlErr = fmt.Errorf("rate limited")
+	sp.changeSet = &interfaces.ChangeSet{
+		Provider: "push-ctrl-err",
+		Changes: []interfaces.ChangeEntry{
+			{EntityType: "control", EntityID: "ctrl-1", ChangeType: "updated", Hash: "remote-hash"},
+		},
+	}
+	storage := newStubStorageService()
+	_ = storage.SaveControl(&domain.Control{
+		ID: "CC-01", ExternalIDs: map[string]string{"push-ctrl-err": "ctrl-1"},
+		SyncMetadata: &domain.SyncMetadata{ContentHash: map[string]string{"push-ctrl-err": "old-hash", "local": "local-new"}},
+	})
+	storage.saved = nil
+
+	reg := providers.NewProviderRegistry()
+	require.NoError(t, reg.Register(sp))
+
+	orch := NewSyncOrchestrator(reg, storage, ConflictPolicyLocalWins, mustTestLogger(t))
+	result, err := orch.SyncProvider(context.Background(), "push-ctrl-err", time.Time{})
+	require.NoError(t, err)
+	assert.True(t, len(result.Errors) > 0, "expected push error for rejected control")
+	assert.Equal(t, 0, result.PushCount)
+}
+
+// TestSyncOrchestrator_PushEntity_EvidenceTaskPushError tests pushEntity error when provider rejects task push.
+func TestSyncOrchestrator_PushEntity_EvidenceTaskPushError(t *testing.T) {
+	t.Parallel()
+
+	sp := newStubSyncProvider("push-task-err")
+	sp.pushTaskErr = fmt.Errorf("conflict on remote")
+	sp.changeSet = &interfaces.ChangeSet{
+		Provider: "push-task-err",
+		Changes: []interfaces.ChangeEntry{
+			{EntityType: "evidence_task", EntityID: "task-1", ChangeType: "updated", Hash: "remote-hash"},
+		},
+	}
+	storage := newStubStorageService()
+	_ = storage.SaveEvidenceTask(&domain.EvidenceTask{
+		ID: "ET-0001", ExternalIDs: map[string]string{"push-task-err": "task-1"},
+		SyncMetadata: &domain.SyncMetadata{ContentHash: map[string]string{"push-task-err": "old-hash", "local": "local-new"}},
+	})
+	storage.saved = nil
+
+	reg := providers.NewProviderRegistry()
+	require.NoError(t, reg.Register(sp))
+
+	orch := NewSyncOrchestrator(reg, storage, ConflictPolicyLocalWins, mustTestLogger(t))
+	result, err := orch.SyncProvider(context.Background(), "push-task-err", time.Time{})
+	require.NoError(t, err)
+	assert.True(t, len(result.Errors) > 0, "expected push error for rejected evidence task")
+	assert.Equal(t, 0, result.PushCount)
+}
+
+// TestSyncOrchestrator_PushEntity_SuccessAllTypes verifies successful push for all entity types.
+func TestSyncOrchestrator_PushEntity_SuccessAllTypes(t *testing.T) {
+	t.Parallel()
+
+	sp := newStubSyncProvider("push-all")
+	sp.changeSet = &interfaces.ChangeSet{
+		Provider: "push-all",
+		Changes: []interfaces.ChangeEntry{
+			{EntityType: "policy", EntityID: "pol-1", ChangeType: "updated", Hash: "remote"},
+			{EntityType: "control", EntityID: "ctrl-1", ChangeType: "updated", Hash: "remote"},
+			{EntityType: "evidence_task", EntityID: "task-1", ChangeType: "updated", Hash: "remote"},
+		},
+	}
+
+	storage := newStubStorageService()
+	_ = storage.SavePolicy(&domain.Policy{
+		ID: "POL-1", ExternalIDs: map[string]string{"push-all": "pol-1"},
+		SyncMetadata: &domain.SyncMetadata{ContentHash: map[string]string{"push-all": "old", "local": "new"}},
+	})
+	_ = storage.SaveControl(&domain.Control{
+		ID: "CC-01", ExternalIDs: map[string]string{"push-all": "ctrl-1"},
+		SyncMetadata: &domain.SyncMetadata{ContentHash: map[string]string{"push-all": "old", "local": "new"}},
+	})
+	_ = storage.SaveEvidenceTask(&domain.EvidenceTask{
+		ID: "ET-0001", ExternalIDs: map[string]string{"push-all": "task-1"},
+		SyncMetadata: &domain.SyncMetadata{ContentHash: map[string]string{"push-all": "old", "local": "new"}},
+	})
+	storage.saved = nil
+
+	reg := providers.NewProviderRegistry()
+	require.NoError(t, reg.Register(sp))
+
+	orch := NewSyncOrchestrator(reg, storage, ConflictPolicyLocalWins, mustTestLogger(t))
+	result, err := orch.SyncProvider(context.Background(), "push-all", time.Time{})
+	require.NoError(t, err)
+
+	assert.Equal(t, 3, result.PushCount, "expected 3 pushed entities")
+	assert.Equal(t, 3, result.ConflictCount, "expected 3 conflicts detected")
+	assert.Equal(t, 3, result.ResolvedCount, "expected 3 resolved")
+	assert.Empty(t, result.Errors)
+	assert.Len(t, sp.pushed, 3, "expected 3 entities pushed to provider")
 }

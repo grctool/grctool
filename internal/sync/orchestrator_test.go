@@ -30,16 +30,19 @@ import (
 // --- Stub SyncProvider ---
 
 type stubSyncProvider struct {
-	name       string
-	changeSet  *interfaces.ChangeSet
-	detectErr  error
-	policies   map[string]*domain.Policy
-	controls   map[string]*domain.Control
-	tasks      map[string]*domain.EvidenceTask
-	pushed     []interface{} // track pushed entities
+	name               string
+	changeSet          *interfaces.ChangeSet
+	detectErr          error
+	policies           map[string]*domain.Policy
+	controls           map[string]*domain.Control
+	tasks              map[string]*domain.EvidenceTask
+	pushed             []interface{} // track pushed entities
 	getPolicyErr       error
 	getControlErr      error
 	getEvidenceTaskErr error
+	pushPolicyErr      error
+	pushControlErr     error
+	pushTaskErr        error
 }
 
 func newStubSyncProvider(name string) *stubSyncProvider {
@@ -111,22 +114,31 @@ func (s *stubSyncProvider) GetEvidenceTask(_ context.Context, id string) (*domai
 }
 
 func (s *stubSyncProvider) PushPolicy(_ context.Context, policy *domain.Policy) error {
+	if s.pushPolicyErr != nil {
+		return s.pushPolicyErr
+	}
 	s.pushed = append(s.pushed, policy)
 	return nil
 }
 
 func (s *stubSyncProvider) PushControl(_ context.Context, control *domain.Control) error {
+	if s.pushControlErr != nil {
+		return s.pushControlErr
+	}
 	s.pushed = append(s.pushed, control)
 	return nil
 }
 
 func (s *stubSyncProvider) PushEvidenceTask(_ context.Context, task *domain.EvidenceTask) error {
+	if s.pushTaskErr != nil {
+		return s.pushTaskErr
+	}
 	s.pushed = append(s.pushed, task)
 	return nil
 }
 
-func (s *stubSyncProvider) DeletePolicy(_ context.Context, _ string) error   { return nil }
-func (s *stubSyncProvider) DeleteControl(_ context.Context, _ string) error  { return nil }
+func (s *stubSyncProvider) DeletePolicy(_ context.Context, _ string) error       { return nil }
+func (s *stubSyncProvider) DeleteControl(_ context.Context, _ string) error      { return nil }
 func (s *stubSyncProvider) DeleteEvidenceTask(_ context.Context, _ string) error { return nil }
 
 func (s *stubSyncProvider) DetectChanges(_ context.Context, _ time.Time) (*interfaces.ChangeSet, error) {
@@ -143,10 +155,10 @@ func (s *stubSyncProvider) ResolveConflict(_ context.Context, _ interfaces.Confl
 // --- Stub StorageService ---
 
 type stubStorageService struct {
-	policies map[string]*domain.Policy        // keyed by "provider:externalID"
-	controls map[string]*domain.Control       // keyed by "provider:externalID"
-	tasks    map[string]*domain.EvidenceTask  // keyed by "provider:externalID"
-	saved    []interface{}                     // track all saved entities
+	policies map[string]*domain.Policy       // keyed by "provider:externalID"
+	controls map[string]*domain.Control      // keyed by "provider:externalID"
+	tasks    map[string]*domain.EvidenceTask // keyed by "provider:externalID"
+	saved    []interface{}                   // track all saved entities
 }
 
 func newStubStorageService() *stubStorageService {
@@ -170,7 +182,7 @@ func (s *stubStorageService) GetPolicy(_ string) (*domain.Policy, error) { retur
 func (s *stubStorageService) GetPolicyByReferenceAndID(_, _ string) (*domain.Policy, error) {
 	return nil, nil
 }
-func (s *stubStorageService) GetAllPolicies() ([]domain.Policy, error) { return nil, nil }
+func (s *stubStorageService) GetAllPolicies() ([]domain.Policy, error)         { return nil, nil }
 func (s *stubStorageService) GetPolicySummary() (*domain.PolicySummary, error) { return nil, nil }
 
 func (s *stubStorageService) GetPolicyByExternalID(provider, externalID string) (*domain.Policy, error) {
@@ -193,7 +205,7 @@ func (s *stubStorageService) GetControl(_ string) (*domain.Control, error) { ret
 func (s *stubStorageService) GetControlByReferenceAndID(_, _ string) (*domain.Control, error) {
 	return nil, nil
 }
-func (s *stubStorageService) GetAllControls() ([]domain.Control, error) { return nil, nil }
+func (s *stubStorageService) GetAllControls() ([]domain.Control, error)          { return nil, nil }
 func (s *stubStorageService) GetControlSummary() (*domain.ControlSummary, error) { return nil, nil }
 
 func (s *stubStorageService) GetControlByExternalID(provider, externalID string) (*domain.Control, error) {
@@ -240,9 +252,9 @@ func (s *stubStorageService) GetEvidenceRecordsByTaskID(_ string) ([]domain.Evid
 }
 
 func (s *stubStorageService) GetStats() (map[string]interface{}, error) { return nil, nil }
-func (s *stubStorageService) SetSyncTime(_ string, _ time.Time) error  { return nil }
-func (s *stubStorageService) GetSyncTime(_ string) (time.Time, error)  { return time.Time{}, nil }
-func (s *stubStorageService) Clear() error                             { return nil }
+func (s *stubStorageService) SetSyncTime(_ string, _ time.Time) error   { return nil }
+func (s *stubStorageService) GetSyncTime(_ string) (time.Time, error)   { return time.Time{}, nil }
+func (s *stubStorageService) Clear() error                              { return nil }
 
 // --- Helper ---
 
@@ -628,7 +640,7 @@ type dataOnlyProvider struct {
 	name string
 }
 
-func (d *dataOnlyProvider) Name() string                        { return d.name }
+func (d *dataOnlyProvider) Name() string { return d.name }
 func (d *dataOnlyProvider) Capabilities() interfaces.ProviderCapabilities {
 	return interfaces.ProviderCapabilities{SupportsPolicies: true, SupportsControls: true, SupportsEvidenceTasks: true}
 }
