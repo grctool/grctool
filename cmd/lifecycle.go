@@ -100,12 +100,20 @@ func runLifecycleStatus(cmd *cobra.Command, args []string) error {
 		entityTypes = []string{args[0]}
 	}
 
+	// Load config and storage once for all entity types.
+	var store *storage.Storage
+	if cfg, err := config.Load(); err == nil {
+		store, _ = storage.NewStorage(cfg.Storage)
+	}
+
 	for i, et := range entityTypes {
 		if err := printStateMachine(cmd, et); err != nil {
 			return err
 		}
 		// Try to show stored entity states if storage is available.
-		printEntityStates(cmd, et)
+		if store != nil {
+			printEntityStates(cmd, et, store)
+		}
 		if i < len(entityTypes)-1 {
 			fmt.Fprintln(out)
 		}
@@ -114,19 +122,10 @@ func runLifecycleStatus(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// printEntityStates loads stored entities and prints their lifecycle states.
-func printEntityStates(cmd *cobra.Command, entityType string) {
+// printEntityStates prints lifecycle states for stored entities of the given type.
+// The caller must provide an initialized storage instance.
+func printEntityStates(cmd *cobra.Command, entityType string, store *storage.Storage) {
 	out := cmd.OutOrStdout()
-
-	cfg, err := config.Load()
-	if err != nil {
-		return // silently skip if config not available
-	}
-
-	store, err := storage.NewStorage(cfg.Storage)
-	if err != nil {
-		return
-	}
 
 	sm, err := getStateMachine(entityType)
 	if err != nil {
