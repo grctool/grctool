@@ -90,14 +90,14 @@ func TestBuildControlMatrix_Basic(t *testing.T) {
 
 	// Verify first row field mapping.
 	row := sheet.Rows[0]
-	assert.Equal(t, "CC-06.1", row[0])            // Reference ID
+	assert.Equal(t, "CC-06.1", row[0])                 // Reference ID
 	assert.Equal(t, "Logical Access Security", row[1]) // Name
-	assert.Equal(t, "implemented", row[2])         // Status
-	assert.Equal(t, "medium", row[3])              // Risk Level
-	assert.Equal(t, "CC6.1", row[4])               // Framework Codes
-	assert.Equal(t, "Common Criteria", row[5])     // Category
-	assert.Equal(t, "2025-03-15", row[6])          // Implemented Date
-	assert.Equal(t, "2025-06-01", row[7])          // Tested Date
+	assert.Equal(t, "implemented", row[2])             // Status
+	assert.Equal(t, "medium", row[3])                  // Risk Level
+	assert.Equal(t, "CC6.1", row[4])                   // Framework Codes
+	assert.Equal(t, "Common Criteria", row[5])         // Category
+	assert.Equal(t, "2025-03-15", row[6])              // Implemented Date
+	assert.Equal(t, "2025-06-01", row[7])              // Tested Date
 }
 
 func TestBuildControlMatrix_Empty(t *testing.T) {

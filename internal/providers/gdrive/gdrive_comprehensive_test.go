@@ -46,25 +46,142 @@ func TestGDriveSyncProvider_ListPolicies_GetContentError(t *testing.T) {
 	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
 	policies, count, err := p.ListPolicies(context.Background(), interfaces.ListOptions{})
 	require.NoError(t, err)
-	assert.Equal(t, 1, count)  // only the good doc
+	assert.Equal(t, 1, count) // only the good doc
 	assert.Len(t, policies, 1)
 	assert.Equal(t, "doc-ok", policies[0].ID)
 }
 
-func TestGDriveSyncProvider_PushControl_NotImplemented(t *testing.T) {
+// ---------------------------------------------------------------------------
+// PushControl tests
+// ---------------------------------------------------------------------------
+
+func TestGDriveSyncProvider_PushControl_Create(t *testing.T) {
 	t.Parallel()
-	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
-	err := p.PushControl(context.Background(), &domain.Control{ID: "CC-06.1"})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	implDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	control := &domain.Control{
+		ID:              "CC-06.1",
+		ReferenceID:     "CC-06.1",
+		Name:            "Logical Access",
+		Status:          "implemented",
+		RiskLevel:       "High",
+		Category:        "Access Control",
+		FrameworkCodes:  []domain.FrameworkCode{{Code: "SOC2"}},
+		ImplementedDate: &implDate,
+	}
+	err := p.PushControl(context.Background(), control)
+	require.NoError(t, err)
+
+	assert.Len(t, client.created, 1)
+	assert.Equal(t, client.created[0], control.ExternalIDs["gdrive"])
+	// Verify sheet was stored
+	sheet := client.sheets[control.ExternalIDs["gdrive"]]
+	require.NotNil(t, sheet)
+	assert.Equal(t, "Control Matrix", sheet.Title)
+	assert.Len(t, sheet.Rows, 1)
+	assert.Equal(t, "CC-06.1", sheet.Rows[0][0])
 }
 
-func TestGDriveSyncProvider_PushEvidenceTask_NotImplemented(t *testing.T) {
+func TestGDriveSyncProvider_PushControl_Update(t *testing.T) {
 	t.Parallel()
-	p := NewGDriveSyncProvider(newStubDriveClient(), "root", testhelpers.NewStubLogger())
-	err := p.PushEvidenceTask(context.Background(), &domain.EvidenceTask{ID: "ET-0047"})
+	client := newStubDriveClient()
+	client.sheets["existing-sheet"] = &SheetData{Title: "Control Matrix", Headers: controlMatrixHeaders}
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	control := &domain.Control{
+		ID:          "CC-06.1",
+		ReferenceID: "CC-06.1",
+		Name:        "Updated Control",
+		Status:      "tested",
+		ExternalIDs: map[string]string{"gdrive": "existing-sheet"},
+	}
+	err := p.PushControl(context.Background(), control)
+	require.NoError(t, err)
+
+	// Verify the sheet was updated (not created)
+	assert.Empty(t, client.created)
+	sheet := client.sheets["existing-sheet"]
+	require.NotNil(t, sheet)
+	assert.Equal(t, "Updated Control", sheet.Rows[0][1])
+}
+
+func TestGDriveSyncProvider_PushControl_CreateError(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.createErr = fmt.Errorf("quota exceeded")
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	control := &domain.Control{ID: "CC-06.1", ReferenceID: "CC-06.1"}
+	err := p.PushControl(context.Background(), control)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not yet implemented")
+	assert.Contains(t, err.Error(), "quota exceeded")
+}
+
+// ---------------------------------------------------------------------------
+// PushEvidenceTask tests
+// ---------------------------------------------------------------------------
+
+func TestGDriveSyncProvider_PushEvidenceTask_Create(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	task := &domain.EvidenceTask{
+		ID:                 "ET-0047",
+		ReferenceID:        "ET-0047",
+		Name:               "GitHub Repo Access",
+		Status:             "pending",
+		Priority:           "High",
+		CollectionInterval: "quarterly",
+		Framework:          "SOC2",
+		Category:           "Infrastructure",
+	}
+	err := p.PushEvidenceTask(context.Background(), task)
+	require.NoError(t, err)
+
+	assert.Len(t, client.created, 1)
+	assert.Equal(t, client.created[0], task.ExternalIDs["gdrive"])
+	sheet := client.sheets[task.ExternalIDs["gdrive"]]
+	require.NotNil(t, sheet)
+	assert.Equal(t, "Evidence Tasks", sheet.Title)
+	assert.Len(t, sheet.Rows, 1)
+	assert.Equal(t, "ET-0047", sheet.Rows[0][0])
+}
+
+func TestGDriveSyncProvider_PushEvidenceTask_Update(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.sheets["existing-task-sheet"] = &SheetData{Title: "Evidence Tasks", Headers: evidenceTaskHeaders}
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	task := &domain.EvidenceTask{
+		ID:          "ET-0047",
+		ReferenceID: "ET-0047",
+		Name:        "Updated Task",
+		Status:      "active",
+		ExternalIDs: map[string]string{"gdrive": "existing-task-sheet"},
+	}
+	err := p.PushEvidenceTask(context.Background(), task)
+	require.NoError(t, err)
+
+	assert.Empty(t, client.created)
+	sheet := client.sheets["existing-task-sheet"]
+	require.NotNil(t, sheet)
+	assert.Equal(t, "Updated Task", sheet.Rows[0][1])
+}
+
+func TestGDriveSyncProvider_PushEvidenceTask_CreateError(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.createErr = fmt.Errorf("drive full")
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	task := &domain.EvidenceTask{ID: "ET-0047", ReferenceID: "ET-0047"}
+	err := p.PushEvidenceTask(context.Background(), task)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "drive full")
 }
 
 func TestGDriveSyncProvider_DeleteControl(t *testing.T) {
@@ -287,4 +404,258 @@ See the [SOC2 framework](https://example.com/soc2) for details.
 
 	// Verify the markdown itself is non-empty (just a sanity check)
 	assert.NotEmpty(t, md)
+}
+
+// ---------------------------------------------------------------------------
+// Control round-trip: push then read back
+// ---------------------------------------------------------------------------
+
+func TestGDrive_ControlRoundTrip_PushThenList(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	implDate := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	testDate := time.Date(2026, 3, 20, 0, 0, 0, 0, time.UTC)
+	original := &domain.Control{
+		ID:              "CC-06.1",
+		ReferenceID:     "CC-06.1",
+		Name:            "Logical Access Controls",
+		Status:          "implemented",
+		RiskLevel:       "High",
+		Category:        "Access Control",
+		FrameworkCodes:  []domain.FrameworkCode{{Code: "CC6.1"}, {Code: "CC6.2"}},
+		ImplementedDate: &implDate,
+		TestedDate:      &testDate,
+	}
+
+	// Push to create
+	require.NoError(t, p.PushControl(context.Background(), original))
+	sheetID := original.ExternalIDs["gdrive"]
+	require.NotEmpty(t, sheetID)
+
+	// Register the sheet as a file so ListControls can find it
+	client.files = append(client.files, DriveFile{
+		ID:       sheetID,
+		Name:     "Control Matrix",
+		MimeType: "application/vnd.google-apps.spreadsheet",
+	})
+
+	// Read back via ListControls
+	controls, count, err := p.ListControls(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	require.Len(t, controls, 1)
+
+	roundTripped := controls[0]
+	assert.Equal(t, original.ReferenceID, roundTripped.ReferenceID)
+	assert.Equal(t, original.Name, roundTripped.Name)
+	assert.Equal(t, original.Status, roundTripped.Status)
+	assert.Equal(t, original.RiskLevel, roundTripped.RiskLevel)
+	assert.Equal(t, original.Category, roundTripped.Category)
+	assert.Len(t, roundTripped.FrameworkCodes, 2)
+	assert.Equal(t, "CC6.1", roundTripped.FrameworkCodes[0].Code)
+	assert.False(t, roundTripped.ImplementedDate.IsZero())
+	assert.False(t, roundTripped.TestedDate.IsZero())
+}
+
+// ---------------------------------------------------------------------------
+// Evidence task round-trip: push then read back
+// ---------------------------------------------------------------------------
+
+func TestGDrive_EvidenceTaskRoundTrip_PushThenList(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	lastCollected := time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)
+	nextDue := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	original := &domain.EvidenceTask{
+		ID:                 "ET-0047",
+		ReferenceID:        "ET-0047",
+		Name:               "GitHub Repository Access Controls",
+		Status:             "active",
+		Priority:           "High",
+		CollectionInterval: "quarterly",
+		Framework:          "SOC2",
+		Category:           "Infrastructure",
+		LastCollected:      &lastCollected,
+		NextDue:            &nextDue,
+	}
+
+	// Push to create
+	require.NoError(t, p.PushEvidenceTask(context.Background(), original))
+	sheetID := original.ExternalIDs["gdrive"]
+	require.NotEmpty(t, sheetID)
+
+	// Register the sheet so ListEvidenceTasks can find it
+	client.files = append(client.files, DriveFile{
+		ID:       sheetID,
+		Name:     "Evidence Tasks",
+		MimeType: "application/vnd.google-apps.spreadsheet",
+	})
+
+	// Read back
+	tasks, count, err := p.ListEvidenceTasks(context.Background(), interfaces.ListOptions{})
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+	require.Len(t, tasks, 1)
+
+	roundTripped := tasks[0]
+	assert.Equal(t, original.ReferenceID, roundTripped.ReferenceID)
+	assert.Equal(t, original.Name, roundTripped.Name)
+	assert.Equal(t, original.Status, roundTripped.Status)
+	assert.Equal(t, original.Priority, roundTripped.Priority)
+	assert.Equal(t, original.CollectionInterval, roundTripped.CollectionInterval)
+	assert.Equal(t, original.Framework, roundTripped.Framework)
+	assert.Equal(t, original.Category, roundTripped.Category)
+	assert.False(t, roundTripped.LastCollected.IsZero())
+	assert.False(t, roundTripped.NextDue.IsZero())
+}
+
+// ---------------------------------------------------------------------------
+// Audit trail for push operations
+// ---------------------------------------------------------------------------
+
+func TestGDrive_AuditLog_PushControl(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	p.ClearAuditLog()
+	control := &domain.Control{ID: "CC-06.1", ReferenceID: "CC-06.1", Name: "Test"}
+	require.NoError(t, p.PushControl(context.Background(), control))
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "exported", entries[0].Action)
+	assert.Equal(t, "outbound", entries[0].Direction)
+	assert.Equal(t, "CC-06.1", entries[0].EntityID)
+	assert.Equal(t, "control", entries[0].EntityType)
+}
+
+func TestGDrive_AuditLog_PushEvidenceTask(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+
+	p.ClearAuditLog()
+	task := &domain.EvidenceTask{ID: "ET-0047", ReferenceID: "ET-0047", Name: "Test"}
+	require.NoError(t, p.PushEvidenceTask(context.Background(), task))
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "exported", entries[0].Action)
+	assert.Equal(t, "outbound", entries[0].Direction)
+	assert.Equal(t, "ET-0047", entries[0].EntityID)
+	assert.Equal(t, "evidence_task", entries[0].EntityType)
+}
+
+// ---------------------------------------------------------------------------
+// Scope-aware push filtering
+// ---------------------------------------------------------------------------
+
+func TestGDrive_PushPolicy_FilteredByScope(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	p.SetScope(SyncScope{
+		Policies:      EntityScope{Enabled: true, Exclude: []string{"POL-DRAFT-*"}},
+		Controls:      EntityScope{Enabled: true},
+		EvidenceTasks: EntityScope{Enabled: true},
+	})
+
+	// Excluded policy — should be silently skipped
+	pol := &domain.Policy{ID: "POL-DRAFT-001", ReferenceID: "POL-DRAFT-001", Name: "Draft", Content: "# Draft"}
+	err := p.PushPolicy(context.Background(), pol)
+	require.NoError(t, err)
+	assert.Empty(t, client.created) // nothing created
+
+	entries := p.AuditLog()
+	require.Len(t, entries, 1)
+	assert.Equal(t, "unchanged", entries[0].Action)
+}
+
+func TestGDrive_PushControl_FilteredByScope(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	p.SetScope(SyncScope{
+		Policies:      EntityScope{Enabled: true},
+		Controls:      EntityScope{Enabled: false},
+		EvidenceTasks: EntityScope{Enabled: true},
+	})
+
+	control := &domain.Control{ID: "CC-06.1", ReferenceID: "CC-06.1"}
+	err := p.PushControl(context.Background(), control)
+	require.NoError(t, err)
+	assert.Empty(t, client.created)
+}
+
+func TestGDrive_PushEvidenceTask_FilteredByScope(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
+	p.SetScope(SyncScope{
+		Policies:      EntityScope{Enabled: true},
+		Controls:      EntityScope{Enabled: true},
+		EvidenceTasks: EntityScope{Enabled: true, TagsExclude: []string{"sensitive"}},
+	})
+
+	task := &domain.EvidenceTask{
+		ID:          "ET-0001",
+		ReferenceID: "ET-0001",
+		Tags:        []domain.Tag{{Name: "sensitive"}},
+	}
+	err := p.PushEvidenceTask(context.Background(), task)
+	require.NoError(t, err)
+	assert.Empty(t, client.created)
+}
+
+// ---------------------------------------------------------------------------
+// PushControl / PushEvidenceTask update errors
+// ---------------------------------------------------------------------------
+
+func TestGDriveSyncProvider_PushControl_UpdateError(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	client.sheets["existing-sheet"] = &SheetData{Title: "Control Matrix"}
+	// Make UpdateSheetData fail by removing the sheet after setup
+	// Use a custom stub that always errors
+	errClient := &errorUpdateStubClient{stubDriveClient: client}
+	p := NewGDriveSyncProvider(errClient, "root", testhelpers.NewStubLogger())
+
+	control := &domain.Control{
+		ID:          "CC-06.1",
+		ReferenceID: "CC-06.1",
+		ExternalIDs: map[string]string{"gdrive": "existing-sheet"},
+	}
+	err := p.PushControl(context.Background(), control)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "update error")
+}
+
+func TestGDriveSyncProvider_PushEvidenceTask_UpdateError(t *testing.T) {
+	t.Parallel()
+	client := newStubDriveClient()
+	errClient := &errorUpdateStubClient{stubDriveClient: client}
+	p := NewGDriveSyncProvider(errClient, "root", testhelpers.NewStubLogger())
+
+	task := &domain.EvidenceTask{
+		ID:          "ET-0001",
+		ReferenceID: "ET-0001",
+		ExternalIDs: map[string]string{"gdrive": "existing-sheet"},
+	}
+	err := p.PushEvidenceTask(context.Background(), task)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "update error")
+}
+
+// errorUpdateStubClient wraps stubDriveClient to always error on UpdateSheetData.
+type errorUpdateStubClient struct {
+	*stubDriveClient
+}
+
+func (e *errorUpdateStubClient) UpdateSheetData(ctx context.Context, fileID string, data *SheetData) error {
+	return fmt.Errorf("update error")
 }

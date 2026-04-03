@@ -20,19 +20,19 @@ import (
 // --- Stub DriveClient ---
 
 type stubDriveClient struct {
-	files       []DriveFile
-	contents    map[string]string    // fileID → markdown content
-	sheets      map[string]*SheetData // fileID → sheet data
-	created     []string              // track created doc IDs
-	updated     []string              // track updated fileIDs
-	deleted     []string              // track deleted fileIDs
-	connErr     error
-	listErr     error
-	getErr      error
-	createErr   error
-	updateErr   error
-	deleteErr   error
-	revisions   map[string][]Revision
+	files     []DriveFile
+	contents  map[string]string     // fileID → markdown content
+	sheets    map[string]*SheetData // fileID → sheet data
+	created   []string              // track created doc IDs
+	updated   []string              // track updated fileIDs
+	deleted   []string              // track deleted fileIDs
+	connErr   error
+	listErr   error
+	getErr    error
+	createErr error
+	updateErr error
+	deleteErr error
+	revisions map[string][]Revision
 }
 
 func newStubDriveClient() *stubDriveClient {
@@ -112,11 +112,17 @@ func (s *stubDriveClient) GetSheetData(ctx context.Context, fileID string) (*She
 }
 
 func (s *stubDriveClient) UpdateSheetData(ctx context.Context, fileID string, data *SheetData) error {
+	if s.updateErr != nil {
+		return s.updateErr
+	}
 	s.sheets[fileID] = data
 	return nil
 }
 
 func (s *stubDriveClient) CreateSheet(ctx context.Context, folderID, title string, data *SheetData) (string, error) {
+	if s.createErr != nil {
+		return "", s.createErr
+	}
 	id := fmt.Sprintf("new-sheet-%d", len(s.created)+1)
 	s.created = append(s.created, id)
 	s.sheets[id] = data

@@ -27,6 +27,9 @@ type GDriveSyncProvider struct {
 
 	// driveClient abstracts Google Drive API calls for testability.
 	driveClient DriveClient
+
+	// scope defines selective-sync filters per FEAT-002 US-5.
+	scope SyncScope
 }
 
 // DriveClient abstracts the Google Drive/Docs/Sheets API operations.
@@ -82,13 +85,24 @@ type SyncAuditEntry struct {
 	Error      string    `json:"error,omitempty"`
 }
 
-// NewGDriveSyncProvider creates a GDrive sync provider.
+// NewGDriveSyncProvider creates a GDrive sync provider with all entity types enabled by default.
 func NewGDriveSyncProvider(client DriveClient, rootFolderID string, log logger.Logger) *GDriveSyncProvider {
 	return &GDriveSyncProvider{
 		rootFolderID: rootFolderID,
 		logger:       log,
 		driveClient:  client,
+		scope:        DefaultSyncScope(),
 	}
+}
+
+// SetScope configures the selective-sync scope for this provider.
+func (p *GDriveSyncProvider) SetScope(scope SyncScope) {
+	p.scope = scope
+}
+
+// Scope returns the current sync scope configuration.
+func (p *GDriveSyncProvider) Scope() SyncScope {
+	return p.scope
 }
 
 func (p *GDriveSyncProvider) Name() string { return "gdrive" }
@@ -303,6 +317,11 @@ func (p *GDriveSyncProvider) GetEvidenceTask(ctx context.Context, id string) (*d
 // ---------------------------------------------------------------------------
 
 func (p *GDriveSyncProvider) PushPolicy(ctx context.Context, policy *domain.Policy) error {
+	if !p.scope.PolicyInScope(policy) {
+		p.recordAudit("policy", policy.ID, "", "unchanged", "", "", "filtered by sync scope")
+		return nil
+	}
+
 	gdID := ""
 	if policy.ExternalIDs != nil {
 		gdID = policy.ExternalIDs["gdrive"]
@@ -330,11 +349,75 @@ func (p *GDriveSyncProvider) PushPolicy(ctx context.Context, policy *domain.Poli
 }
 
 func (p *GDriveSyncProvider) PushControl(ctx context.Context, control *domain.Control) error {
-	return fmt.Errorf("sheets push not yet implemented")
+	if !p.scope.ControlInScope(control) {
+		p.recordAudit("control", control.ID, "", "unchanged", "", "", "filtered by sync scope")
+		return nil
+	}
+
+	builder := &ControlMatrixBuilder{}
+	sheet := builder.BuildControlMatrix([]domain.Control{*control})
+
+	gdID := ""
+	if control.ExternalIDs != nil {
+		gdID = control.ExternalIDs["gdrive"]
+	}
+
+	if gdID != "" {
+		if err := p.driveClient.UpdateSheetData(ctx, gdID, sheet); err != nil {
+			p.recordAudit("control", control.ID, gdID, "exported", "error", "", err.Error())
+			return fmt.Errorf("update control sheet %s: %w", gdID, err)
+		}
+		p.recordAudit("control", control.ID, gdID, "exported", "", "", "")
+		return nil
+	}
+
+	newID, err := p.driveClient.CreateSheet(ctx, p.rootFolderID, "Control Matrix", sheet)
+	if err != nil {
+		p.recordAudit("control", control.ID, "", "exported", "error", "", err.Error())
+		return fmt.Errorf("create control sheet: %w", err)
+	}
+	if control.ExternalIDs == nil {
+		control.ExternalIDs = make(map[string]string)
+	}
+	control.ExternalIDs["gdrive"] = newID
+	p.recordAudit("control", control.ID, newID, "exported", "", "", "")
+	return nil
 }
 
 func (p *GDriveSyncProvider) PushEvidenceTask(ctx context.Context, task *domain.EvidenceTask) error {
-	return fmt.Errorf("sheets push not yet implemented")
+	if !p.scope.EvidenceTaskInScope(task) {
+		p.recordAudit("evidence_task", task.ID, "", "unchanged", "", "", "filtered by sync scope")
+		return nil
+	}
+
+	builder := &ControlMatrixBuilder{}
+	sheet := builder.BuildEvidenceTaskSheet([]domain.EvidenceTask{*task})
+
+	gdID := ""
+	if task.ExternalIDs != nil {
+		gdID = task.ExternalIDs["gdrive"]
+	}
+
+	if gdID != "" {
+		if err := p.driveClient.UpdateSheetData(ctx, gdID, sheet); err != nil {
+			p.recordAudit("evidence_task", task.ID, gdID, "exported", "error", "", err.Error())
+			return fmt.Errorf("update evidence task sheet %s: %w", gdID, err)
+		}
+		p.recordAudit("evidence_task", task.ID, gdID, "exported", "", "", "")
+		return nil
+	}
+
+	newID, err := p.driveClient.CreateSheet(ctx, p.rootFolderID, "Evidence Tasks", sheet)
+	if err != nil {
+		p.recordAudit("evidence_task", task.ID, "", "exported", "error", "", err.Error())
+		return fmt.Errorf("create evidence task sheet: %w", err)
+	}
+	if task.ExternalIDs == nil {
+		task.ExternalIDs = make(map[string]string)
+	}
+	task.ExternalIDs["gdrive"] = newID
+	p.recordAudit("evidence_task", task.ID, newID, "exported", "", "", "")
+	return nil
 }
 
 func (p *GDriveSyncProvider) DeletePolicy(ctx context.Context, id string) error {
