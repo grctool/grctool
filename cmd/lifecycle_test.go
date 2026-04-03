@@ -256,6 +256,48 @@ func TestLifecycleStatusCmd_ValidEntityType(t *testing.T) {
 	assert.Contains(t, buf.String(), "draft")
 }
 
+func TestLifecycleStatusCmd_ShowsEntityStates(t *testing.T) {
+	setupLifecycleTestConfig(t)
+
+	buf := new(bytes.Buffer)
+	cmd := lifecycleStatusCmd
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
+
+	// The setupLifecycleTestConfig creates a policy with no lifecycle state,
+	// so it should default to the initial state ("draft").
+	err := runLifecycleStatus(cmd, []string{"policy"})
+	require.NoError(t, err)
+	output := buf.String()
+	assert.Contains(t, output, "Entity states")
+	assert.Contains(t, output, "1 policy")
+	assert.Contains(t, output, "draft: 1")
+}
+
+func TestLifecycleStatusCmd_ShowsTransitionedEntityState(t *testing.T) {
+	setupLifecycleTestConfig(t)
+
+	// Transition the policy to "review" first.
+	transitionBuf := new(bytes.Buffer)
+	transitionCmd := lifecycleTransitionCmd
+	transitionCmd.SetOut(transitionBuf)
+	transitionCmd.SetErr(transitionBuf)
+	err := runLifecycleTransition(transitionCmd, []string{"policy", "POL-0001", "review"})
+	require.NoError(t, err)
+
+	// Now check lifecycle status shows the updated state.
+	buf := new(bytes.Buffer)
+	statusCmd := lifecycleStatusCmd
+	statusCmd.SetOut(buf)
+	statusCmd.SetErr(buf)
+
+	err = runLifecycleStatus(statusCmd, []string{"policy"})
+	require.NoError(t, err)
+	output := buf.String()
+	assert.Contains(t, output, "Entity states")
+	assert.Contains(t, output, "review: 1")
+}
+
 func TestLifecycleStatusCmd_InvalidEntityType(t *testing.T) {
 	buf := new(bytes.Buffer)
 	cmd := lifecycleStatusCmd

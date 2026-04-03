@@ -95,19 +95,121 @@ func getStateMachine(entityType string) (*lifecycle.StateMachine, error) {
 func runLifecycleStatus(cmd *cobra.Command, args []string) error {
 	out := cmd.OutOrStdout()
 
+	entityTypes := []string{"policy", "control", "evidence_task"}
 	if len(args) == 1 {
-		return printStateMachine(cmd, args[0])
+		entityTypes = []string{args[0]}
 	}
 
-	// Show all entity types.
-	for _, et := range []string{"policy", "control", "evidence_task"} {
+	for i, et := range entityTypes {
 		if err := printStateMachine(cmd, et); err != nil {
 			return err
 		}
-		fmt.Fprintln(out)
+		// Try to show stored entity states if storage is available.
+		printEntityStates(cmd, et)
+		if i < len(entityTypes)-1 {
+			fmt.Fprintln(out)
+		}
 	}
 
 	return nil
+}
+
+// printEntityStates loads stored entities and prints their lifecycle states.
+func printEntityStates(cmd *cobra.Command, entityType string) {
+	out := cmd.OutOrStdout()
+
+	cfg, err := config.Load()
+	if err != nil {
+		return // silently skip if config not available
+	}
+
+	store, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return
+	}
+
+	sm, err := getStateMachine(entityType)
+	if err != nil {
+		return
+	}
+
+	type entityInfo struct {
+		id    string
+		name  string
+		state string
+	}
+
+	var entities []entityInfo
+
+	switch entityType {
+	case "policy":
+		policies, err := store.GetAllPolicies()
+		if err != nil || len(policies) == 0 {
+			return
+		}
+		for _, p := range policies {
+			state := p.LifecycleState
+			if state == "" {
+				state = string(sm.Initial)
+			}
+			ref := p.ReferenceID
+			if ref == "" {
+				ref = p.ID
+			}
+			entities = append(entities, entityInfo{id: ref, name: p.Name, state: state})
+		}
+	case "control":
+		controls, err := store.GetAllControls()
+		if err != nil || len(controls) == 0 {
+			return
+		}
+		for _, c := range controls {
+			state := c.LifecycleState
+			if state == "" {
+				state = string(sm.Initial)
+			}
+			ref := c.ReferenceID
+			if ref == "" {
+				ref = c.ID
+			}
+			entities = append(entities, entityInfo{id: ref, name: c.Name, state: state})
+		}
+	case "evidence_task":
+		tasks, err := store.GetAllEvidenceTasks()
+		if err != nil || len(tasks) == 0 {
+			return
+		}
+		for _, t := range tasks {
+			state := t.LifecycleState
+			if state == "" {
+				state = string(sm.Initial)
+			}
+			ref := t.ReferenceID
+			if ref == "" {
+				ref = t.ID
+			}
+			entities = append(entities, entityInfo{id: ref, name: t.Name, state: state})
+		}
+	}
+
+	if len(entities) == 0 {
+		return
+	}
+
+	// Count entities by state.
+	stateCounts := make(map[string]int)
+	for _, e := range entities {
+		stateCounts[e.state]++
+	}
+
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Entity states (%d %ss):\n", len(entities), entityType)
+	for _, s := range sm.States {
+		count := stateCounts[string(s)]
+		if count > 0 {
+			fmt.Fprintf(out, "  %s: %d\n", s, count)
+		}
+	}
 }
 
 func printStateMachine(cmd *cobra.Command, entityType string) error {

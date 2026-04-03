@@ -27,6 +27,7 @@ import (
 	"github.com/grctool/grctool/internal/config"
 	"github.com/grctool/grctool/internal/logger"
 	"github.com/grctool/grctool/internal/scheduler"
+	"github.com/grctool/grctool/internal/storage"
 	"github.com/grctool/grctool/internal/tools"
 	"github.com/spf13/cobra"
 )
@@ -272,8 +273,93 @@ func runScheduleStatus(cmd *cobra.Command, args []string) error {
 	if !hasCompleted {
 		fmt.Fprintln(out, "  No schedules have run yet.")
 	}
+	fmt.Fprintln(out)
+
+	// Evidence task due/overdue groupings.
+	printTaskDueGroupings(out, cfg, now)
 
 	return nil
+}
+
+// printTaskDueGroupings shows evidence tasks grouped by due urgency.
+func printTaskDueGroupings(out interface{ Write([]byte) (int, error) }, cfg *config.Config, now time.Time) {
+	store, err := storage.NewStorage(cfg.Storage)
+	if err != nil {
+		return
+	}
+
+	tasks, err := store.GetAllEvidenceTasks()
+	if err != nil || len(tasks) == 0 {
+		return
+	}
+
+	var details []scheduler.TaskDueDetail
+	for _, t := range tasks {
+		ref := t.ReferenceID
+		if ref == "" {
+			ref = t.ID
+		}
+		category, daysUntil := scheduler.ClassifyTaskDue(t.NextDue, now)
+		if category == scheduler.TaskNoSchedule {
+			continue
+		}
+		details = append(details, scheduler.TaskDueDetail{
+			TaskRef:   ref,
+			TaskName:  t.Name,
+			Category:  category,
+			DueDate:   t.NextDue,
+			DaysUntil: daysUntil,
+		})
+	}
+
+	if len(details) == 0 {
+		return
+	}
+
+	grouping := scheduler.GroupTasksByDue(details)
+
+	fmt.Fprintln(out, "=== Evidence Tasks: Overdue ===")
+	if len(grouping.Overdue) == 0 {
+		fmt.Fprintln(out, "  No overdue tasks.")
+	} else {
+		for _, d := range grouping.Overdue {
+			fmt.Fprintf(out, "  %s  %s  (overdue %d days, due: %s)\n",
+				d.TaskRef, d.TaskName, -d.DaysUntil, d.DueDate.Format("2006-01-02"))
+		}
+	}
+	fmt.Fprintln(out)
+
+	fmt.Fprintln(out, "=== Evidence Tasks: Due This Week ===")
+	if len(grouping.DueThisWeek) == 0 {
+		fmt.Fprintln(out, "  No tasks due this week.")
+	} else {
+		for _, d := range grouping.DueThisWeek {
+			fmt.Fprintf(out, "  %s  %s  (due in %d days, due: %s)\n",
+				d.TaskRef, d.TaskName, d.DaysUntil, d.DueDate.Format("2006-01-02"))
+		}
+	}
+	fmt.Fprintln(out)
+
+	fmt.Fprintln(out, "=== Evidence Tasks: Due This Month ===")
+	if len(grouping.DueThisMonth) == 0 {
+		fmt.Fprintln(out, "  No tasks due this month.")
+	} else {
+		for _, d := range grouping.DueThisMonth {
+			fmt.Fprintf(out, "  %s  %s  (due in %d days, due: %s)\n",
+				d.TaskRef, d.TaskName, d.DaysUntil, d.DueDate.Format("2006-01-02"))
+		}
+	}
+	fmt.Fprintln(out)
+
+	fmt.Fprintln(out, "=== Evidence Tasks: Upcoming ===")
+	if len(grouping.Upcoming) == 0 {
+		fmt.Fprintln(out, "  No upcoming tasks.")
+	} else {
+		for _, d := range grouping.Upcoming {
+			fmt.Fprintf(out, "  %s  %s  (due in %d days, due: %s)\n",
+				d.TaskRef, d.TaskName, d.DaysUntil, d.DueDate.Format("2006-01-02"))
+		}
+	}
 }
 
 func runScheduleRun(cmd *cobra.Command, args []string) error {
@@ -447,8 +533,26 @@ func executeSchedule(ctx context.Context, orch *scheduler.Orchestrator, sched sc
 	return orch.Execute(ctx, plan, toolExecutor)
 }
 
-// printCollectionSummary outputs the results of a collection run.
+// printCollectionSummary outputs the per-task results and overall summary of a collection run.
 func printCollectionSummary(out interface{ Write([]byte) (int, error) }, summary *scheduler.CollectionSummary) {
+	// Print per-task results when there are results to show.
+	if len(summary.Results) > 0 {
+		currentTask := ""
+		for _, r := range summary.Results {
+			if r.TaskRef != currentTask {
+				currentTask = r.TaskRef
+				fmt.Fprintf(out, "  Task %s:\n", currentTask)
+			}
+			status := "ok"
+			if !r.Success {
+				status = "FAILED"
+				if r.Error != "" {
+					status = fmt.Sprintf("FAILED: %s", r.Error)
+				}
+			}
+			fmt.Fprintf(out, "    - %s: %s (%s)\n", r.ToolName, status, r.Duration.Round(time.Millisecond))
+		}
+	}
 	fmt.Fprintf(out, "  Tasks: %d | Tools: %d | Succeeded: %d | Failed: %d | Skipped: %d | Duration: %s\n",
 		summary.TotalTasks, summary.TotalTools, summary.Succeeded, summary.Failed, summary.Skipped,
 		summary.Duration.Round(time.Millisecond))
