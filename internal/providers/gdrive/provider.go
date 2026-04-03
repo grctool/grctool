@@ -96,8 +96,13 @@ func NewGDriveSyncProvider(client DriveClient, rootFolderID string, log logger.L
 }
 
 // SetScope configures the selective-sync scope for this provider.
-func (p *GDriveSyncProvider) SetScope(scope SyncScope) {
+// Returns an error if any glob pattern in the scope is invalid.
+func (p *GDriveSyncProvider) SetScope(scope SyncScope) error {
+	if err := scope.ValidatePatterns(); err != nil {
+		return fmt.Errorf("invalid sync scope: %w", err)
+	}
 	p.scope = scope
+	return nil
 }
 
 // Scope returns the current sync scope configuration.

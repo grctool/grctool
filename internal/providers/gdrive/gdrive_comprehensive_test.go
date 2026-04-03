@@ -559,11 +559,11 @@ func TestGDrive_PushPolicy_FilteredByScope(t *testing.T) {
 	t.Parallel()
 	client := newStubDriveClient()
 	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
-	p.SetScope(SyncScope{
+	require.NoError(t, p.SetScope(SyncScope{
 		Policies:      EntityScope{Enabled: true, Exclude: []string{"POL-DRAFT-*"}},
 		Controls:      EntityScope{Enabled: true},
 		EvidenceTasks: EntityScope{Enabled: true},
-	})
+	}))
 
 	// Excluded policy — should be silently skipped
 	pol := &domain.Policy{ID: "POL-DRAFT-001", ReferenceID: "POL-DRAFT-001", Name: "Draft", Content: "# Draft"}
@@ -580,11 +580,11 @@ func TestGDrive_PushControl_FilteredByScope(t *testing.T) {
 	t.Parallel()
 	client := newStubDriveClient()
 	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
-	p.SetScope(SyncScope{
+	require.NoError(t, p.SetScope(SyncScope{
 		Policies:      EntityScope{Enabled: true},
 		Controls:      EntityScope{Enabled: false},
 		EvidenceTasks: EntityScope{Enabled: true},
-	})
+	}))
 
 	control := &domain.Control{ID: "CC-06.1", ReferenceID: "CC-06.1"}
 	err := p.PushControl(context.Background(), control)
@@ -596,11 +596,11 @@ func TestGDrive_PushEvidenceTask_FilteredByScope(t *testing.T) {
 	t.Parallel()
 	client := newStubDriveClient()
 	p := NewGDriveSyncProvider(client, "root", testhelpers.NewStubLogger())
-	p.SetScope(SyncScope{
+	require.NoError(t, p.SetScope(SyncScope{
 		Policies:      EntityScope{Enabled: true},
 		Controls:      EntityScope{Enabled: true},
 		EvidenceTasks: EntityScope{Enabled: true, TagsExclude: []string{"sensitive"}},
-	})
+	}))
 
 	task := &domain.EvidenceTask{
 		ID:          "ET-0001",

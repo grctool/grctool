@@ -4,6 +4,7 @@
 package gdrive
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -105,7 +106,40 @@ func (es *EntityScope) matches(refID string, tags []string) bool {
 	return true
 }
 
+// ValidatePatterns checks that all Include and Exclude glob patterns in the
+// EntityScope are valid filepath.Match patterns. Returns an error describing
+// the first invalid pattern found, or nil if all patterns are valid.
+func (es *EntityScope) ValidatePatterns() error {
+	for _, p := range es.Include {
+		if _, err := filepath.Match(p, ""); err != nil {
+			return fmt.Errorf("invalid include pattern %q: %w", p, err)
+		}
+	}
+	for _, p := range es.Exclude {
+		if _, err := filepath.Match(p, ""); err != nil {
+			return fmt.Errorf("invalid exclude pattern %q: %w", p, err)
+		}
+	}
+	return nil
+}
+
+// ValidatePatterns checks all glob patterns across all entity scopes.
+// Returns an error describing the first invalid pattern found.
+func (s *SyncScope) ValidatePatterns() error {
+	for name, es := range map[string]*EntityScope{
+		"policies":       &s.Policies,
+		"controls":       &s.Controls,
+		"evidence_tasks": &s.EvidenceTasks,
+	} {
+		if err := es.ValidatePatterns(); err != nil {
+			return fmt.Errorf("%s: %w", name, err)
+		}
+	}
+	return nil
+}
+
 // matchesAnyPattern checks if s matches any of the given glob patterns.
+// Patterns are assumed to be pre-validated via ValidatePatterns.
 func matchesAnyPattern(s string, patterns []string) bool {
 	for _, p := range patterns {
 		if matched, _ := filepath.Match(p, s); matched {

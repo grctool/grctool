@@ -169,6 +169,62 @@ func TestSyncScope_EmptyRefID(t *testing.T) {
 	assert.False(t, scope.PolicyInScope(&domain.Policy{ReferenceID: ""}))
 }
 
+func TestEntityScope_ValidatePatterns_InvalidInclude(t *testing.T) {
+	t.Parallel()
+	es := EntityScope{
+		Enabled: true,
+		Include: []string{"POL-*", "[bad"},
+	}
+	err := es.ValidatePatterns()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "[bad")
+	assert.Contains(t, err.Error(), "include")
+}
+
+func TestEntityScope_ValidatePatterns_InvalidExclude(t *testing.T) {
+	t.Parallel()
+	es := EntityScope{
+		Enabled: true,
+		Exclude: []string{"[bad"},
+	}
+	err := es.ValidatePatterns()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "[bad")
+	assert.Contains(t, err.Error(), "exclude")
+}
+
+func TestEntityScope_ValidatePatterns_ValidPatterns(t *testing.T) {
+	t.Parallel()
+	es := EntityScope{
+		Enabled: true,
+		Include: []string{"POL-*", "POL-000?"},
+		Exclude: []string{"POL-DRAFT-*"},
+	}
+	assert.NoError(t, es.ValidatePatterns())
+}
+
+func TestSyncScope_ValidatePatterns_InvalidInPolicies(t *testing.T) {
+	t.Parallel()
+	scope := SyncScope{
+		Policies: EntityScope{
+			Enabled: true,
+			Include: []string{"[bad"},
+		},
+		Controls:      EntityScope{Enabled: true},
+		EvidenceTasks: EntityScope{Enabled: true},
+	}
+	err := scope.ValidatePatterns()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "policies")
+	assert.Contains(t, err.Error(), "[bad")
+}
+
+func TestSyncScope_ValidatePatterns_AllValid(t *testing.T) {
+	t.Parallel()
+	scope := DefaultSyncScope()
+	assert.NoError(t, scope.ValidatePatterns())
+}
+
 func TestDefaultSyncScope(t *testing.T) {
 	t.Parallel()
 	scope := DefaultSyncScope()
