@@ -101,12 +101,15 @@ pre-commit:
       glob: "*.go"
       run: |
         if command -v gosec >/dev/null 2>&1; then
-          if ! gosec -quiet -fmt json {staged_files} >/dev/null 2>&1; then
-            echo "⚠️  Security issues found"
-            # Don't fail on security warnings in pre-commit
+          # Get packages for staged files
+          packages=$(echo "{staged_files}" | xargs -n1 dirname | sort -u | sed 's|^|./|' | tr '\n' ' ')
+          if ! gosec -quiet $packages 2>/dev/null; then
+            echo "❌ Security issues found by gosec"
+            echo "💡 Run 'gosec ./...' for details"
+            exit 1
           fi
         else
-          echo "💡 Install gosec for security scanning: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"
+          echo "💡 Install gosec for security scanning: go install github.com/securego/gosec/v2/cmd/gosec@latest"
         fi
       stage_fixed: false
 

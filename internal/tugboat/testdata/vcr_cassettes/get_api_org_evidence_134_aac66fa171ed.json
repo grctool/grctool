@@ -4,7 +4,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content&embeds=org_scope&embeds=tags&embeds=open_incident_count&embeds=jira_issues&embeds=assignees&embeds=supported_integrations&embeds=aec_status&embeds=subtask_metadata&embeds=last_reminded_at&embeds=supported_internal_aec",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -34,7 +34,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content&embeds=org_scope&embeds=tags&embeds=open_incident_count&embeds=jira_issues&embeds=assignees&embeds=supported_integrations&embeds=aec_status&embeds=subtask_metadata&embeds=last_reminded_at&embeds=supported_internal_aec",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -64,7 +64,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content&embeds=org_scope&embeds=tags&embeds=open_incident_count&embeds=jira_issues&embeds=assignees&embeds=supported_integrations&embeds=aec_status&embeds=subtask_metadata&embeds=last_reminded_at&embeds=supported_internal_aec",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -94,7 +94,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content\u0026embeds=org_scope\u0026embeds=tags\u0026embeds=open_incident_count\u0026embeds=jira_issues\u0026embeds=assignees\u0026embeds=supported_integrations\u0026embeds=aec_status\u0026embeds=subtask_metadata\u0026embeds=last_reminded_at\u0026embeds=supported_internal_aec",
+        "url": "https://api-my.tugboatlogic.com/api/org_evidence/134/?embeds=master_content&embeds=org_scope&embeds=tags&embeds=open_incident_count&embeds=jira_issues&embeds=assignees&embeds=supported_integrations&embeds=aec_status&embeds=subtask_metadata&embeds=last_reminded_at&embeds=supported_internal_aec",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",

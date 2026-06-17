@@ -4,7 +4,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version&embeds=tags&embeds=association_counts&embeds=latest_version&embeds=usage&embeds=deprecation_notes&embeds=assignees&embeds=reviewers",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -34,7 +34,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version&embeds=tags&embeds=association_counts&embeds=latest_version&embeds=usage&embeds=deprecation_notes&embeds=assignees&embeds=reviewers",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -64,7 +64,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version&embeds=tags&embeds=association_counts&embeds=latest_version&embeds=usage&embeds=deprecation_notes&embeds=assignees&embeds=reviewers",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -94,7 +94,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version&embeds=tags&embeds=association_counts&embeds=latest_version&embeds=usage&embeds=deprecation_notes&embeds=assignees&embeds=reviewers",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -124,7 +124,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version&embeds=tags&embeds=association_counts&embeds=latest_version&embeds=usage&embeds=deprecation_notes&embeds=assignees&embeds=reviewers",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
@@ -154,7 +154,7 @@
     {
       "request": {
         "method": "GET",
-        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version\u0026embeds=tags\u0026embeds=association_counts\u0026embeds=latest_version\u0026embeds=usage\u0026embeds=deprecation_notes\u0026embeds=assignees\u0026embeds=reviewers",
+        "url": "https://api-my.tugboatlogic.com/api/policy/nonexistent_policy_id/?embeds=current_version&embeds=tags&embeds=association_counts&embeds=latest_version&embeds=usage&embeds=deprecation_notes&embeds=assignees&embeds=reviewers",
         "headers": {
           "Accept": "application/json",
           "Authorization": "[REDACTED]",
