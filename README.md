@@ -13,6 +13,7 @@ A CLI application for managing security program compliance through Tugboat Logic
 
 - [Documentation](#-documentation)
 - [Features](#features)
+- [Demo](#-demo)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Usage](#usage)
@@ -58,6 +59,49 @@ A CLI application for managing security program compliance through Tugboat Logic
 - **Multiple Output Formats**: Generate evidence in CSV, Markdown, and JSON formats
 - **High-Performance Indexing**: Sub-100ms queries with persistent caching
 - **Local Data Storage**: JSON-based storage for offline access and analysis
+
+## 🎬 Demo
+
+See GRCTool in action! This screencast demonstrates the complete evidence assembly workflow from policies to infrastructure:
+
+### What's Demonstrated
+
+1. 📋 **Evidence Discovery** - List and examine evidence tasks
+2. 🔗 **Relationship Mapping** - Connect tasks, controls, and policies
+3. 📝 **Context Generation** - Create control summaries with actual file previews
+4. 🐙 **GitHub Evidence** - Extract repository permissions, workflows, and security features
+5. 🏗️ **Terraform Scanning** - Analyze infrastructure configurations and security controls
+6. 📂 **Evidence Review** - View generated markdown evidence with previews
+
+### Watch the Demo
+
+**Option 1: Play locally** (recommended for best experience)
+
+```bash
+# Clone the repository
+git clone https://github.com/grctool/grctool.git
+cd grctool
+
+# Install asciinema (if needed)
+brew install asciinema  # macOS
+# or: apt install asciinema  # Ubuntu/Debian
+
+# Play the demo
+asciinema play grctool-evidence-demo.cast
+```
+
+**Option 2: View on the web**
+
+Upload the demo to view online:
+```bash
+asciinema upload grctool-evidence-demo.cast
+```
+This generates a shareable URL with an embedded player.
+
+**Learn More:** See [SCREENCAST.md](SCREENCAST.md) for complete documentation, including how to:
+- Convert the demo to GIF or SVG
+- Recreate the recording
+- Understand each step in detail
 
 ## Quick Start
 
