@@ -123,7 +123,7 @@ implementation can proceed.
 | ADR-010: System of Record Architecture | Architecture | Accepted | Defines the master index, adapter interfaces, and conflict resolution model |
 | Master Index Implementation | Technical | In Progress | Domain entities have `ExternalIDs` and `SyncMetadata`. Storage supports `GetByExternalID`. CLI surface (`grctool index list`) and ContentHash computation remain unimplemented. |
 | ADR-006: Hexagonal Architecture | Architecture | Accepted | AccountableHQ adapter implements the standard port/adapter pattern |
-| FEAT-004: Universal Document Provider | Feature | In Progress | `DataProvider`, `SyncProvider`, `ProviderRegistry` interfaces implemented. Provider stub exists in `internal/providers/accountablehq/`. |
+| FEAT-004: Universal Document Provider Framework | Feature | In Progress | Provides the DataProvider/SyncProvider interfaces and registry this feature builds on |
 | FEAT-003: Task Scheduler | Feature | In Progress | Lifecycle state machines and scheduler package exist; persistence incomplete |
 | AccountableHQ API Access | External | TBD | API documentation, authentication credentials, and rate limit details needed |
 
@@ -165,9 +165,9 @@ implementation can proceed.
 
 ## References
 
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
-- [Data Design: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md#system-of-record-architecture)
-- [SD-001: AccountableHQ Adapter Solution Design](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)
-- [AccountableHQ API Discovery Reference](/home/erik/Projects/grctool/docs/helix/02-design/research/accountablehq-api-discovery.md)
-- [AccountableHQ Scraping Evaluation Reference](/home/erik/Projects/grctool/docs/helix/02-design/research/accountablehq-scraping-evaluation.md)
-- [Interface Contracts](/home/erik/Projects/grctool/docs/helix/02-design/contracts/contracts.md)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
+- [Data Design: System of Record Architecture](docs/helix/02-design/data-design/data-design.md#system-of-record-architecture)
+- [SD-001: AccountableHQ Adapter Solution Design](docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)
+- [AccountableHQ API Discovery Reference](docs/helix/02-design/research/accountablehq-api-discovery.md)
+- [AccountableHQ Scraping Evaluation Reference](docs/helix/02-design/research/accountablehq-scraping-evaluation.md)
+- [Interface Contracts](docs/helix/02-design/contracts/contracts.md)

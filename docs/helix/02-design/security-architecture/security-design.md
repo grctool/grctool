@@ -814,10 +814,10 @@ echo "Incident report template created"
 
 ## References
 
-- [[system-architecture]] - Overall system design and security integration
-- [[api-design]] - Secure API design patterns
-- [[security-requirements]] - Security requirements from Frame phase
-- [[testing-strategy]] - Security testing approaches
+- [System Architecture](../architecture/system-design.md) - Overall system design and security integration
+- [API Design](../contracts/contracts.md) - Secure API design patterns
+- [Security Requirements](../../01-frame/security-requirements/requirements.md) - Security requirements from Frame phase
+- [Testing Strategy](../../03-test/test-plan/testing-strategy.md) - Security testing approaches
 
 ---
 

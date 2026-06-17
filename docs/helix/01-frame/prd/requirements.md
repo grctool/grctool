@@ -295,11 +295,11 @@ GRCTool coordinates compliance work across teams and auditors using a predictabl
 
 ## References
 
-- [[user-stories]] - Detailed user stories and personas
-- [[compliance-requirements]] - SOC2 and ISO27001 framework requirements
-- [[security-requirements]] - Security and privacy requirements
-- [[architecture-decisions]] - Technical architecture choices
-- [[product-vision]] - Product vision and strategic direction
+- [User Stories](../user-stories/stories.md) - Detailed user stories and personas
+- [Compliance Requirements](../compliance-requirements/requirements.md) - SOC2 and ISO27001 framework requirements
+- [Security Requirements](../security-requirements/requirements.md) - Security and privacy requirements
+- [Architecture Decisions](../../02-design/adr/adr-index.md) - Technical architecture choices
+- [Product Vision](../../00-discover/product-vision.md) - Product vision and strategic direction
 
 ---
 

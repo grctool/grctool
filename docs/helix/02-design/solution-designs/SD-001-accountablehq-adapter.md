@@ -539,8 +539,8 @@ internal/
 
 ## References
 
-- [FEAT-001: AccountableHQ Bidirectional Policy Sync](/home/erik/Projects/grctool/docs/helix/01-frame/features/FEAT-001-accountablehq-policy-sync.md)
-- [ADR-006: Hexagonal Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture-ports-and-adapters)
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
-- [Data Design: Integration Point Contracts](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md#integration-point-contracts)
-- [Interface Contracts](/home/erik/Projects/grctool/docs/helix/02-design/contracts/contracts.md)
+- [FEAT-001: AccountableHQ Bidirectional Policy Sync](docs/helix/01-frame/features/FEAT-001-accountablehq-policy-sync.md)
+- [ADR-006: Hexagonal Architecture](docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture-ports-and-adapters)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
+- [Data Design: Integration Point Contracts](docs/helix/02-design/data-design/data-design.md#integration-point-contracts)
+- [Interface Contracts](docs/helix/02-design/contracts/contracts.md)

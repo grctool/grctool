@@ -673,7 +673,7 @@ We will introduce a layered Universal Document Provider Framework:
 
 ## References
 
-- [System Architecture](/home/erik/Projects/grctool/docs/helix/02-design/architecture/system-design.md)
-- [Security Design](/home/erik/Projects/grctool/docs/helix/02-design/security-architecture/security-design.md)
-- [Product Requirements](/home/erik/Projects/grctool/docs/helix/01-frame/prd/requirements.md)
-- [Architecture Overview](/home/erik/Projects/grctool/docs/ARCHITECTURE.md)
+- [System Architecture](docs/helix/02-design/architecture/system-design.md)
+- [Security Design](docs/helix/02-design/security-architecture/security-design.md)
+- [Product Requirements](docs/helix/01-frame/prd/requirements.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)

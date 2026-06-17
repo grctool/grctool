@@ -313,13 +313,13 @@ storage) separate from the provider registry concern (remote provider management
 
 ## References
 
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
-- [ADR-006: Hexagonal Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture)
-- [FEAT-001: AccountableHQ Bidirectional Policy Sync](/home/erik/Projects/grctool/docs/helix/01-frame/features/FEAT-001-accountablehq-policy-sync.md)
-- [FEAT-002: Google Drive Bidirectional Sync](/home/erik/Projects/grctool/docs/helix/01-frame/features/FEAT-002-gdrive-bidirectional-sync.md)
-- [FEAT-003: Audit Lifecycle Scheduler](/home/erik/Projects/grctool/docs/helix/01-frame/features/FEAT-003-audit-lifecycle-scheduler.md)
-- [PRD Requirements: System of Record Vision](/home/erik/Projects/grctool/docs/helix/01-frame/prd/requirements.md)
-- [Domain Model: Policy](/home/erik/Projects/grctool/internal/domain/policy.go) -- `ID: string`
-- [Domain Model: Control](/home/erik/Projects/grctool/internal/domain/control.go) -- `ID: int` (inconsistency)
-- [Domain Model: EvidenceTask](/home/erik/Projects/grctool/internal/domain/evidence.go) -- `ID: int` (inconsistency)
-- [StorageService Interface](/home/erik/Projects/grctool/internal/interfaces/storage.go)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
+- [ADR-006: Hexagonal Architecture](docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture)
+- [FEAT-001: AccountableHQ Bidirectional Policy Sync](docs/helix/01-frame/features/FEAT-001-accountablehq-policy-sync.md)
+- [FEAT-002: Google Drive Bidirectional Sync](docs/helix/01-frame/features/FEAT-002-gdrive-bidirectional-sync.md)
+- [FEAT-003: Audit Lifecycle Scheduler](docs/helix/01-frame/features/FEAT-003-audit-lifecycle-scheduler.md)
+- [PRD Requirements: System of Record Vision](docs/helix/01-frame/prd/requirements.md)
+- [Domain Model: Policy](internal/domain/policy.go) -- `ID: string`
+- [Domain Model: Control](internal/domain/control.go) -- `ID: string`
+- [Domain Model: EvidenceTask](internal/domain/evidence.go) -- `ID: string`
+- [StorageService Interface](internal/interfaces/storage.go)

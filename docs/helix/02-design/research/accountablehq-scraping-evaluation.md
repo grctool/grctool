@@ -15,7 +15,7 @@ updated: 2026-04-01
 This reference was previously filed as `SD-001-scraping-evaluation`. It
 captures supporting implementation research for
 [SD-001: AccountableHQ Integration
-Adapter](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)
+Adapter](docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)
 and is not a standalone solution design.
 
 ## Libraries Evaluated

@@ -1,5 +1,7 @@
 # HELIX Workflow Gap Analysis Report
 
+> **⚠️ HISTORICAL — SUPERSEDED (as of 2026-06-17).** This 2025-09-22 gap analysis predates the HELIX restructuring. The structural gaps it identifies (missing phase README.md files, missing subdirectories, missing workflow gates) have since been RESOLVED — all six phases now have README.md, the documented subdirectory hierarchy, and GATE.yaml/input-gates.yml/enforcer.md. Retained for historical context only. For current state see docs/helix/06-iterate/alignment-reviews/.
+
 **Generated**: 2025-09-22
 **Analyst**: Claude Code Agent
 **Project**: GRCTool - Automated compliance evidence collection CLI

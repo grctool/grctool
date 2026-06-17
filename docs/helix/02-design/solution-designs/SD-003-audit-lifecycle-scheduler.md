@@ -804,8 +804,8 @@ jobs:
 
 ## References
 
-- [FEAT-003: Document & Audit Lifecycle Scheduler](/home/erik/Projects/grctool/docs/helix/01-frame/features/FEAT-003-audit-lifecycle-scheduler.md)
-- [Data Design](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md)
-- [Interface Contracts](/home/erik/Projects/grctool/docs/helix/02-design/contracts/contracts.md)
-- [Evidence State Machine](/home/erik/Projects/grctool/internal/models/evidence_state.go)
-- [ADR Index](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md)
+- [FEAT-003: Document & Audit Lifecycle Scheduler](docs/helix/01-frame/features/FEAT-003-audit-lifecycle-scheduler.md)
+- [Data Design](docs/helix/02-design/data-design/data-design.md)
+- [Interface Contracts](docs/helix/02-design/contracts/contracts.md)
+- [Evidence State Machine](internal/models/evidence_state.go)
+- [ADR Index](docs/helix/02-design/adr/adr-index.md)

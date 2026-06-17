@@ -643,13 +643,13 @@ cat ~/.grctool.yaml | grep -A 5 "aws:"
 
 ## References
 
-- [[product-requirements]] - Overall product vision alignment
-- [[user-stories]] - Compliance manager and auditor requirements
-- [[security-requirements]] - Technical security implementation
-- [[architecture-decisions]] - Compliance-driven design decisions
-- [[evidence-task-catalog]] - Complete evidence task specifications
-- [[framework-mapping-matrix]] - Cross-framework control relationships
-- [[automation-coverage-report]] - Current and planned automation coverage
+- [Product Requirements](../prd/requirements.md) - Overall product vision alignment
+- [User Stories](../user-stories/stories.md) - Compliance manager and auditor requirements
+- [Security Requirements](../security-requirements/requirements.md) - Technical security implementation
+- [Architecture Decisions](../../02-design/adr/adr-index.md) - Compliance-driven design decisions
+- *evidence-task-catalog (planned)* - Complete evidence task specifications
+- *framework-mapping-matrix (planned)* - Cross-framework control relationships
+- *automation-coverage-report (planned)* - Current and planned automation coverage
 
 ---
 

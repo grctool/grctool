@@ -137,7 +137,7 @@ Without bidirectional sync, teams face:
 |------------|------|--------|-------|
 | ADR-010: System of Record | Architecture | Accepted | Master index provides canonical data to sync |
 | Google Workspace OAuth setup | Infrastructure | Existing | Service account auth pattern in `google_workspace.go`; needs expanded scopes for write access |
-| FEAT-004: Universal Document Provider | Feature | In Progress | `DataProvider`, `SyncProvider`, `ProviderRegistry` interfaces implemented. Provider stub exists in `internal/providers/gdrive/`. |
+| FEAT-004: Universal Document Provider Framework | Feature | In Progress | Provides the DataProvider/SyncProvider interfaces and registry this feature builds on |
 | ADR-006: Hexagonal architecture | Architecture | Accepted | Adapter interface pattern for sync integration |
 | FEAT-003: Task Scheduler | Feature | In Progress | Lifecycle state machines and scheduler package exist; persistence incomplete |
 
@@ -161,8 +161,8 @@ Without bidirectional sync, teams face:
 
 ## References
 
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
-- [ADR-006: Hexagonal Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture-ports-and-adapters)
-- [Data Design: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md#system-of-record-architecture)
-- [Google Workspace Setup Guide](/home/erik/Projects/grctool/docs/01-User-Guide/google-workspace-setup.md)
-- [SD-002: Google Drive Sync Adapter](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-002-gdrive-sync-adapter.md)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
+- [ADR-006: Hexagonal Architecture](docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture-ports-and-adapters)
+- [Data Design: System of Record Architecture](docs/helix/02-design/data-design/data-design.md#system-of-record-architecture)
+- [Google Workspace Setup Guide](docs/01-User-Guide/google-workspace-setup.md)
+- [SD-002: Google Drive Sync Adapter](docs/helix/02-design/solution-designs/SD-002-gdrive-sync-adapter.md)

@@ -1467,13 +1467,13 @@ echo "To restore: sudo systemctl enable grctool && sudo systemctl start grctool"
 
 ## References
 
-- [[monitoring-alerting]] - Detailed monitoring and alerting setup
-- [[performance-optimization]] - Performance tuning and optimization
-- [[maintenance-procedures]] - Comprehensive maintenance guidelines
-- [[security-architecture]] - Security operational procedures
-- [[compliance-deployment-guide]] - Compliance-specific deployment patterns
-- [[high-availability-setup]] - Enterprise HA configuration
-- [[disaster-recovery-procedures]] - Business continuity planning
+- *monitoring-alerting (planned)* - Detailed monitoring and alerting setup
+- *performance-optimization (planned)* - Performance tuning and optimization
+- *maintenance-procedures (planned)* - Comprehensive maintenance guidelines
+- [Security Architecture](../../02-design/security-architecture/security-design.md) - Security operational procedures
+- *compliance-deployment-guide (planned)* - Compliance-specific deployment patterns
+- *high-availability-setup (planned)* - Enterprise HA configuration
+- *disaster-recovery-procedures (planned)* - Business continuity planning
 
 ---
 

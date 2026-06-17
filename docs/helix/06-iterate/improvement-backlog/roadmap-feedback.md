@@ -1124,13 +1124,13 @@ predictive_analytics:
 
 ## References
 
-- [[feature-backlog]] - Detailed feature specifications and priorities
-- [[user-stories]] - User requirements and acceptance criteria
-- [[performance-metrics]] - Technical performance tracking
-- [[quality-dashboard]] - Quality metrics and trends
-- [[compliance-analytics-platform]] - Advanced analytics and prediction systems
-- [[business-intelligence-dashboard]] - Executive reporting and KPIs
-- [[regulatory-monitoring-system]] - Framework change tracking and impact analysis
+- *feature-backlog (planned)* - Detailed feature specifications and priorities
+- [User Stories](../../01-frame/user-stories/stories.md) - User requirements and acceptance criteria
+- *performance-metrics (planned)* - Technical performance tracking
+- *quality-dashboard (planned)* - Quality metrics and trends
+- *compliance-analytics-platform (planned)* - Advanced analytics and prediction systems
+- *business-intelligence-dashboard (planned)* - Executive reporting and KPIs
+- *regulatory-monitoring-system (planned)* - Framework change tracking and impact analysis
 
 ---
 

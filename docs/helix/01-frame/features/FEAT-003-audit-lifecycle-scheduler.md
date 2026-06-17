@@ -227,7 +227,7 @@ Key behaviors:
 | Tool interface (API-002) | Tool registry for task-to-tool mapping | Implemented |
 | Storage interface (API-004) | File-based storage for lifecycle state | Implemented (lifecycle persistence incomplete) |
 | Configuration interface (API-005) | `.grctool.yaml` schema extension | Implemented |
-| FEAT-004 provider registry | Provider routing for scheduled sync operations | In Progress |
+| FEAT-004: Universal Document Provider Framework | Provides the DataProvider/SyncProvider interfaces and registry this feature builds on | In Progress |
 
 ## Risks and Mitigations
 
@@ -241,8 +241,8 @@ Key behaviors:
 
 ## References
 
-- [Data Design: Evidence Lifecycle States](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md)
-- [Interface Contracts: Tool Interface](/home/erik/Projects/grctool/docs/helix/02-design/contracts/contracts.md)
-- [Existing Evidence State Machine](/home/erik/Projects/grctool/internal/models/evidence_state.go)
-- [PRD: Agentic Workflow Overview](/home/erik/Projects/grctool/docs/helix/01-frame/prd/requirements.md)
-- [User Stories](/home/erik/Projects/grctool/docs/helix/01-frame/user-stories/stories.md)
+- [Data Design: Evidence Lifecycle States](docs/helix/02-design/data-design/data-design.md)
+- [Interface Contracts: Tool Interface](docs/helix/02-design/contracts/contracts.md)
+- [Existing Evidence State Machine](internal/models/evidence_state.go)
+- [PRD: Agentic Workflow Overview](docs/helix/01-frame/prd/requirements.md)
+- [User Stories](docs/helix/01-frame/user-stories/stories.md)

@@ -940,7 +940,7 @@ Authentication errors must be categorized:
 **Status**: Proposed
 **Version**: 0.1.0
 **Source**: `internal/interfaces/provider.go`, `internal/providers/registry.go`
-**Design**: [SD-004: Universal Document Provider Framework](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-004-universal-document-provider.md)
+**Design**: [SD-004: Universal Document Provider Framework](docs/helix/02-design/solution-designs/SD-004-universal-document-provider.md)
 
 ### Overview
 
@@ -1125,16 +1125,16 @@ default:
 
 ## References
 
-- [System Architecture](/home/erik/Projects/grctool/docs/helix/02-design/architecture/system-design.md)
-- [ADR Index](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md)
-- [Data Design](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md)
-- [Tool Interface Source](/home/erik/Projects/grctool/internal/tools/interface.go)
-- [Tool Output Source](/home/erik/Projects/grctool/internal/tools/output.go)
-- [Tool Registry Source](/home/erik/Projects/grctool/internal/tools/registry.go)
-- [Storage Interface Source](/home/erik/Projects/grctool/internal/interfaces/storage.go)
-- [Auth Provider Source](/home/erik/Projects/grctool/internal/auth/provider.go)
-- [Tugboat Client Source](/home/erik/Projects/grctool/internal/tugboat/client.go)
-- [Config Source](/home/erik/Projects/grctool/internal/config/config.go)
-- [Provider Interface Source](/home/erik/Projects/grctool/internal/interfaces/provider.go)
-- [Provider Registry Source](/home/erik/Projects/grctool/internal/providers/registry.go)
-- [SD-004: Universal Document Provider](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-004-universal-document-provider.md)
+- [System Architecture](docs/helix/02-design/architecture/system-design.md)
+- [ADR Index](docs/helix/02-design/adr/adr-index.md)
+- [Data Design](docs/helix/02-design/data-design/data-design.md)
+- [Tool Interface Source](internal/tools/interface.go)
+- [Tool Output Source](internal/tools/output.go)
+- [Tool Registry Source](internal/tools/registry.go)
+- [Storage Interface Source](internal/interfaces/storage.go)
+- [Auth Provider Source](internal/auth/provider.go)
+- [Tugboat Client Source](internal/tugboat/client.go)
+- [Config Source](internal/config/config.go)
+- [Provider Interface Source](internal/interfaces/provider.go)
+- [Provider Registry Source](internal/providers/registry.go)
+- [SD-004: Universal Document Provider](docs/helix/02-design/solution-designs/SD-004-universal-document-provider.md)

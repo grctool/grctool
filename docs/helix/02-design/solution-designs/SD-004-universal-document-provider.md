@@ -883,7 +883,7 @@ This enables:
 
 ## References
 
-- [ADR-006: Hexagonal Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-006)
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010)
-- [ADR-011: Universal Document Provider Framework](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-011)
-- [SD-001: AccountableHQ Integration Adapter](/home/erik/Projects/grctool/docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)
+- [ADR-006: Hexagonal Architecture](docs/helix/02-design/adr/adr-index.md#adr-006)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010)
+- [ADR-011: Universal Document Provider Framework](docs/helix/02-design/adr/adr-index.md#adr-011)
+- [SD-001: AccountableHQ Integration Adapter](docs/helix/02-design/solution-designs/SD-001-accountablehq-adapter.md)

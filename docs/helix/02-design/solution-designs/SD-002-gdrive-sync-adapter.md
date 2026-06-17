@@ -513,12 +513,12 @@ The adapter adds the following commands under `grctool drive`:
 
 ## References
 
-- [FEAT-002: Google Drive Bidirectional Sync](/home/erik/Projects/grctool/docs/helix/01-frame/features/FEAT-002-gdrive-bidirectional-sync.md)
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
-- [ADR-006: Hexagonal Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture-ports-and-adapters)
-- [Data Design](/home/erik/Projects/grctool/docs/helix/02-design/data-design/data-design.md)
-- [Google Workspace Tool](/home/erik/Projects/grctool/internal/tools/google_workspace.go)
-- [Google Workspace Setup Guide](/home/erik/Projects/grctool/docs/01-User-Guide/google-workspace-setup.md)
+- [FEAT-002: Google Drive Bidirectional Sync](docs/helix/01-frame/features/FEAT-002-gdrive-bidirectional-sync.md)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
+- [ADR-006: Hexagonal Architecture](docs/helix/02-design/adr/adr-index.md#adr-006-hexagonal-architecture-ports-and-adapters)
+- [Data Design](docs/helix/02-design/data-design/data-design.md)
+- [Google Workspace Tool](internal/tools/google_workspace.go)
+- [Google Workspace Setup Guide](docs/01-User-Guide/google-workspace-setup.md)
 - [Google Docs API Reference](https://developers.google.com/docs/api/reference/rest)
 - [Google Drive API Reference](https://developers.google.com/drive/api/reference/rest/v3)
 - [Google Sheets API Reference](https://developers.google.com/sheets/api/reference/rest)

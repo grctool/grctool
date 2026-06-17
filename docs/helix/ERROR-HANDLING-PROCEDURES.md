@@ -1,1 +1,1986 @@
-# HELIX Error Handling and Recovery Procedures\n\n## Overview\n\nThis document provides comprehensive error handling and recovery procedures for each phase of the HELIX workflow when applied to GRCTool development. These procedures ensure resilient development processes and enable rapid recovery from failures while maintaining compliance and security standards.\n\n## Error Classification System\n\n### Error Severity Levels\n\n#### Critical (P0) - Immediate Response Required\n```yaml\ncritical_errors:\n  description: \"Errors that block workflow progression or compromise security/compliance\"\n  response_time: \"< 1 hour\"\n  escalation: \"Immediate to team lead and stakeholders\"\n  examples:\n    - \"Security vulnerability in production\"\n    - \"Compliance validation failure\"\n    - \"Complete system outage\"\n    - \"Data integrity compromise\"\n    - \"Audit trail corruption\"\n```\n\n#### High (P1) - Same Day Resolution\n```yaml\nhigh_priority_errors:\n  description: \"Errors that significantly impact workflow efficiency or quality\"\n  response_time: \"< 4 hours\"\n  escalation: \"To team lead within 2 hours\"\n  examples:\n    - \"Phase gate failure\"\n    - \"Automated test suite failure\"\n    - \"Evidence collection tool malfunction\"\n    - \"CI/CD pipeline breakdown\"\n    - \"Performance degradation > 50%\"\n```\n\n#### Medium (P2) - Next Business Day Resolution\n```yaml\nmedium_priority_errors:\n  description: \"Errors that cause minor workflow disruption\"\n  response_time: \"< 24 hours\"\n  escalation: \"Standard team notification\"\n  examples:\n    - \"Documentation quality issues\"\n    - \"Non-critical test failures\"\n    - \"Minor integration problems\"\n    - \"Performance degradation 20-50%\"\n    - \"Code review workflow issues\"\n```\n\n#### Low (P3) - Weekly Resolution\n```yaml\nlow_priority_errors:\n  description: \"Errors with minimal immediate impact\"\n  response_time: \"< 1 week\"\n  escalation: \"Track in backlog\"\n  examples:\n    - \"Cosmetic documentation issues\"\n    - \"Non-essential feature bugs\"\n    - \"Minor usability problems\"\n    - \"Performance degradation < 20%\"\n    - \"Enhancement request conflicts\"\n```\n\n## Frame Phase Error Handling\n\n### Requirements Gathering Errors\n\n#### Error Scenario: Incomplete Compliance Requirements\n```yaml\nerror_type: \"Requirements Gap\"\nseverity: \"High (P1)\"\nsymptoms:\n  - \"Missing control mappings for evidence tasks\"\n  - \"Undefined acceptance criteria for compliance features\"\n  - \"Unclear regulatory requirements\"\n  - \"Stakeholder disagreement on priorities\"\n\ndetection_methods:\n  - \"Requirements review checklist validation\"\n  - \"Compliance expert review\"\n  - \"Automated requirement coverage analysis\"\n  - \"Stakeholder approval tracking\"\n\nrecovery_procedures:\n  immediate_actions:\n    - \"Stop downstream design work\"\n    - \"Convene emergency stakeholder meeting\"\n    - \"Engage compliance subject matter expert\"\n    - \"Document all identified gaps\"\n    \n  resolution_steps:\n    1. \"Conduct gap analysis workshop\"\n    2. \"Research regulatory requirements\"\n    3. \"Validate with legal/compliance team\"\n    4. \"Update requirements documentation\"\n    5. \"Obtain stakeholder re-approval\"\n    6. \"Resume workflow with corrected requirements\"\n    \n  prevention_measures:\n    - \"Implement requirements checklist automation\"\n    - \"Establish compliance expert review gate\"\n    - \"Create requirement template validation\"\n    - \"Set up stakeholder alignment checkpoints\"\n```\n\n#### Error Scenario: Conflicting User Stories\n```bash\n#!/bin/bash\n# resolve-conflicting-user-stories.sh\n\nset -e\n\necho \"🔍 Analyzing conflicting user stories...\"\n\n# Detect conflicts\nconflicts=$(analyze_user_stories --check-conflicts --output=json)\nif [[ $(echo \"$conflicts\" | jq length) -gt 0 ]]; then\n    echo \"⚠️ Conflicts detected:\"\n    echo \"$conflicts\" | jq -r '.[] | \"- \\(.story_id): \\(.conflict_description)\"'\n    \n    # Convene resolution session\n    echo \"📞 Scheduling conflict resolution session...\"\n    schedule_meeting --type=\"conflict-resolution\" --urgency=\"high\" \\\n        --attendees=\"product-owner,tech-lead,business-analyst\" \\\n        --agenda=\"resolve-user-story-conflicts\"\n    \n    # Document conflicts for resolution\n    echo \"$conflicts\" > \"conflicts-$(date +%Y%m%d-%H%M%S).json\"\n    \n    # Block downstream work\n    set_workflow_gate --phase=\"frame\" --status=\"blocked\" \\\n        --reason=\"conflicting-requirements\" \\\n        --resolution-owner=\"product-owner\"\n    \n    echo \"🚫 Frame phase blocked pending conflict resolution\"\nelse\n    echo \"✅ No conflicts detected in user stories\"\nfi\n```\n\n### Requirements Quality Errors\n\n#### Error Scenario: Ambiguous Acceptance Criteria\n```python\n# scripts/validate_acceptance_criteria.py\nimport json\nimport re\nfrom typing import List, Dict, Tuple\n\nclass AcceptanceCriteriaValidator:\n    def __init__(self):\n        self.ambiguous_terms = [\n            'should', 'could', 'might', 'probably', 'usually',\n            'generally', 'normally', 'typically', 'approximately'\n        ]\n        self.missing_elements = [\n            'given', 'when', 'then', 'and', 'but'\n        ]\n    \n    def validate_criteria(self, user_stories: List[Dict]) -> List[Dict]:\n        \"\"\"Validate acceptance criteria for ambiguity and completeness\"\"\"\n        validation_results = []\n        \n        for story in user_stories:\n            story_validation = {\n                'story_id': story['id'],\n                'title': story['title'],\n                'errors': [],\n                'warnings': [],\n                'severity': 'low'\n            }\n            \n            # Check for ambiguous language\n            criteria_text = ' '.join(story.get('acceptance_criteria', []))\n            for term in self.ambiguous_terms:\n                if term.lower() in criteria_text.lower():\n                    story_validation['errors'].append({\n                        'type': 'ambiguous_language',\n                        'description': f\"Found ambiguous term: '{term}'\",\n                        'recommendation': f\"Replace '{term}' with specific, measurable criteria\"\n                    })\n                    story_validation['severity'] = 'medium'\n            \n            # Check for missing BDD structure\n            has_given = any('given' in criteria.lower() for criteria in story.get('acceptance_criteria', []))\n            has_when = any('when' in criteria.lower() for criteria in story.get('acceptance_criteria', []))\n            has_then = any('then' in criteria.lower() for criteria in story.get('acceptance_criteria', []))\n            \n            if not (has_given and has_when and has_then):\n                story_validation['errors'].append({\n                    'type': 'incomplete_bdd_structure',\n                    'description': 'Missing Given-When-Then structure',\n                    'recommendation': 'Rewrite using complete Given-When-Then format'\n                })\n                story_validation['severity'] = 'high'\n            \n            # Check for testability\n            if not self.is_testable(story.get('acceptance_criteria', [])):\n                story_validation['errors'].append({\n                    'type': 'not_testable',\n                    'description': 'Acceptance criteria cannot be automatically tested',\n                    'recommendation': 'Add specific, measurable verification criteria'\n                })\n                story_validation['severity'] = 'high'\n            \n            if story_validation['errors'] or story_validation['warnings']:\n                validation_results.append(story_validation)\n        \n        return validation_results\n    \n    def is_testable(self, criteria: List[str]) -> bool:\n        \"\"\"Check if acceptance criteria are testable\"\"\"\n        testable_indicators = [\n            'verify', 'validate', 'check', 'ensure', 'confirm',\n            'display', 'show', 'return', 'generate', 'create'\n        ]\n        \n        criteria_text = ' '.join(criteria).lower()\n        return any(indicator in criteria_text for indicator in testable_indicators)\n    \n    def generate_remediation_plan(self, validation_results: List[Dict]) -> Dict:\n        \"\"\"Generate plan to fix acceptance criteria issues\"\"\"\n        high_priority = [r for r in validation_results if r['severity'] == 'high']\n        medium_priority = [r for r in validation_results if r['severity'] == 'medium']\n        \n        plan = {\n            'summary': {\n                'total_issues': len(validation_results),\n                'high_priority': len(high_priority),\n                'medium_priority': len(medium_priority),\n                'estimated_effort': self.estimate_effort(validation_results)\n            },\n            'immediate_actions': [\n                'Block design phase until high-priority issues resolved',\n                'Schedule acceptance criteria workshop',\n                'Assign business analyst to rewrite problematic criteria'\n            ],\n            'resolution_steps': [\n                {\n                    'step': 1,\n                    'action': 'Review and rewrite high-priority acceptance criteria',\n                    'owner': 'Business Analyst',\n                    'timeline': '1-2 days'\n                },\n                {\n                    'step': 2,\n                    'action': 'Validate rewritten criteria with stakeholders',\n                    'owner': 'Product Owner',\n                    'timeline': '1 day'\n                },\n                {\n                    'step': 3,\n                    'action': 'Update user story documentation',\n                    'owner': 'Technical Writer',\n                    'timeline': '0.5 days'\n                },\n                {\n                    'step': 4,\n                    'action': 'Re-validate with automated tools',\n                    'owner': 'QA Engineer',\n                    'timeline': '0.5 days'\n                }\n            ]\n        }\n        \n        return plan\n    \n    def estimate_effort(self, validation_results: List[Dict]) -> str:\n        \"\"\"Estimate effort required to fix all issues\"\"\"\n        total_errors = sum(len(r['errors']) for r in validation_results)\n        \n        if total_errors <= 5:\n            return '1-2 days'\n        elif total_errors <= 15:\n            return '2-4 days'\n        else:\n            return '1 week'\n\n# Usage example\nif __name__ == '__main__':\n    validator = AcceptanceCriteriaValidator()\n    \n    # Load user stories\n    with open('user_stories.json', 'r') as f:\n        user_stories = json.load(f)\n    \n    # Validate\n    results = validator.validate_criteria(user_stories)\n    \n    if results:\n        print(f\"❌ Found {len(results)} user stories with acceptance criteria issues\")\n        \n        # Generate remediation plan\n        plan = validator.generate_remediation_plan(results)\n        \n        # Save results and plan\n        with open('acceptance_criteria_issues.json', 'w') as f:\n            json.dump(results, f, indent=2)\n        \n        with open('remediation_plan.json', 'w') as f:\n            json.dump(plan, f, indent=2)\n        \n        print(f\"📋 Remediation plan generated. Estimated effort: {plan['summary']['estimated_effort']}\")\n        \n        # Block workflow if high-priority issues exist\n        if plan['summary']['high_priority'] > 0:\n            exit(1)  # Fail CI/CD to block progression\n    else:\n        print(\"✅ All acceptance criteria validated successfully\")\n```\n\n## Design Phase Error Handling\n\n### Architecture Design Errors\n\n#### Error Scenario: Security Architecture Gaps\n```yaml\nerror_type: \"Security Design Flaw\"\nseverity: \"Critical (P0)\"\nsymptoms:\n  - \"Missing threat model components\"\n  - \"Insufficient access controls design\"\n  - \"Weak encryption implementation plan\"\n  - \"Inadequate audit trail design\"\n  - \"Non-compliant data protection approach\"\n\ndetection_methods:\n  - \"Automated security architecture scanning\"\n  - \"Security expert review\"\n  - \"Threat modeling validation\"\n  - \"Compliance requirement mapping\"\n\nrecovery_procedures:\n  immediate_actions:\n    - \"Halt all development work\"\n    - \"Engage security architect immediately\"\n    - \"Conduct emergency security review\"\n    - \"Notify compliance team\"\n    \n  resolution_steps:\n    1. \"Perform comprehensive threat modeling\"\n    2. \"Redesign security architecture\"\n    3. \"Validate against compliance requirements\"\n    4. \"Obtain security team approval\"\n    5. \"Update all design documentation\"\n    6. \"Resume development with secure design\"\n    \n  prevention_measures:\n    - \"Implement automated security design validation\"\n    - \"Mandatory security architect review\"\n    - \"Security checklist integration\"\n    - \"Threat modeling automation\"\n```\n\n#### Error Scenario: Performance Architecture Bottlenecks\n```go\n// internal/validation/performance_validator.go\npackage validation\n\nimport (\n    \"context\"\n    \"fmt\"\n    \"time\"\n)\n\n// PerformanceValidator validates architecture for performance requirements\ntype PerformanceValidator struct {\n    thresholds PerformanceThresholds\n    analyzer   ArchitectureAnalyzer\n}\n\ntype PerformanceThresholds struct {\n    MaxResponseTime    time.Duration `yaml:\"max_response_time\"`\n    MinThroughput      int           `yaml:\"min_throughput\"`\n    MaxMemoryUsage     int64         `yaml:\"max_memory_usage\"`\n    MaxCPUUtilization  float64       `yaml:\"max_cpu_utilization\"`\n}\n\ntype PerformanceIssue struct {\n    Component   string    `json:\"component\"`\n    IssueType   string    `json:\"issue_type\"`\n    Severity    string    `json:\"severity\"`\n    Description string    `json:\"description\"`\n    Impact      string    `json:\"impact\"`\n    Remediation string    `json:\"remediation\"`\n    Timeline    string    `json:\"timeline\"`\n}\n\n// ValidatePerformanceArchitecture checks architecture for performance issues\nfunc (pv *PerformanceValidator) ValidatePerformanceArchitecture(ctx context.Context, architectureDoc string) ([]PerformanceIssue, error) {\n    issues := make([]PerformanceIssue, 0)\n    \n    // Parse architecture document\n    architecture, err := pv.analyzer.ParseArchitecture(architectureDoc)\n    if err != nil {\n        return nil, fmt.Errorf(\"failed to parse architecture: %w\", err)\n    }\n    \n    // Check for synchronous processing bottlenecks\n    if syncIssues := pv.checkSynchronousProcessing(architecture); len(syncIssues) > 0 {\n        issues = append(issues, syncIssues...)\n    }\n    \n    // Check for database bottlenecks\n    if dbIssues := pv.checkDatabaseDesign(architecture); len(dbIssues) > 0 {\n        issues = append(issues, dbIssues...)\n    }\n    \n    // Check for API rate limiting\n    if apiIssues := pv.checkAPIDesign(architecture); len(apiIssues) > 0 {\n        issues = append(issues, apiIssues...)\n    }\n    \n    // Check for caching strategy\n    if cacheIssues := pv.checkCachingStrategy(architecture); len(cacheIssues) > 0 {\n        issues = append(issues, cacheIssues...)\n    }\n    \n    // Check for scalability design\n    if scaleIssues := pv.checkScalabilityDesign(architecture); len(scaleIssues) > 0 {\n        issues = append(issues, scaleIssues...)\n    }\n    \n    return issues, nil\n}\n\n// checkSynchronousProcessing identifies blocking operations\nfunc (pv *PerformanceValidator) checkSynchronousProcessing(architecture *Architecture) []PerformanceIssue {\n    issues := make([]PerformanceIssue, 0)\n    \n    for _, component := range architecture.Components {\n        // Check for evidence collection synchronous calls\n        if component.Type == \"evidence_collector\" && component.ProcessingMode == \"synchronous\" {\n            if component.EstimatedDuration > pv.thresholds.MaxResponseTime {\n                issues = append(issues, PerformanceIssue{\n                    Component:   component.Name,\n                    IssueType:   \"blocking_operation\",\n                    Severity:    \"high\",\n                    Description: fmt.Sprintf(\"Evidence collection taking %v exceeds threshold %v\", component.EstimatedDuration, pv.thresholds.MaxResponseTime),\n                    Impact:      \"User experience degradation, timeout failures\",\n                    Remediation: \"Implement asynchronous processing with progress tracking\",\n                    Timeline:    \"2-3 days\",\n                })\n            }\n        }\n        \n        // Check for external API calls without timeout\n        for _, dependency := range component.Dependencies {\n            if dependency.Type == \"external_api\" && dependency.Timeout == 0 {\n                issues = append(issues, PerformanceIssue{\n                    Component:   component.Name,\n                    IssueType:   \"missing_timeout\",\n                    Severity:    \"medium\",\n                    Description: fmt.Sprintf(\"External API call to %s lacks timeout configuration\", dependency.Name),\n                    Impact:      \"Potential for hanging requests and resource exhaustion\",\n                    Remediation: \"Add timeout configuration and circuit breaker pattern\",\n                    Timeline:    \"1 day\",\n                })\n            }\n        }\n    }\n    \n    return issues\n}\n\n// GeneratePerformanceRemediationPlan creates action plan for performance issues\nfunc (pv *PerformanceValidator) GeneratePerformanceRemediationPlan(issues []PerformanceIssue) *RemediationPlan {\n    plan := &RemediationPlan{\n        Summary: RemediationSummary{\n            TotalIssues:     len(issues),\n            CriticalIssues:  countIssuesBySeverity(issues, \"critical\"),\n            HighIssues:      countIssuesBySeverity(issues, \"high\"),\n            MediumIssues:    countIssuesBySeverity(issues, \"medium\"),\n            EstimatedEffort: calculateTotalEffort(issues),\n        },\n        Actions: make([]RemediationAction, 0),\n    }\n    \n    // Group issues by component and priority\n    groupedIssues := groupIssuesByComponent(issues)\n    \n    for component, componentIssues := range groupedIssues {\n        action := RemediationAction{\n            Component:    component,\n            Priority:     getHighestPriority(componentIssues),\n            Description:  fmt.Sprintf(\"Resolve %d performance issues in %s\", len(componentIssues), component),\n            Tasks:        convertIssuesToTasks(componentIssues),\n            Owner:        \"Architecture Team\",\n            EstimatedTime: calculateComponentEffort(componentIssues),\n            Dependencies: identifyDependencies(componentIssues),\n        }\n        \n        plan.Actions = append(plan.Actions, action)\n    }\n    \n    return plan\n}\n```\n\n### Integration Design Errors\n\n#### Error Scenario: API Incompatibility\n```bash\n#!/bin/bash\n# detect-api-incompatibilities.sh\n\nset -e\n\necho \"🔍 Checking API compatibility across design components...\"\n\n# Check API contract consistency\napi_contracts=(\"tugboat-api.yaml\" \"claude-api.yaml\" \"github-api.yaml\")\nincompatibilities=()\n\nfor contract in \"${api_contracts[@]}\"; do\n    if [[ -f \"designs/api-contracts/$contract\" ]]; then\n        echo \"📋 Validating $contract...\"\n        \n        # Validate OpenAPI schema\n        if ! swagger-codegen validate -i \"designs/api-contracts/$contract\"; then\n            incompatibilities+=(\"$contract: Invalid OpenAPI schema\")\n        fi\n        \n        # Check for breaking changes\n        if [[ -f \"designs/api-contracts/baseline/$contract\" ]]; then\n            breaking_changes=$(oasdiff breaking \"designs/api-contracts/baseline/$contract\" \"designs/api-contracts/$contract\")\n            if [[ -n \"$breaking_changes\" ]]; then\n                incompatibilities+=(\"$contract: Breaking changes detected\")\n                echo \"💥 Breaking changes in $contract:\"\n                echo \"$breaking_changes\"\n            fi\n        fi\n        \n        # Check authentication compatibility\n        auth_scheme=$(yq eval '.components.securitySchemes' \"designs/api-contracts/$contract\")\n        if [[ \"$auth_scheme\" == \"null\" ]]; then\n            incompatibilities+=(\"$contract: Missing authentication scheme\")\n        fi\n    else\n        incompatibilities+=(\"$contract: Contract file missing\")\n    fi\ndone\n\n# Check data model consistency\necho \"📊 Validating data model consistency...\"\ndata_models=(\"evidence-task.json\" \"compliance-framework.json\" \"security-control.json\")\n\nfor model in \"${data_models[@]}\"; do\n    if [[ -f \"designs/data-models/$model\" ]]; then\n        # Validate JSON schema\n        if ! ajv validate -s \"schemas/$model-schema.json\" -d \"designs/data-models/$model\"; then\n            incompatibilities+=(\"$model: Schema validation failed\")\n        fi\n    else\n        incompatibilities+=(\"$model: Data model missing\")\n    fi\ndone\n\n# Report incompatibilities\nif [[ ${#incompatibilities[@]} -gt 0 ]]; then\n    echo \"❌ API incompatibilities detected:\"\n    for incompatibility in \"${incompatibilities[@]}\"; do\n        echo \"  - $incompatibility\"\n    done\n    \n    # Generate remediation plan\n    cat > api-incompatibility-remediation.md << EOF\n# API Incompatibility Remediation Plan\n\n## Issues Detected\n$(printf '%s\\n' \"${incompatibilities[@]}\" | sed 's/^/- /')\n\n## Immediate Actions\n1. Block design phase progression\n2. Convene API design review meeting\n3. Engage integration architect\n4. Update API contracts\n\n## Resolution Steps\n1. **Review and Fix API Contracts** (1-2 days)\n   - Fix OpenAPI schema validation errors\n   - Resolve breaking changes or implement versioning\n   - Add missing authentication schemes\n   \n2. **Update Data Models** (1 day)\n   - Fix schema validation errors\n   - Ensure model consistency across APIs\n   - Validate against business requirements\n   \n3. **Integration Testing** (1-2 days)\n   - Test API contract compatibility\n   - Validate data flow between components\n   - Ensure authentication works end-to-end\n   \n4. **Documentation Update** (0.5 days)\n   - Update integration design documents\n   - Refresh API documentation\n   - Update developer guides\n\n## Prevention Measures\n- Implement automated API contract validation\n- Set up contract testing in CI/CD\n- Establish API design review process\n- Create integration testing automation\nEOF\n    \n    # Block workflow progression\n    echo \"🚫 Blocking design phase due to API incompatibilities\"\n    exit 1\nelse\n    echo \"✅ All API contracts and data models are compatible\"\nfi\n```\n\n## Test Phase Error Handling\n\n### Test Infrastructure Errors\n\n#### Error Scenario: VCR Testing Failures\n```python\n# scripts/vcr_recovery.py\nimport os\nimport json\nimport yaml\nfrom pathlib import Path\nfrom typing import List, Dict, Optional\n\nclass VCRRecoveryManager:\n    def __init__(self, cassette_dir: str = \"internal/tugboat/testdata/vcr\"):\n        self.cassette_dir = Path(cassette_dir)\n        self.failed_cassettes = []\n        self.corruption_issues = []\n        self.missing_cassettes = []\n    \n    def diagnose_vcr_issues(self) -> Dict[str, List[str]]:\n        \"\"\"Diagnose all VCR-related issues\"\"\"\n        issues = {\n            'failed_cassettes': [],\n            'corrupted_cassettes': [],\n            'missing_cassettes': [],\n            'outdated_cassettes': [],\n            'authentication_issues': []\n        }\n        \n        # Check for failed cassettes\n        for cassette_file in self.cassette_dir.glob(\"*.yaml\"):\n            try:\n                with open(cassette_file, 'r') as f:\n                    cassette_data = yaml.safe_load(f)\n                \n                # Check for corruption\n                if not self._validate_cassette_structure(cassette_data):\n                    issues['corrupted_cassettes'].append(str(cassette_file))\n                \n                # Check for authentication issues\n                if self._has_auth_errors(cassette_data):\n                    issues['authentication_issues'].append(str(cassette_file))\n                \n                # Check if cassette is outdated\n                if self._is_cassette_outdated(cassette_data):\n                    issues['outdated_cassettes'].append(str(cassette_file))\n                    \n            except Exception as e:\n                issues['failed_cassettes'].append(f\"{cassette_file}: {str(e)}\")\n        \n        # Check for missing cassettes\n        expected_cassettes = self._get_expected_cassettes()\n        existing_cassettes = set(f.stem for f in self.cassette_dir.glob(\"*.yaml\"))\n        missing = expected_cassettes - existing_cassettes\n        issues['missing_cassettes'] = list(missing)\n        \n        return issues\n    \n    def _validate_cassette_structure(self, cassette_data: Dict) -> bool:\n        \"\"\"Validate cassette has proper structure\"\"\"\n        required_fields = ['interactions', 'version']\n        return all(field in cassette_data for field in required_fields)\n    \n    def _has_auth_errors(self, cassette_data: Dict) -> bool:\n        \"\"\"Check if cassette contains authentication errors\"\"\"\n        interactions = cassette_data.get('interactions', [])\n        for interaction in interactions:\n            response = interaction.get('response', {})\n            if response.get('status', {}).get('code') in [401, 403]:\n                return True\n        return False\n    \n    def _is_cassette_outdated(self, cassette_data: Dict, max_age_days: int = 30) -> bool:\n        \"\"\"Check if cassette is older than threshold\"\"\"\n        # This would check modification time or metadata\n        # Implementation depends on how you track cassette age\n        return False  # Placeholder\n    \n    def _get_expected_cassettes(self) -> set:\n        \"\"\"Get list of expected cassette files from test files\"\"\"\n        expected = set()\n        test_dir = Path(\"test/integration\")\n        \n        for test_file in test_dir.glob(\"**/*_test.go\"):\n            with open(test_file, 'r') as f:\n                content = f.read()\n                # Extract cassette names from test files\n                import re\n                cassette_refs = re.findall(r'SetupVCR\\([^,]+,\\s*\"([^\"]+)\"', content)\n                expected.update(cassette_refs)\n        \n        return expected\n    \n    def generate_recovery_plan(self, issues: Dict[str, List[str]]) -> Dict:\n        \"\"\"Generate comprehensive recovery plan\"\"\"\n        total_issues = sum(len(issue_list) for issue_list in issues.values())\n        \n        if total_issues == 0:\n            return {'status': 'healthy', 'actions': []}\n        \n        recovery_plan = {\n            'status': 'requires_recovery',\n            'summary': {\n                'total_issues': total_issues,\n                'critical_issues': len(issues.get('authentication_issues', [])) + len(issues.get('corrupted_cassettes', [])),\n                'estimated_recovery_time': self._estimate_recovery_time(issues)\n            },\n            'immediate_actions': [\n                'Stop running VCR-dependent tests',\n                'Switch to record mode for critical test paths',\n                'Backup existing cassettes before recovery'\n            ],\n            'recovery_steps': []\n        }\n        \n        # Generate specific recovery steps\n        if issues.get('authentication_issues'):\n            recovery_plan['recovery_steps'].append({\n                'step': 1,\n                'action': 'Fix authentication issues',\n                'details': 'Re-record cassettes with valid authentication',\n                'files': issues['authentication_issues'],\n                'command': 'VCR_MODE=record go test ./test/integration/... -run TestAuth',\n                'estimated_time': '2-4 hours'\n            })\n        \n        if issues.get('corrupted_cassettes'):\n            recovery_plan['recovery_steps'].append({\n                'step': 2,\n                'action': 'Restore corrupted cassettes',\n                'details': 'Re-record corrupted cassette files',\n                'files': issues['corrupted_cassettes'],\n                'command': 'VCR_MODE=record go test ./test/integration/... -run \"TestSpecific\"',\n                'estimated_time': '1-2 hours'\n            })\n        \n        if issues.get('missing_cassettes'):\n            recovery_plan['recovery_steps'].append({\n                'step': 3,\n                'action': 'Record missing cassettes',\n                'details': 'Create cassettes for new or missing test scenarios',\n                'files': issues['missing_cassettes'],\n                'command': 'VCR_MODE=record go test ./test/integration/... -run \"TestNew\"',\n                'estimated_time': '1-3 hours'\n            })\n        \n        if issues.get('outdated_cassettes'):\n            recovery_plan['recovery_steps'].append({\n                'step': 4,\n                'action': 'Update outdated cassettes',\n                'details': 'Refresh cassettes that may have stale data',\n                'files': issues['outdated_cassettes'],\n                'command': 'VCR_MODE=record_once go test ./test/integration/...',\n                'estimated_time': '1-2 hours'\n            })\n        \n        return recovery_plan\n    \n    def _estimate_recovery_time(self, issues: Dict[str, List[str]]) -> str:\n        \"\"\"Estimate total recovery time\"\"\"\n        total_files = sum(len(issue_list) for issue_list in issues.values())\n        \n        if total_files <= 5:\n            return '2-4 hours'\n        elif total_files <= 15:\n            return '4-8 hours'\n        else:\n            return '1-2 days'\n    \n    def execute_recovery(self, recovery_plan: Dict) -> bool:\n        \"\"\"Execute the recovery plan\"\"\"\n        if recovery_plan['status'] == 'healthy':\n            print(\"✅ No recovery needed\")\n            return True\n        \n        print(f\"🔧 Executing VCR recovery plan ({recovery_plan['summary']['estimated_recovery_time']})\")\n        \n        for step in recovery_plan['recovery_steps']:\n            print(f\"Step {step['step']}: {step['action']}\")\n            print(f\"Command: {step['command']}\")\n            \n            # Execute recovery command\n            result = os.system(step['command'])\n            if result != 0:\n                print(f\"❌ Step {step['step']} failed\")\n                return False\n            else:\n                print(f\"✅ Step {step['step']} completed\")\n        \n        # Validate recovery\n        post_recovery_issues = self.diagnose_vcr_issues()\n        remaining_issues = sum(len(issue_list) for issue_list in post_recovery_issues.values())\n        \n        if remaining_issues == 0:\n            print(\"✅ VCR recovery completed successfully\")\n            return True\n        else:\n            print(f\"⚠️ Recovery partially successful. {remaining_issues} issues remain\")\n            return False\n\n# Usage example\nif __name__ == '__main__':\n    recovery_manager = VCRRecoveryManager()\n    \n    # Diagnose issues\n    issues = recovery_manager.diagnose_vcr_issues()\n    \n    if any(len(issue_list) > 0 for issue_list in issues.values()):\n        # Generate recovery plan\n        plan = recovery_manager.generate_recovery_plan(issues)\n        \n        # Save plan for review\n        with open('vcr_recovery_plan.json', 'w') as f:\n            json.dump(plan, f, indent=2)\n        \n        print(f\"❌ VCR issues detected. Recovery plan saved to vcr_recovery_plan.json\")\n        print(f\"Estimated recovery time: {plan['summary']['estimated_recovery_time']}\")\n        \n        # Optionally execute recovery automatically\n        if os.getenv('AUTO_RECOVERY', 'false').lower() == 'true':\n            recovery_manager.execute_recovery(plan)\n        \n        exit(1 if plan['summary']['critical_issues'] > 0 else 0)\n    else:\n        print(\"✅ All VCR cassettes are healthy\")\n```\n\n### Test Quality Errors\n\n#### Error Scenario: Low Test Coverage\n```bash\n#!/bin/bash\n# coverage-recovery.sh - Handle low test coverage scenarios\n\nset -e\n\nCOVERAGE_THRESHOLD=80\nCRITICAL_PACKAGE_THRESHOLD=90\n\necho \"📊 Analyzing test coverage...\"\n\n# Generate coverage report\nmake coverage-report\nCURRENT_COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')\n\necho \"Current coverage: ${CURRENT_COVERAGE}%\"\n\nif (( $(echo \"$CURRENT_COVERAGE < $COVERAGE_THRESHOLD\" | bc -l) )); then\n    echo \"❌ Coverage below threshold (${COVERAGE_THRESHOLD}%)\"\n    \n    # Identify packages with low coverage\n    echo \"🔍 Identifying packages with low coverage...\"\n    LOW_COVERAGE_PACKAGES=()\n    \n    while IFS= read -r line; do\n        if [[ $line =~ ^([^[:space:]]+)[[:space:]]+[[:digit:]]+\\.[[:digit:]]+%$ ]]; then\n            package=$(echo \"$line\" | awk '{print $1}')\n            coverage=$(echo \"$line\" | awk '{print $3}' | sed 's/%//')\n            \n            # Check if package is critical (internal packages)\n            if [[ $package == *\"internal/\"* ]]; then\n                threshold=$CRITICAL_PACKAGE_THRESHOLD\n            else\n                threshold=$COVERAGE_THRESHOLD\n            fi\n            \n            if (( $(echo \"$coverage < $threshold\" | bc -l) )); then\n                LOW_COVERAGE_PACKAGES+=(\"$package:$coverage\")\n            fi\n        fi\n    done < <(go tool cover -func=coverage.out | head -n -1)\n    \n    if [[ ${#LOW_COVERAGE_PACKAGES[@]} -gt 0 ]]; then\n        echo \"📋 Packages requiring coverage improvement:\"\n        for package_info in \"${LOW_COVERAGE_PACKAGES[@]}\"; do\n            package=$(echo \"$package_info\" | cut -d: -f1)\n            coverage=$(echo \"$package_info\" | cut -d: -f2)\n            echo \"  - $package: ${coverage}%\"\n        done\n        \n        # Generate coverage improvement plan\n        cat > coverage-improvement-plan.md << EOF\n# Test Coverage Improvement Plan\n\n## Current Status\n- Overall Coverage: ${CURRENT_COVERAGE}%\n- Target Coverage: ${COVERAGE_THRESHOLD}%\n- Packages Below Threshold: ${#LOW_COVERAGE_PACKAGES[@]}\n\n## Priority Packages\n$(printf '%s\\n' \"${LOW_COVERAGE_PACKAGES[@]}\" | sed 's/^/- /' | sed 's/:/: /' | sed 's/$/%/')\n\n## Recovery Actions\n\n### Immediate Actions (Block Test Phase)\n1. Stop test phase progression\n2. Assign coverage improvement to development team\n3. Create coverage improvement tickets\n4. Set up pair programming sessions for complex packages\n\n### Coverage Improvement Strategy\n\n#### Phase 1: Critical Packages (1-2 days)\nFocus on internal/ packages with coverage < ${CRITICAL_PACKAGE_THRESHOLD}%:\n- Identify untested functions and methods\n- Write unit tests for core business logic\n- Add integration tests for complex workflows\n- Target: Bring all critical packages to ≥ ${CRITICAL_PACKAGE_THRESHOLD}%\n\n#### Phase 2: Standard Packages (2-3 days)\nImprove coverage for remaining packages:\n- Add edge case testing\n- Improve error path coverage\n- Add property-based tests where applicable\n- Target: Overall coverage ≥ ${COVERAGE_THRESHOLD}%\n\n#### Phase 3: Quality Enhancement (1 day)\n- Review test quality and maintainability\n- Refactor flaky or brittle tests\n- Add mutation testing validation\n- Update test documentation\n\n### Prevention Measures\n- Add coverage gates to CI/CD pipeline\n- Implement pre-commit coverage checks\n- Set up coverage trend monitoring\n- Create test writing guidelines and training\n\nEOF\n        \n        # Block test phase progression\n        echo \"🚫 Blocking test phase due to insufficient coverage\"\n        \n        # Create individual tickets for low coverage packages\n        for package_info in \"${LOW_COVERAGE_PACKAGES[@]}\"; do\n            package=$(echo \"$package_info\" | cut -d: -f1)\n            coverage=$(echo \"$package_info\" | cut -d: -f2)\n            \n            # Create GitHub issue (if available)\n            if command -v gh &> /dev/null; then\n                gh issue create \\\n                    --title \"Improve test coverage for $package\" \\\n                    --body \"Current coverage: ${coverage}%. Target: ${COVERAGE_THRESHOLD}%. Priority: High\" \\\n                    --label \"testing,coverage,priority-high\" \\\n                    --assignee \"@dev-team\"\n            fi\n        done\n        \n        exit 1\n    fi\nelse\n    echo \"✅ Coverage meets threshold (${COVERAGE_THRESHOLD}%)\"\nfi\n\n# Check for coverage regression\nif [[ -f \"baseline-coverage.txt\" ]]; then\n    BASELINE_COVERAGE=$(cat baseline-coverage.txt)\n    REGRESSION_THRESHOLD=5\n    \n    COVERAGE_DIFF=$(echo \"$BASELINE_COVERAGE - $CURRENT_COVERAGE\" | bc -l)\n    \n    if (( $(echo \"$COVERAGE_DIFF > $REGRESSION_THRESHOLD\" | bc -l) )); then\n        echo \"⚠️ Coverage regression detected: -${COVERAGE_DIFF}%\"\n        echo \"📋 Investigate recent changes that may have reduced coverage\"\n        \n        # Find recent commits that might have affected coverage\n        git log --oneline --since=\"1 week ago\" -- \"*.go\" | head -10\n        \n        exit 1\n    fi\nfi\n\necho \"✅ Test coverage validation completed\"\n```\n\n## Build Phase Error Handling\n\n### Compilation and Build Errors\n\n#### Error Scenario: Dependency Version Conflicts\n```go\n// internal/tools/dependency_resolver.go\npackage tools\n\nimport (\n    \"context\"\n    \"fmt\"\n    \"os/exec\"\n    \"regexp\"\n    \"strings\"\n)\n\n// DependencyConflict represents a dependency version conflict\ntype DependencyConflict struct {\n    Package         string `json:\"package\"`\n    RequiredVersion string `json:\"required_version\"`\n    ActualVersion   string `json:\"actual_version\"`\n    ConflictType    string `json:\"conflict_type\"`\n    Severity        string `json:\"severity\"`\n    Resolution      string `json:\"resolution\"`\n}\n\n// DependencyResolver handles dependency conflicts\ntype DependencyResolver struct {\n    goModPath    string\n    conflicts    []DependencyConflict\n    resolutions  []ResolutionAction\n}\n\n// ResolutionAction represents an action to resolve dependency conflicts\ntype ResolutionAction struct {\n    Action      string `json:\"action\"`\n    Package     string `json:\"package\"`\n    Version     string `json:\"version\"`\n    Rationale   string `json:\"rationale\"`\n    Risk        string `json:\"risk\"`\n    Timeline    string `json:\"timeline\"`\n}\n\n// DetectDependencyConflicts identifies version conflicts in go.mod\nfunc (dr *DependencyResolver) DetectDependencyConflicts(ctx context.Context) ([]DependencyConflict, error) {\n    conflicts := make([]DependencyConflict, 0)\n    \n    // Run go mod tidy to detect issues\n    cmd := exec.CommandContext(ctx, \"go\", \"mod\", \"tidy\")\n    output, err := cmd.CombinedOutput()\n    if err != nil {\n        // Parse go mod tidy output for conflicts\n        conflicts = append(conflicts, dr.parseGoModTidyErrors(string(output))...)\n    }\n    \n    // Check for indirect dependency conflicts\n    indirectConflicts, err := dr.checkIndirectDependencies(ctx)\n    if err != nil {\n        return nil, fmt.Errorf(\"failed to check indirect dependencies: %w\", err)\n    }\n    conflicts = append(conflicts, indirectConflicts...)\n    \n    // Check for security vulnerabilities in dependencies\n    vulnConflicts, err := dr.checkVulnerabilities(ctx)\n    if err != nil {\n        return nil, fmt.Errorf(\"failed to check vulnerabilities: %w\", err)\n    }\n    conflicts = append(conflicts, vulnConflicts...)\n    \n    // Check for license compatibility\n    licenseConflicts, err := dr.checkLicenseCompatibility(ctx)\n    if err != nil {\n        return nil, fmt.Errorf(\"failed to check license compatibility: %w\", err)\n    }\n    conflicts = append(conflicts, licenseConflicts...)\n    \n    return conflicts, nil\n}\n\n// parseGoModTidyErrors parses go mod tidy output for dependency conflicts\nfunc (dr *DependencyResolver) parseGoModTidyErrors(output string) []DependencyConflict {\n    conflicts := make([]DependencyConflict, 0)\n    lines := strings.Split(output, \"\\n\")\n    \n    for _, line := range lines {\n        // Parse version conflict messages\n        if strings.Contains(line, \"requires\") && strings.Contains(line, \"but\") {\n            conflict := dr.parseVersionConflictLine(line)\n            if conflict != nil {\n                conflicts = append(conflicts, *conflict)\n            }\n        }\n        \n        // Parse missing dependency messages\n        if strings.Contains(line, \"cannot find module\") {\n            conflict := dr.parseMissingDependencyLine(line)\n            if conflict != nil {\n                conflicts = append(conflicts, *conflict)\n            }\n        }\n    }\n    \n    return conflicts\n}\n\n// checkVulnerabilities checks for known security vulnerabilities\nfunc (dr *DependencyResolver) checkVulnerabilities(ctx context.Context) ([]DependencyConflict, error) {\n    conflicts := make([]DependencyConflict, 0)\n    \n    // Run govulncheck\n    cmd := exec.CommandContext(ctx, \"govulncheck\", \"./...\")\n    output, err := cmd.CombinedOutput()\n    if err != nil {\n        // Parse vulnerability output\n        vulnPattern := regexp.MustCompile(`Vulnerability in ([^\\s]+): (.+)`)\n        matches := vulnPattern.FindAllStringSubmatch(string(output), -1)\n        \n        for _, match := range matches {\n            if len(match) >= 3 {\n                conflicts = append(conflicts, DependencyConflict{\n                    Package:         match[1],\n                    ConflictType:    \"security_vulnerability\",\n                    Severity:        \"high\",\n                    RequiredVersion: \"latest_secure\",\n                    ActualVersion:   \"vulnerable\",\n                    Resolution:      fmt.Sprintf(\"Update %s to secure version\", match[1]),\n                })\n            }\n        }\n    }\n    \n    return conflicts, nil\n}\n\n// GenerateResolutionPlan creates a plan to resolve all conflicts\nfunc (dr *DependencyResolver) GenerateResolutionPlan(conflicts []DependencyConflict) *ResolutionPlan {\n    plan := &ResolutionPlan{\n        Summary: ResolutionSummary{\n            TotalConflicts:    len(conflicts),\n            CriticalConflicts: dr.countConflictsBySeverity(conflicts, \"critical\"),\n            HighConflicts:     dr.countConflictsBySeverity(conflicts, \"high\"),\n            MediumConflicts:   dr.countConflictsBySeverity(conflicts, \"medium\"),\n            EstimatedTime:     dr.estimateResolutionTime(conflicts),\n        },\n        Actions: make([]ResolutionAction, 0),\n    }\n    \n    // Group conflicts by resolution strategy\n    strategies := dr.groupConflictsByStrategy(conflicts)\n    \n    for strategy, strategyConflicts := range strategies {\n        action := dr.generateStrategyAction(strategy, strategyConflicts)\n        plan.Actions = append(plan.Actions, action)\n    }\n    \n    return plan\n}\n\n// ExecuteResolution executes the dependency resolution plan\nfunc (dr *DependencyResolver) ExecuteResolution(ctx context.Context, plan *ResolutionPlan) error {\n    fmt.Printf(\"🔧 Executing dependency resolution plan (%s)\\n\", plan.Summary.EstimatedTime)\n    \n    for i, action := range plan.Actions {\n        fmt.Printf(\"Step %d: %s\\n\", i+1, action.Action)\n        \n        switch action.Action {\n        case \"update_dependency\":\n            if err := dr.updateDependency(ctx, action.Package, action.Version); err != nil {\n                return fmt.Errorf(\"failed to update %s: %w\", action.Package, err)\n            }\n            \n        case \"add_replace_directive\":\n            if err := dr.addReplaceDirective(ctx, action.Package, action.Version); err != nil {\n                return fmt.Errorf(\"failed to add replace directive for %s: %w\", action.Package, err)\n            }\n            \n        case \"remove_dependency\":\n            if err := dr.removeDependency(ctx, action.Package); err != nil {\n                return fmt.Errorf(\"failed to remove %s: %w\", action.Package, err)\n            }\n            \n        default:\n            return fmt.Errorf(\"unknown resolution action: %s\", action.Action)\n        }\n        \n        fmt.Printf(\"✅ Step %d completed\\n\", i+1)\n    }\n    \n    // Verify resolution\n    fmt.Println(\"🔍 Verifying resolution...\")\n    if err := dr.verifyResolution(ctx); err != nil {\n        return fmt.Errorf(\"resolution verification failed: %w\", err)\n    }\n    \n    fmt.Println(\"✅ Dependency resolution completed successfully\")\n    return nil\n}\n```\n\n## Deploy Phase Error Handling\n\n### Deployment Pipeline Errors\n\n#### Error Scenario: Failed Production Deployment\n```bash\n#!/bin/bash\n# deployment-recovery.sh - Handle failed production deployments\n\nset -e\n\nDEPLOYMENT_ID=${1:-\"latest\"}\nROLLBACK_TIMEOUT=300  # 5 minutes\nHEALTH_CHECK_TIMEOUT=120  # 2 minutes\n\necho \"🚨 Deployment failure detected for deployment: $DEPLOYMENT_ID\"\necho \"Starting emergency recovery procedures...\"\n\n# Function to log with timestamp\nlog() {\n    echo \"[$(date '+%Y-%m-%d %H:%M:%S')] $1\"\n}\n\n# Function to check application health\ncheck_health() {\n    local max_attempts=12\n    local attempt=1\n    \n    while [[ $attempt -le $max_attempts ]]; do\n        if curl -sf http://localhost:8080/health > /dev/null 2>&1; then\n            return 0\n        fi\n        \n        log \"Health check attempt $attempt/$max_attempts failed\"\n        sleep 10\n        ((attempt++))\n    done\n    \n    return 1\n}\n\n# Function to rollback deployment\nrollback_deployment() {\n    log \"🔄 Initiating deployment rollback...\"\n    \n    # Get previous version\n    PREVIOUS_VERSION=$(get_previous_version)\n    if [[ -z \"$PREVIOUS_VERSION\" ]]; then\n        log \"❌ Cannot determine previous version for rollback\"\n        return 1\n    fi\n    \n    log \"📦 Rolling back to version: $PREVIOUS_VERSION\"\n    \n    # Stop current version\n    log \"🛑 Stopping current deployment...\"\n    systemctl stop grctool || true\n    \n    # Backup current deployment\n    BACKUP_DIR=\"/opt/grctool/backups/failed-deployment-$(date +%Y%m%d-%H%M%S)\"\n    mkdir -p \"$BACKUP_DIR\"\n    cp -r /opt/grctool/bin \"$BACKUP_DIR/\"\n    cp -r /opt/grctool/config \"$BACKUP_DIR/\"\n    \n    # Restore previous version\n    log \"📥 Restoring previous version...\"\n    if [[ -d \"/opt/grctool/backups/$PREVIOUS_VERSION\" ]]; then\n        cp -r \"/opt/grctool/backups/$PREVIOUS_VERSION/bin\"/* /opt/grctool/bin/\n        cp -r \"/opt/grctool/backups/$PREVIOUS_VERSION/config\"/* /opt/grctool/config/\n        chown -R grctool:grctool /opt/grctool/bin /opt/grctool/config\n    else\n        log \"❌ Previous version backup not found: $PREVIOUS_VERSION\"\n        return 1\n    fi\n    \n    # Start previous version\n    log \"🚀 Starting previous version...\"\n    systemctl start grctool\n    \n    # Wait for health check\n    log \"🏥 Waiting for application to become healthy...\"\n    if check_health; then\n        log \"✅ Rollback successful - application is healthy\"\n        return 0\n    else\n        log \"❌ Rollback failed - application is not healthy\"\n        return 1\n    fi\n}\n\n# Function to collect deployment diagnostics\ncollect_diagnostics() {\n    log \"🔍 Collecting deployment diagnostics...\"\n    \n    DIAG_DIR=\"/tmp/deployment-diagnostics-$(date +%Y%m%d-%H%M%S)\"\n    mkdir -p \"$DIAG_DIR\"\n    \n    # System information\n    uname -a > \"$DIAG_DIR/system-info.txt\"\n    df -h > \"$DIAG_DIR/disk-usage.txt\"\n    free -h > \"$DIAG_DIR/memory-usage.txt\"\n    \n    # Application logs\n    if [[ -f \"/var/log/grctool/grctool.log\" ]]; then\n        tail -1000 /var/log/grctool/grctool.log > \"$DIAG_DIR/application.log\"\n    fi\n    \n    # System logs\n    journalctl -u grctool --since=\"1 hour ago\" > \"$DIAG_DIR/systemd.log\"\n    \n    # Configuration\n    cp /opt/grctool/config/.grctool.yaml \"$DIAG_DIR/config.yaml\" 2>/dev/null || true\n    \n    # Process information\n    ps aux | grep grctool > \"$DIAG_DIR/processes.txt\"\n    \n    # Network information\n    netstat -tulpn | grep 8080 > \"$DIAG_DIR/network.txt\" 2>/dev/null || true\n    \n    log \"📋 Diagnostics collected in: $DIAG_DIR\"\n    echo \"$DIAG_DIR\"\n}\n\n# Function to send alerts\nsend_alert() {\n    local severity=$1\n    local message=$2\n    \n    # Send to PagerDuty/Slack/etc.\n    if [[ -n \"$PAGERDUTY_INTEGRATION_KEY\" ]]; then\n        curl -X POST \"https://events.pagerduty.com/v2/enqueue\" \\\n            -H \"Content-Type: application/json\" \\\n            -d \"{\n                \\\"routing_key\\\": \\\"$PAGERDUTY_INTEGRATION_KEY\\\",\n                \\\"event_action\\\": \\\"trigger\\\",\n                \\\"payload\\\": {\n                    \\\"summary\\\": \\\"GRCTool Deployment Failure\\\",\n                    \\\"severity\\\": \\\"$severity\\\",\n                    \\\"source\\\": \\\"grctool-deployment\\\",\n                    \\\"custom_details\\\": {\n                        \\\"deployment_id\\\": \\\"$DEPLOYMENT_ID\\\",\n                        \\\"message\\\": \\\"$message\\\"\n                    }\n                }\n            }\"\n    fi\n    \n    # Send to Slack\n    if [[ -n \"$SLACK_WEBHOOK\" ]]; then\n        curl -X POST \"$SLACK_WEBHOOK\" \\\n            -H \"Content-Type: application/json\" \\\n            -d \"{\n                \\\"text\\\": \\\"🚨 GRCTool Deployment Failure\\\",\n                \\\"attachments\\\": [{\n                    \\\"color\\\": \\\"danger\\\",\n                    \\\"fields\\\": [\n                        {\\\"title\\\": \\\"Deployment ID\\\", \\\"value\\\": \\\"$DEPLOYMENT_ID\\\", \\\"short\\\": true},\n                        {\\\"title\\\": \\\"Severity\\\", \\\"value\\\": \\\"$severity\\\", \\\"short\\\": true},\n                        {\\\"title\\\": \\\"Message\\\", \\\"value\\\": \\\"$message\\\", \\\"short\\\": false}\n                    ]\n                }]\n            }\"\n    fi\n}\n\n# Main recovery workflow\nlog \"🎯 Starting deployment recovery workflow\"\n\n# Collect diagnostics first\nDIAG_DIR=$(collect_diagnostics)\n\n# Send initial alert\nsend_alert \"critical\" \"Deployment failure detected. Recovery procedures initiated.\"\n\n# Attempt rollback\nif rollback_deployment; then\n    log \"✅ Rollback completed successfully\"\n    send_alert \"warning\" \"Rollback completed successfully. Previous version restored.\"\n    \n    # Create incident report\n    cat > \"/tmp/incident-report-$(date +%Y%m%d-%H%M%S).md\" << EOF\n# Deployment Incident Report\n\n## Summary\n- **Incident ID**: DEPLOY-$(date +%Y%m%d-%H%M%S)\n- **Deployment ID**: $DEPLOYMENT_ID\n- **Occurred At**: $(date)\n- **Status**: Resolved via rollback\n- **Duration**: N/A (immediate rollback)\n\n## Impact\n- Service availability temporarily affected\n- Rollback to previous stable version completed\n- No data loss occurred\n\n## Root Cause\nTo be determined - requires analysis of diagnostics in $DIAG_DIR\n\n## Timeline\n- $(date): Deployment failure detected\n- $(date): Emergency rollback initiated\n- $(date): Previous version restored\n- $(date): Service health confirmed\n\n## Action Items\n- [ ] Analyze deployment failure root cause\n- [ ] Review deployment process for improvements\n- [ ] Update deployment validation checks\n- [ ] Conduct post-incident review\n\n## Diagnostics Location\n$DIAG_DIR\nEOF\n\nelse\n    log \"❌ Rollback failed - escalating to manual intervention\"\n    send_alert \"critical\" \"Automatic rollback failed. Manual intervention required immediately.\"\n    \n    # Create emergency procedures document\n    cat > \"/tmp/emergency-procedures-$(date +%Y%m%d-%H%M%S).md\" << EOF\n# Emergency Manual Recovery Procedures\n\n## Immediate Actions Required\n\n1. **Stop all services**\n   \\`\\`\\`bash\n   systemctl stop grctool\n   \\`\\`\\`\n\n2. **Check for conflicting processes**\n   \\`\\`\\`bash\n   ps aux | grep grctool\n   kill -9 <pid_if_found>\n   \\`\\`\\`\n\n3. **Restore from manual backup**\n   \\`\\`\\`bash\n   cd /opt/grctool/backups\n   ls -la  # Find latest stable backup\n   cp -r stable-backup-YYYYMMDD/* /opt/grctool/\n   \\`\\`\\`\n\n4. **Fix permissions**\n   \\`\\`\\`bash\n   chown -R grctool:grctool /opt/grctool\n   chmod +x /opt/grctool/bin/grctool\n   \\`\\`\\`\n\n5. **Start service**\n   \\`\\`\\`bash\n   systemctl start grctool\n   systemctl status grctool\n   \\`\\`\\`\n\n6. **Verify health**\n   \\`\\`\\`bash\n   curl http://localhost:8080/health\n   \\`\\`\\`\n\n## Diagnostics Location\n$DIAG_DIR\n\n## Escalation Contacts\n- On-call Engineer: [CONTACT]\n- System Administrator: [CONTACT]\n- Product Owner: [CONTACT]\nEOF\n\n    echo \"📋 Emergency procedures documented in /tmp/emergency-procedures-*.md\"\n    exit 1\nfi\n\nlog \"🎯 Deployment recovery workflow completed\"\n```\n\n## Iterate Phase Error Handling\n\n### Continuous Improvement Errors\n\n#### Error Scenario: Metrics Collection Failures\n```python\n# scripts/metrics_recovery.py\nimport json\nimport time\nimport logging\nfrom datetime import datetime, timedelta\nfrom typing import Dict, List, Optional\n\nclass MetricsRecoveryManager:\n    def __init__(self):\n        self.logger = logging.getLogger(__name__)\n        self.failed_metrics = []\n        self.recovery_strategies = {\n            'prometheus_down': self.recover_prometheus,\n            'data_corruption': self.recover_corrupted_data,\n            'collection_timeout': self.recover_timeout_issues,\n            'storage_full': self.recover_storage_issues,\n            'authentication_failure': self.recover_auth_issues\n        }\n    \n    def diagnose_metrics_issues(self) -> Dict[str, List[str]]:\n        \"\"\"Diagnose all metrics-related issues\"\"\"\n        issues = {\n            'prometheus_issues': [],\n            'collection_failures': [],\n            'data_quality_issues': [],\n            'storage_issues': [],\n            'authentication_issues': []\n        }\n        \n        # Check Prometheus health\n        if not self._check_prometheus_health():\n            issues['prometheus_issues'].append('Prometheus server not responding')\n        \n        # Check metrics collection endpoints\n        collection_status = self._check_collection_endpoints()\n        for endpoint, status in collection_status.items():\n            if not status['healthy']:\n                issues['collection_failures'].append(f\"{endpoint}: {status['error']}\")\n        \n        # Check data quality\n        quality_issues = self._check_data_quality()\n        issues['data_quality_issues'].extend(quality_issues)\n        \n        # Check storage\n        storage_issues = self._check_storage_health()\n        issues['storage_issues'].extend(storage_issues)\n        \n        return issues\n    \n    def _check_prometheus_health(self) -> bool:\n        \"\"\"Check if Prometheus is healthy\"\"\"\n        try:\n            import requests\n            response = requests.get('http://localhost:9090/-/healthy', timeout=5)\n            return response.status_code == 200\n        except Exception as e:\n            self.logger.error(f\"Prometheus health check failed: {e}\")\n            return False\n    \n    def _check_collection_endpoints(self) -> Dict[str, Dict]:\n        \"\"\"Check health of metrics collection endpoints\"\"\"\n        endpoints = {\n            'grctool_metrics': 'http://localhost:8080/metrics',\n            'system_metrics': 'http://localhost:9100/metrics',\n            'application_health': 'http://localhost:8080/health'\n        }\n        \n        results = {}\n        for name, url in endpoints.items():\n            try:\n                import requests\n                response = requests.get(url, timeout=10)\n                results[name] = {\n                    'healthy': response.status_code == 200,\n                    'response_time': response.elapsed.total_seconds(),\n                    'error': None\n                }\n            except Exception as e:\n                results[name] = {\n                    'healthy': False,\n                    'response_time': None,\n                    'error': str(e)\n                }\n        \n        return results\n    \n    def _check_data_quality(self) -> List[str]:\n        \"\"\"Check for data quality issues in metrics\"\"\"\n        issues = []\n        \n        try:\n            # Check for missing data points\n            if self._has_missing_data_points():\n                issues.append('Missing data points detected in time series')\n            \n            # Check for abnormal values\n            if self._has_abnormal_values():\n                issues.append('Abnormal metric values detected')\n            \n            # Check for stale data\n            if self._has_stale_data():\n                issues.append('Stale metrics data detected')\n                \n        except Exception as e:\n            issues.append(f'Data quality check failed: {e}')\n        \n        return issues\n    \n    def generate_recovery_plan(self, issues: Dict[str, List[str]]) -> Dict:\n        \"\"\"Generate comprehensive recovery plan for metrics issues\"\"\"\n        total_issues = sum(len(issue_list) for issue_list in issues.values())\n        \n        if total_issues == 0:\n            return {'status': 'healthy', 'actions': []}\n        \n        recovery_plan = {\n            'status': 'requires_recovery',\n            'summary': {\n                'total_issues': total_issues,\n                'critical_issues': len(issues.get('prometheus_issues', [])),\n                'estimated_recovery_time': self._estimate_recovery_time(issues)\n            },\n            'immediate_actions': [\n                'Stop automated deployments relying on metrics',\n                'Switch to manual monitoring mode',\n                'Alert on-call team'\n            ],\n            'recovery_steps': []\n        }\n        \n        # Generate specific recovery steps\n        step_number = 1\n        \n        if issues.get('prometheus_issues'):\n            recovery_plan['recovery_steps'].append({\n                'step': step_number,\n                'action': 'Restore Prometheus service',\n                'details': 'Restart Prometheus and verify configuration',\n                'commands': [\n                    'systemctl restart prometheus',\n                    'systemctl status prometheus',\n                    'curl http://localhost:9090/-/healthy'\n                ],\n                'estimated_time': '10-15 minutes'\n            })\n            step_number += 1\n        \n        if issues.get('collection_failures'):\n            recovery_plan['recovery_steps'].append({\n                'step': step_number,\n                'action': 'Fix metrics collection endpoints',\n                'details': 'Restart applications and verify metrics endpoints',\n                'commands': [\n                    'systemctl restart grctool',\n                    'curl http://localhost:8080/metrics',\n                    'curl http://localhost:8080/health'\n                ],\n                'estimated_time': '5-10 minutes'\n            })\n            step_number += 1\n        \n        if issues.get('storage_issues'):\n            recovery_plan['recovery_steps'].append({\n                'step': step_number,\n                'action': 'Resolve storage issues',\n                'details': 'Clean up disk space and verify storage health',\n                'commands': [\n                    'df -h',\n                    'find /var/lib/prometheus -name \"*.tmp\" -delete',\n                    'systemctl restart prometheus'\n                ],\n                'estimated_time': '15-30 minutes'\n            })\n            step_number += 1\n        \n        if issues.get('data_quality_issues'):\n            recovery_plan['recovery_steps'].append({\n                'step': step_number,\n                'action': 'Restore data quality',\n                'details': 'Regenerate metrics and validate data integrity',\n                'commands': [\n                    'grctool metrics regenerate --last-24h',\n                    'grctool metrics validate --check-integrity'\n                ],\n                'estimated_time': '30-60 minutes'\n            })\n        \n        return recovery_plan\n    \n    def execute_recovery(self, recovery_plan: Dict) -> bool:\n        \"\"\"Execute the metrics recovery plan\"\"\"\n        if recovery_plan['status'] == 'healthy':\n            print(\"✅ No recovery needed\")\n            return True\n        \n        print(f\"🔧 Executing metrics recovery plan ({recovery_plan['summary']['estimated_recovery_time']})\")\n        \n        for step in recovery_plan['recovery_steps']:\n            print(f\"Step {step['step']}: {step['action']}\")\n            print(f\"Details: {step['details']}\")\n            \n            for command in step.get('commands', []):\n                print(f\"Executing: {command}\")\n                # In a real implementation, you would execute these commands\n                # For safety, we'll just simulate here\n                time.sleep(1)  # Simulate command execution time\n            \n            print(f\"✅ Step {step['step']} completed\")\n        \n        # Verify recovery\n        post_recovery_issues = self.diagnose_metrics_issues()\n        remaining_issues = sum(len(issue_list) for issue_list in post_recovery_issues.values())\n        \n        if remaining_issues == 0:\n            print(\"✅ Metrics recovery completed successfully\")\n            return True\n        else:\n            print(f\"⚠️ Recovery partially successful. {remaining_issues} issues remain\")\n            return False\n    \n    def _estimate_recovery_time(self, issues: Dict[str, List[str]]) -> str:\n        \"\"\"Estimate total recovery time based on issues\"\"\"\n        critical_issues = len(issues.get('prometheus_issues', []))\n        total_issues = sum(len(issue_list) for issue_list in issues.values())\n        \n        if critical_issues > 0:\n            return '30-60 minutes'\n        elif total_issues > 5:\n            return '15-30 minutes'\n        else:\n            return '5-15 minutes'\n\n# Usage example\nif __name__ == '__main__':\n    recovery_manager = MetricsRecoveryManager()\n    \n    # Diagnose issues\n    issues = recovery_manager.diagnose_metrics_issues()\n    \n    if any(len(issue_list) > 0 for issue_list in issues.values()):\n        # Generate recovery plan\n        plan = recovery_manager.generate_recovery_plan(issues)\n        \n        # Save plan\n        with open('metrics_recovery_plan.json', 'w') as f:\n            json.dump(plan, f, indent=2)\n        \n        print(f\"❌ Metrics issues detected. Recovery plan saved.\")\n        print(f\"Estimated recovery time: {plan['summary']['estimated_recovery_time']}\")\n        \n        # Execute recovery if auto-recovery is enabled\n        import os\n        if os.getenv('AUTO_RECOVERY', 'false').lower() == 'true':\n            recovery_manager.execute_recovery(plan)\n        \n        exit(1)\n    else:\n        print(\"✅ All metrics systems are healthy\")\n```\n\n## Cross-Phase Error Recovery\n\n### Workflow State Recovery\n```bash\n#!/bin/bash\n# workflow-state-recovery.sh - Recover corrupted workflow state\n\nset -e\n\nWORKFLOW_STATE_FILE=\".helix-workflow-state.json\"\nBACKUP_DIR=\".helix-backups\"\n\necho \"🔍 Checking HELIX workflow state integrity...\"\n\n# Function to validate workflow state\nvalidate_workflow_state() {\n    local state_file=$1\n    \n    if [[ ! -f \"$state_file\" ]]; then\n        echo \"❌ Workflow state file not found: $state_file\"\n        return 1\n    fi\n    \n    # Check JSON syntax\n    if ! jq empty \"$state_file\" 2>/dev/null; then\n        echo \"❌ Workflow state file has invalid JSON syntax\"\n        return 1\n    fi\n    \n    # Check required fields\n    required_fields=(\"current_phase\" \"phase_states\" \"artifacts\" \"timestamps\")\n    for field in \"${required_fields[@]}\"; do\n        if ! jq -e \".$field\" \"$state_file\" >/dev/null 2>&1; then\n            echo \"❌ Missing required field: $field\"\n            return 1\n        fi\n    done\n    \n    # Check phase transition validity\n    current_phase=$(jq -r '.current_phase' \"$state_file\")\n    if [[ ! \"$current_phase\" =~ ^(frame|design|test|build|deploy|iterate)$ ]]; then\n        echo \"❌ Invalid current phase: $current_phase\"\n        return 1\n    fi\n    \n    echo \"✅ Workflow state validation passed\"\n    return 0\n}\n\n# Function to recover workflow state from backup\nrecover_from_backup() {\n    echo \"🔄 Attempting to recover workflow state from backup...\"\n    \n    if [[ ! -d \"$BACKUP_DIR\" ]]; then\n        echo \"❌ Backup directory not found: $BACKUP_DIR\"\n        return 1\n    fi\n    \n    # Find latest valid backup\n    latest_backup=$(find \"$BACKUP_DIR\" -name \"workflow-state-*.json\" -type f | sort -r | head -1)\n    \n    if [[ -z \"$latest_backup\" ]]; then\n        echo \"❌ No backup files found\"\n        return 1\n    fi\n    \n    echo \"📋 Found latest backup: $latest_backup\"\n    \n    # Validate backup\n    if validate_workflow_state \"$latest_backup\"; then\n        # Backup current corrupted state\n        if [[ -f \"$WORKFLOW_STATE_FILE\" ]]; then\n            mv \"$WORKFLOW_STATE_FILE\" \"$WORKFLOW_STATE_FILE.corrupted-$(date +%Y%m%d-%H%M%S)\"\n        fi\n        \n        # Restore from backup\n        cp \"$latest_backup\" \"$WORKFLOW_STATE_FILE\"\n        echo \"✅ Workflow state recovered from backup\"\n        \n        # Show recovered state\n        echo \"📊 Recovered workflow state:\"\n        jq . \"$WORKFLOW_STATE_FILE\"\n        \n        return 0\n    else\n        echo \"❌ Backup file is also corrupted\"\n        return 1\n    fi\n}\n\n# Function to reconstruct workflow state\nreconstruct_workflow_state() {\n    echo \"🔨 Reconstructing workflow state from artifacts...\"\n    \n    # Determine current phase based on existing artifacts\n    current_phase=\"frame\"\n    \n    if [[ -d \"docs/helix/02-design\" ]] && [[ -n \"$(find docs/helix/02-design -name '*.md' -type f)\" ]]; then\n        current_phase=\"design\"\n    fi\n    \n    if [[ -d \"test\" ]] && [[ -n \"$(find test -name '*_test.go' -type f)\" ]]; then\n        current_phase=\"test\"\n    fi\n    \n    if [[ -f \"bin/grctool\" ]] || [[ -n \"$(find . -name '*.go' -path './internal/*' -type f)\" ]]; then\n        current_phase=\"build\"\n    fi\n    \n    if [[ -f \"dist/grctool-linux-amd64\" ]] || [[ -d \"deploy\" ]]; then\n        current_phase=\"deploy\"\n    fi\n    \n    if [[ -f \"docs/helix/06-iterate/01-roadmap-feedback.md\" ]]; then\n        current_phase=\"iterate\"\n    fi\n    \n    # Create new workflow state\n    cat > \"$WORKFLOW_STATE_FILE\" << EOF\n{\n  \"current_phase\": \"$current_phase\",\n  \"phase_states\": {\n    \"frame\": {\n      \"status\": \"completed\",\n      \"completion_date\": \"$(date -Iseconds)\",\n      \"artifacts\": [\n        \"docs/helix/01-frame/01-product-requirements.md\",\n        \"docs/helix/01-frame/02-user-stories.md\",\n        \"docs/helix/01-frame/03-compliance-requirements.md\"\n      ]\n    },\n    \"design\": {\n      \"status\": \"$([ \"$current_phase\" != \"frame\" ] && echo \"completed\" || echo \"pending\")\",\n      \"completion_date\": \"$([ \"$current_phase\" != \"frame\" ] && date -Iseconds || echo \"null\")\",\n      \"artifacts\": [\n        \"docs/helix/02-design/01-system-architecture.md\",\n        \"docs/helix/02-design/02-security-architecture.md\"\n      ]\n    },\n    \"test\": {\n      \"status\": \"$([ \"$current_phase\" = \"test\" ] || [ \"$current_phase\" = \"build\" ] || [ \"$current_phase\" = \"deploy\" ] || [ \"$current_phase\" = \"iterate\" ] && echo \"completed\" || echo \"pending\")\",\n      \"completion_date\": \"$([ \"$current_phase\" = \"test\" ] || [ \"$current_phase\" = \"build\" ] || [ \"$current_phase\" = \"deploy\" ] || [ \"$current_phase\" = \"iterate\" ] && date -Iseconds || echo \"null\")\",\n      \"artifacts\": [\n        \"docs/helix/03-test/01-testing-strategy.md\"\n      ]\n    },\n    \"build\": {\n      \"status\": \"$([ \"$current_phase\" = \"build\" ] || [ \"$current_phase\" = \"deploy\" ] || [ \"$current_phase\" = \"iterate\" ] && echo \"completed\" || echo \"pending\")\",\n      \"completion_date\": \"$([ \"$current_phase\" = \"build\" ] || [ \"$current_phase\" = \"deploy\" ] || [ \"$current_phase\" = \"iterate\" ] && date -Iseconds || echo \"null\")\",\n      \"artifacts\": [\n        \"docs/helix/04-build/01-development-practices.md\"\n      ]\n    },\n    \"deploy\": {\n      \"status\": \"$([ \"$current_phase\" = \"deploy\" ] || [ \"$current_phase\" = \"iterate\" ] && echo \"completed\" || echo \"pending\")\",\n      \"completion_date\": \"$([ \"$current_phase\" = \"deploy\" ] || [ \"$current_phase\" = \"iterate\" ] && date -Iseconds || echo \"null\")\",\n      \"artifacts\": [\n        \"docs/helix/05-deploy/01-deployment-operations.md\"\n      ]\n    },\n    \"iterate\": {\n      \"status\": \"$([ \"$current_phase\" = \"iterate\" ] && echo \"in_progress\" || echo \"pending\")\",\n      \"completion_date\": null,\n      \"artifacts\": [\n        \"docs/helix/06-iterate/01-roadmap-feedback.md\"\n      ]\n    }\n  },\n  \"artifacts\": {\n    \"requirements\": \"docs/helix/01-frame/\",\n    \"design\": \"docs/helix/02-design/\",\n    \"tests\": \"docs/helix/03-test/\",\n    \"code\": \"internal/\",\n    \"deployment\": \"docs/helix/05-deploy/\",\n    \"metrics\": \"docs/helix/06-iterate/\"\n  },\n  \"timestamps\": {\n    \"workflow_started\": \"$(date -Iseconds)\",\n    \"last_updated\": \"$(date -Iseconds)\",\n    \"state_recovered\": \"$(date -Iseconds)\"\n  },\n  \"metadata\": {\n    \"version\": \"1.0\",\n    \"recovery_method\": \"artifact_reconstruction\",\n    \"git_commit\": \"$(git rev-parse HEAD 2>/dev/null || echo 'unknown')\"\n  }\n}\nEOF\n    \n    echo \"✅ Workflow state reconstructed successfully\"\n    echo \"📊 Reconstructed workflow state:\"\n    jq . \"$WORKFLOW_STATE_FILE\"\n}\n\n# Main recovery logic\nif validate_workflow_state \"$WORKFLOW_STATE_FILE\"; then\n    echo \"✅ Workflow state is valid\"\n    exit 0\nfi\n\necho \"⚠️ Workflow state validation failed - attempting recovery...\"\n\n# Try to recover from backup first\nif recover_from_backup; then\n    echo \"✅ Recovery from backup successful\"\nelse\n    echo \"⚠️ Backup recovery failed - attempting state reconstruction...\"\n    \n    if reconstruct_workflow_state; then\n        echo \"✅ State reconstruction successful\"\n    else\n        echo \"❌ All recovery methods failed\"\n        \n        # Create minimal workflow state to allow progression\n        cat > \"$WORKFLOW_STATE_FILE\" << 'EOF'\n{\n  \"current_phase\": \"frame\",\n  \"phase_states\": {\n    \"frame\": {\"status\": \"in_progress\"},\n    \"design\": {\"status\": \"pending\"},\n    \"test\": {\"status\": \"pending\"},\n    \"build\": {\"status\": \"pending\"},\n    \"deploy\": {\"status\": \"pending\"},\n    \"iterate\": {\"status\": \"pending\"}\n  },\n  \"artifacts\": {},\n  \"timestamps\": {\n    \"workflow_started\": \"REPLACE_WITH_CURRENT_TIME\",\n    \"last_updated\": \"REPLACE_WITH_CURRENT_TIME\"\n  },\n  \"metadata\": {\n    \"version\": \"1.0\",\n    \"recovery_method\": \"minimal_state\"\n  }\n}\nEOF\n        \n        # Replace placeholders with actual timestamps\n        current_time=$(date -Iseconds)\n        sed -i \"s/REPLACE_WITH_CURRENT_TIME/$current_time/g\" \"$WORKFLOW_STATE_FILE\"\n        \n        echo \"⚠️ Created minimal workflow state - manual verification required\"\n        exit 1\n    fi\nfi\n\necho \"🎯 Workflow state recovery completed successfully\"\n```\n\n---\n\n*These comprehensive error handling and recovery procedures ensure that the HELIX workflow remains resilient and can quickly recover from failures at any phase, maintaining the integrity and continuity of the GRC tool development process.*
+# HELIX Error Handling and Recovery Procedures
+
+## Overview
+
+This document provides comprehensive error handling and recovery procedures for each phase of the HELIX workflow when applied to GRCTool development. These procedures ensure resilient development processes and enable rapid recovery from failures while maintaining compliance and security standards.
+
+## Error Classification System
+
+### Error Severity Levels
+
+#### Critical (P0) - Immediate Response Required
+```yaml
+critical_errors:
+  description: "Errors that block workflow progression or compromise security/compliance"
+  response_time: "< 1 hour"
+  escalation: "Immediate to team lead and stakeholders"
+  examples:
+    - "Security vulnerability in production"
+    - "Compliance validation failure"
+    - "Complete system outage"
+    - "Data integrity compromise"
+    - "Audit trail corruption"
+```
+
+#### High (P1) - Same Day Resolution
+```yaml
+high_priority_errors:
+  description: "Errors that significantly impact workflow efficiency or quality"
+  response_time: "< 4 hours"
+  escalation: "To team lead within 2 hours"
+  examples:
+    - "Phase gate failure"
+    - "Automated test suite failure"
+    - "Evidence collection tool malfunction"
+    - "CI/CD pipeline breakdown"
+    - "Performance degradation > 50%"
+```
+
+#### Medium (P2) - Next Business Day Resolution
+```yaml
+medium_priority_errors:
+  description: "Errors that cause minor workflow disruption"
+  response_time: "< 24 hours"
+  escalation: "Standard team notification"
+  examples:
+    - "Documentation quality issues"
+    - "Non-critical test failures"
+    - "Minor integration problems"
+    - "Performance degradation 20-50%"
+    - "Code review workflow issues"
+```
+
+#### Low (P3) - Weekly Resolution
+```yaml
+low_priority_errors:
+  description: "Errors with minimal immediate impact"
+  response_time: "< 1 week"
+  escalation: "Track in backlog"
+  examples:
+    - "Cosmetic documentation issues"
+    - "Non-essential feature bugs"
+    - "Minor usability problems"
+    - "Performance degradation < 20%"
+    - "Enhancement request conflicts"
+```
+
+## Frame Phase Error Handling
+
+### Requirements Gathering Errors
+
+#### Error Scenario: Incomplete Compliance Requirements
+```yaml
+error_type: "Requirements Gap"
+severity: "High (P1)"
+symptoms:
+  - "Missing control mappings for evidence tasks"
+  - "Undefined acceptance criteria for compliance features"
+  - "Unclear regulatory requirements"
+  - "Stakeholder disagreement on priorities"
+
+detection_methods:
+  - "Requirements review checklist validation"
+  - "Compliance expert review"
+  - "Automated requirement coverage analysis"
+  - "Stakeholder approval tracking"
+
+recovery_procedures:
+  immediate_actions:
+    - "Stop downstream design work"
+    - "Convene emergency stakeholder meeting"
+    - "Engage compliance subject matter expert"
+    - "Document all identified gaps"
+    
+  resolution_steps:
+    1. "Conduct gap analysis workshop"
+    2. "Research regulatory requirements"
+    3. "Validate with legal/compliance team"
+    4. "Update requirements documentation"
+    5. "Obtain stakeholder re-approval"
+    6. "Resume workflow with corrected requirements"
+    
+  prevention_measures:
+    - "Implement requirements checklist automation"
+    - "Establish compliance expert review gate"
+    - "Create requirement template validation"
+    - "Set up stakeholder alignment checkpoints"
+```
+
+#### Error Scenario: Conflicting User Stories
+```bash
+#!/bin/bash
+# resolve-conflicting-user-stories.sh
+
+set -e
+
+echo "🔍 Analyzing conflicting user stories..."
+
+# Detect conflicts
+conflicts=$(analyze_user_stories --check-conflicts --output=json)
+if [[ $(echo "$conflicts" | jq length) -gt 0 ]]; then
+    echo "⚠️ Conflicts detected:"
+    echo "$conflicts" | jq -r '.[] | "- \(.story_id): \(.conflict_description)"'
+    
+    # Convene resolution session
+    echo "📞 Scheduling conflict resolution session..."
+    schedule_meeting --type="conflict-resolution" --urgency="high" \
+        --attendees="product-owner,tech-lead,business-analyst" \
+        --agenda="resolve-user-story-conflicts"
+    
+    # Document conflicts for resolution
+    echo "$conflicts" > "conflicts-$(date +%Y%m%d-%H%M%S).json"
+    
+    # Block downstream work
+    set_workflow_gate --phase="frame" --status="blocked" \
+        --reason="conflicting-requirements" \
+        --resolution-owner="product-owner"
+    
+    echo "🚫 Frame phase blocked pending conflict resolution"
+else
+    echo "✅ No conflicts detected in user stories"
+fi
+```
+
+### Requirements Quality Errors
+
+#### Error Scenario: Ambiguous Acceptance Criteria
+```python
+# scripts/validate_acceptance_criteria.py
+import json
+import re
+from typing import List, Dict, Tuple
+
+class AcceptanceCriteriaValidator:
+    def __init__(self):
+        self.ambiguous_terms = [
+            'should', 'could', 'might', 'probably', 'usually',
+            'generally', 'normally', 'typically', 'approximately'
+        ]
+        self.missing_elements = [
+            'given', 'when', 'then', 'and', 'but'
+        ]
+    
+    def validate_criteria(self, user_stories: List[Dict]) -> List[Dict]:
+        """Validate acceptance criteria for ambiguity and completeness"""
+        validation_results = []
+        
+        for story in user_stories:
+            story_validation = {
+                'story_id': story['id'],
+                'title': story['title'],
+                'errors': [],
+                'warnings': [],
+                'severity': 'low'
+            }
+            
+            # Check for ambiguous language
+            criteria_text = ' '.join(story.get('acceptance_criteria', []))
+            for term in self.ambiguous_terms:
+                if term.lower() in criteria_text.lower():
+                    story_validation['errors'].append({
+                        'type': 'ambiguous_language',
+                        'description': f"Found ambiguous term: '{term}'",
+                        'recommendation': f"Replace '{term}' with specific, measurable criteria"
+                    })
+                    story_validation['severity'] = 'medium'
+            
+            # Check for missing BDD structure
+            has_given = any('given' in criteria.lower() for criteria in story.get('acceptance_criteria', []))
+            has_when = any('when' in criteria.lower() for criteria in story.get('acceptance_criteria', []))
+            has_then = any('then' in criteria.lower() for criteria in story.get('acceptance_criteria', []))
+            
+            if not (has_given and has_when and has_then):
+                story_validation['errors'].append({
+                    'type': 'incomplete_bdd_structure',
+                    'description': 'Missing Given-When-Then structure',
+                    'recommendation': 'Rewrite using complete Given-When-Then format'
+                })
+                story_validation['severity'] = 'high'
+            
+            # Check for testability
+            if not self.is_testable(story.get('acceptance_criteria', [])):
+                story_validation['errors'].append({
+                    'type': 'not_testable',
+                    'description': 'Acceptance criteria cannot be automatically tested',
+                    'recommendation': 'Add specific, measurable verification criteria'
+                })
+                story_validation['severity'] = 'high'
+            
+            if story_validation['errors'] or story_validation['warnings']:
+                validation_results.append(story_validation)
+        
+        return validation_results
+    
+    def is_testable(self, criteria: List[str]) -> bool:
+        """Check if acceptance criteria are testable"""
+        testable_indicators = [
+            'verify', 'validate', 'check', 'ensure', 'confirm',
+            'display', 'show', 'return', 'generate', 'create'
+        ]
+        
+        criteria_text = ' '.join(criteria).lower()
+        return any(indicator in criteria_text for indicator in testable_indicators)
+    
+    def generate_remediation_plan(self, validation_results: List[Dict]) -> Dict:
+        """Generate plan to fix acceptance criteria issues"""
+        high_priority = [r for r in validation_results if r['severity'] == 'high']
+        medium_priority = [r for r in validation_results if r['severity'] == 'medium']
+        
+        plan = {
+            'summary': {
+                'total_issues': len(validation_results),
+                'high_priority': len(high_priority),
+                'medium_priority': len(medium_priority),
+                'estimated_effort': self.estimate_effort(validation_results)
+            },
+            'immediate_actions': [
+                'Block design phase until high-priority issues resolved',
+                'Schedule acceptance criteria workshop',
+                'Assign business analyst to rewrite problematic criteria'
+            ],
+            'resolution_steps': [
+                {
+                    'step': 1,
+                    'action': 'Review and rewrite high-priority acceptance criteria',
+                    'owner': 'Business Analyst',
+                    'timeline': '1-2 days'
+                },
+                {
+                    'step': 2,
+                    'action': 'Validate rewritten criteria with stakeholders',
+                    'owner': 'Product Owner',
+                    'timeline': '1 day'
+                },
+                {
+                    'step': 3,
+                    'action': 'Update user story documentation',
+                    'owner': 'Technical Writer',
+                    'timeline': '0.5 days'
+                },
+                {
+                    'step': 4,
+                    'action': 'Re-validate with automated tools',
+                    'owner': 'QA Engineer',
+                    'timeline': '0.5 days'
+                }
+            ]
+        }
+        
+        return plan
+    
+    def estimate_effort(self, validation_results: List[Dict]) -> str:
+        """Estimate effort required to fix all issues"""
+        total_errors = sum(len(r['errors']) for r in validation_results)
+        
+        if total_errors <= 5:
+            return '1-2 days'
+        elif total_errors <= 15:
+            return '2-4 days'
+        else:
+            return '1 week'
+
+# Usage example
+if __name__ == '__main__':
+    validator = AcceptanceCriteriaValidator()
+    
+    # Load user stories
+    with open('user_stories.json', 'r') as f:
+        user_stories = json.load(f)
+    
+    # Validate
+    results = validator.validate_criteria(user_stories)
+    
+    if results:
+        print(f"❌ Found {len(results)} user stories with acceptance criteria issues")
+        
+        # Generate remediation plan
+        plan = validator.generate_remediation_plan(results)
+        
+        # Save results and plan
+        with open('acceptance_criteria_issues.json', 'w') as f:
+            json.dump(results, f, indent=2)
+        
+        with open('remediation_plan.json', 'w') as f:
+            json.dump(plan, f, indent=2)
+        
+        print(f"📋 Remediation plan generated. Estimated effort: {plan['summary']['estimated_effort']}")
+        
+        # Block workflow if high-priority issues exist
+        if plan['summary']['high_priority'] > 0:
+            exit(1)  # Fail CI/CD to block progression
+    else:
+        print("✅ All acceptance criteria validated successfully")
+```
+
+## Design Phase Error Handling
+
+### Architecture Design Errors
+
+#### Error Scenario: Security Architecture Gaps
+```yaml
+error_type: "Security Design Flaw"
+severity: "Critical (P0)"
+symptoms:
+  - "Missing threat model components"
+  - "Insufficient access controls design"
+  - "Weak encryption implementation plan"
+  - "Inadequate audit trail design"
+  - "Non-compliant data protection approach"
+
+detection_methods:
+  - "Automated security architecture scanning"
+  - "Security expert review"
+  - "Threat modeling validation"
+  - "Compliance requirement mapping"
+
+recovery_procedures:
+  immediate_actions:
+    - "Halt all development work"
+    - "Engage security architect immediately"
+    - "Conduct emergency security review"
+    - "Notify compliance team"
+    
+  resolution_steps:
+    1. "Perform comprehensive threat modeling"
+    2. "Redesign security architecture"
+    3. "Validate against compliance requirements"
+    4. "Obtain security team approval"
+    5. "Update all design documentation"
+    6. "Resume development with secure design"
+    
+  prevention_measures:
+    - "Implement automated security design validation"
+    - "Mandatory security architect review"
+    - "Security checklist integration"
+    - "Threat modeling automation"
+```
+
+#### Error Scenario: Performance Architecture Bottlenecks
+```go
+// internal/validation/performance_validator.go
+package validation
+
+import (
+    "context"
+    "fmt"
+    "time"
+)
+
+// PerformanceValidator validates architecture for performance requirements
+type PerformanceValidator struct {
+    thresholds PerformanceThresholds
+    analyzer   ArchitectureAnalyzer
+}
+
+type PerformanceThresholds struct {
+    MaxResponseTime    time.Duration `yaml:"max_response_time"`
+    MinThroughput      int           `yaml:"min_throughput"`
+    MaxMemoryUsage     int64         `yaml:"max_memory_usage"`
+    MaxCPUUtilization  float64       `yaml:"max_cpu_utilization"`
+}
+
+type PerformanceIssue struct {
+    Component   string    `json:"component"`
+    IssueType   string    `json:"issue_type"`
+    Severity    string    `json:"severity"`
+    Description string    `json:"description"`
+    Impact      string    `json:"impact"`
+    Remediation string    `json:"remediation"`
+    Timeline    string    `json:"timeline"`
+}
+
+// ValidatePerformanceArchitecture checks architecture for performance issues
+func (pv *PerformanceValidator) ValidatePerformanceArchitecture(ctx context.Context, architectureDoc string) ([]PerformanceIssue, error) {
+    issues := make([]PerformanceIssue, 0)
+    
+    // Parse architecture document
+    architecture, err := pv.analyzer.ParseArchitecture(architectureDoc)
+    if err != nil {
+        return nil, fmt.Errorf("failed to parse architecture: %w", err)
+    }
+    
+    // Check for synchronous processing bottlenecks
+    if syncIssues := pv.checkSynchronousProcessing(architecture); len(syncIssues) > 0 {
+        issues = append(issues, syncIssues...)
+    }
+    
+    // Check for database bottlenecks
+    if dbIssues := pv.checkDatabaseDesign(architecture); len(dbIssues) > 0 {
+        issues = append(issues, dbIssues...)
+    }
+    
+    // Check for API rate limiting
+    if apiIssues := pv.checkAPIDesign(architecture); len(apiIssues) > 0 {
+        issues = append(issues, apiIssues...)
+    }
+    
+    // Check for caching strategy
+    if cacheIssues := pv.checkCachingStrategy(architecture); len(cacheIssues) > 0 {
+        issues = append(issues, cacheIssues...)
+    }
+    
+    // Check for scalability design
+    if scaleIssues := pv.checkScalabilityDesign(architecture); len(scaleIssues) > 0 {
+        issues = append(issues, scaleIssues...)
+    }
+    
+    return issues, nil
+}
+
+// checkSynchronousProcessing identifies blocking operations
+func (pv *PerformanceValidator) checkSynchronousProcessing(architecture *Architecture) []PerformanceIssue {
+    issues := make([]PerformanceIssue, 0)
+    
+    for _, component := range architecture.Components {
+        // Check for evidence collection synchronous calls
+        if component.Type == "evidence_collector" && component.ProcessingMode == "synchronous" {
+            if component.EstimatedDuration > pv.thresholds.MaxResponseTime {
+                issues = append(issues, PerformanceIssue{
+                    Component:   component.Name,
+                    IssueType:   "blocking_operation",
+                    Severity:    "high",
+                    Description: fmt.Sprintf("Evidence collection taking %v exceeds threshold %v", component.EstimatedDuration, pv.thresholds.MaxResponseTime),
+                    Impact:      "User experience degradation, timeout failures",
+                    Remediation: "Implement asynchronous processing with progress tracking",
+                    Timeline:    "2-3 days",
+                })
+            }
+        }
+        
+        // Check for external API calls without timeout
+        for _, dependency := range component.Dependencies {
+            if dependency.Type == "external_api" && dependency.Timeout == 0 {
+                issues = append(issues, PerformanceIssue{
+                    Component:   component.Name,
+                    IssueType:   "missing_timeout",
+                    Severity:    "medium",
+                    Description: fmt.Sprintf("External API call to %s lacks timeout configuration", dependency.Name),
+                    Impact:      "Potential for hanging requests and resource exhaustion",
+                    Remediation: "Add timeout configuration and circuit breaker pattern",
+                    Timeline:    "1 day",
+                })
+            }
+        }
+    }
+    
+    return issues
+}
+
+// GeneratePerformanceRemediationPlan creates action plan for performance issues
+func (pv *PerformanceValidator) GeneratePerformanceRemediationPlan(issues []PerformanceIssue) *RemediationPlan {
+    plan := &RemediationPlan{
+        Summary: RemediationSummary{
+            TotalIssues:     len(issues),
+            CriticalIssues:  countIssuesBySeverity(issues, "critical"),
+            HighIssues:      countIssuesBySeverity(issues, "high"),
+            MediumIssues:    countIssuesBySeverity(issues, "medium"),
+            EstimatedEffort: calculateTotalEffort(issues),
+        },
+        Actions: make([]RemediationAction, 0),
+    }
+    
+    // Group issues by component and priority
+    groupedIssues := groupIssuesByComponent(issues)
+    
+    for component, componentIssues := range groupedIssues {
+        action := RemediationAction{
+            Component:    component,
+            Priority:     getHighestPriority(componentIssues),
+            Description:  fmt.Sprintf("Resolve %d performance issues in %s", len(componentIssues), component),
+            Tasks:        convertIssuesToTasks(componentIssues),
+            Owner:        "Architecture Team",
+            EstimatedTime: calculateComponentEffort(componentIssues),
+            Dependencies: identifyDependencies(componentIssues),
+        }
+        
+        plan.Actions = append(plan.Actions, action)
+    }
+    
+    return plan
+}
+```
+
+### Integration Design Errors
+
+#### Error Scenario: API Incompatibility
+```bash
+#!/bin/bash
+# detect-api-incompatibilities.sh
+
+set -e
+
+echo "🔍 Checking API compatibility across design components..."
+
+# Check API contract consistency
+api_contracts=("tugboat-api.yaml" "claude-api.yaml" "github-api.yaml")
+incompatibilities=()
+
+for contract in "${api_contracts[@]}"; do
+    if [[ -f "designs/api-contracts/$contract" ]]; then
+        echo "📋 Validating $contract..."
+        
+        # Validate OpenAPI schema
+        if ! swagger-codegen validate -i "designs/api-contracts/$contract"; then
+            incompatibilities+=("$contract: Invalid OpenAPI schema")
+        fi
+        
+        # Check for breaking changes
+        if [[ -f "designs/api-contracts/baseline/$contract" ]]; then
+            breaking_changes=$(oasdiff breaking "designs/api-contracts/baseline/$contract" "designs/api-contracts/$contract")
+            if [[ -n "$breaking_changes" ]]; then
+                incompatibilities+=("$contract: Breaking changes detected")
+                echo "💥 Breaking changes in $contract:"
+                echo "$breaking_changes"
+            fi
+        fi
+        
+        # Check authentication compatibility
+        auth_scheme=$(yq eval '.components.securitySchemes' "designs/api-contracts/$contract")
+        if [[ "$auth_scheme" == "null" ]]; then
+            incompatibilities+=("$contract: Missing authentication scheme")
+        fi
+    else
+        incompatibilities+=("$contract: Contract file missing")
+    fi
+done
+
+# Check data model consistency
+echo "📊 Validating data model consistency..."
+data_models=("evidence-task.json" "compliance-framework.json" "security-control.json")
+
+for model in "${data_models[@]}"; do
+    if [[ -f "designs/data-models/$model" ]]; then
+        # Validate JSON schema
+        if ! ajv validate -s "schemas/$model-schema.json" -d "designs/data-models/$model"; then
+            incompatibilities+=("$model: Schema validation failed")
+        fi
+    else
+        incompatibilities+=("$model: Data model missing")
+    fi
+done
+
+# Report incompatibilities
+if [[ ${#incompatibilities[@]} -gt 0 ]]; then
+    echo "❌ API incompatibilities detected:"
+    for incompatibility in "${incompatibilities[@]}"; do
+        echo "  - $incompatibility"
+    done
+    
+    # Generate remediation plan
+    cat > api-incompatibility-remediation.md << EOF
+# API Incompatibility Remediation Plan
+
+## Issues Detected
+$(printf '%s\n' "${incompatibilities[@]}" | sed 's/^/- /')
+
+## Immediate Actions
+1. Block design phase progression
+2. Convene API design review meeting
+3. Engage integration architect
+4. Update API contracts
+
+## Resolution Steps
+1. **Review and Fix API Contracts** (1-2 days)
+   - Fix OpenAPI schema validation errors
+   - Resolve breaking changes or implement versioning
+   - Add missing authentication schemes
+   
+2. **Update Data Models** (1 day)
+   - Fix schema validation errors
+   - Ensure model consistency across APIs
+   - Validate against business requirements
+   
+3. **Integration Testing** (1-2 days)
+   - Test API contract compatibility
+   - Validate data flow between components
+   - Ensure authentication works end-to-end
+   
+4. **Documentation Update** (0.5 days)
+   - Update integration design documents
+   - Refresh API documentation
+   - Update developer guides
+
+## Prevention Measures
+- Implement automated API contract validation
+- Set up contract testing in CI/CD
+- Establish API design review process
+- Create integration testing automation
+EOF
+    
+    # Block workflow progression
+    echo "🚫 Blocking design phase due to API incompatibilities"
+    exit 1
+else
+    echo "✅ All API contracts and data models are compatible"
+fi
+```
+
+## Test Phase Error Handling
+
+### Test Infrastructure Errors
+
+#### Error Scenario: VCR Testing Failures
+```python
+# scripts/vcr_recovery.py
+import os
+import json
+import yaml
+from pathlib import Path
+from typing import List, Dict, Optional
+
+class VCRRecoveryManager:
+    def __init__(self, cassette_dir: str = "internal/tugboat/testdata/vcr"):
+        self.cassette_dir = Path(cassette_dir)
+        self.failed_cassettes = []
+        self.corruption_issues = []
+        self.missing_cassettes = []
+    
+    def diagnose_vcr_issues(self) -> Dict[str, List[str]]:
+        """Diagnose all VCR-related issues"""
+        issues = {
+            'failed_cassettes': [],
+            'corrupted_cassettes': [],
+            'missing_cassettes': [],
+            'outdated_cassettes': [],
+            'authentication_issues': []
+        }
+        
+        # Check for failed cassettes
+        for cassette_file in self.cassette_dir.glob("*.yaml"):
+            try:
+                with open(cassette_file, 'r') as f:
+                    cassette_data = yaml.safe_load(f)
+                
+                # Check for corruption
+                if not self._validate_cassette_structure(cassette_data):
+                    issues['corrupted_cassettes'].append(str(cassette_file))
+                
+                # Check for authentication issues
+                if self._has_auth_errors(cassette_data):
+                    issues['authentication_issues'].append(str(cassette_file))
+                
+                # Check if cassette is outdated
+                if self._is_cassette_outdated(cassette_data):
+                    issues['outdated_cassettes'].append(str(cassette_file))
+                    
+            except Exception as e:
+                issues['failed_cassettes'].append(f"{cassette_file}: {str(e)}")
+        
+        # Check for missing cassettes
+        expected_cassettes = self._get_expected_cassettes()
+        existing_cassettes = set(f.stem for f in self.cassette_dir.glob("*.yaml"))
+        missing = expected_cassettes - existing_cassettes
+        issues['missing_cassettes'] = list(missing)
+        
+        return issues
+    
+    def _validate_cassette_structure(self, cassette_data: Dict) -> bool:
+        """Validate cassette has proper structure"""
+        required_fields = ['interactions', 'version']
+        return all(field in cassette_data for field in required_fields)
+    
+    def _has_auth_errors(self, cassette_data: Dict) -> bool:
+        """Check if cassette contains authentication errors"""
+        interactions = cassette_data.get('interactions', [])
+        for interaction in interactions:
+            response = interaction.get('response', {})
+            if response.get('status', {}).get('code') in [401, 403]:
+                return True
+        return False
+    
+    def _is_cassette_outdated(self, cassette_data: Dict, max_age_days: int = 30) -> bool:
+        """Check if cassette is older than threshold"""
+        # This would check modification time or metadata
+        # Implementation depends on how you track cassette age
+        return False  # Placeholder
+    
+    def _get_expected_cassettes(self) -> set:
+        """Get list of expected cassette files from test files"""
+        expected = set()
+        test_dir = Path("test/integration")
+        
+        for test_file in test_dir.glob("**/*_test.go"):
+            with open(test_file, 'r') as f:
+                content = f.read()
+                # Extract cassette names from test files
+                import re
+                cassette_refs = re.findall(r'SetupVCR\([^,]+,\s*"([^"]+)"', content)
+                expected.update(cassette_refs)
+        
+        return expected
+    
+    def generate_recovery_plan(self, issues: Dict[str, List[str]]) -> Dict:
+        """Generate comprehensive recovery plan"""
+        total_issues = sum(len(issue_list) for issue_list in issues.values())
+        
+        if total_issues == 0:
+            return {'status': 'healthy', 'actions': []}
+        
+        recovery_plan = {
+            'status': 'requires_recovery',
+            'summary': {
+                'total_issues': total_issues,
+                'critical_issues': len(issues.get('authentication_issues', [])) + len(issues.get('corrupted_cassettes', [])),
+                'estimated_recovery_time': self._estimate_recovery_time(issues)
+            },
+            'immediate_actions': [
+                'Stop running VCR-dependent tests',
+                'Switch to record mode for critical test paths',
+                'Backup existing cassettes before recovery'
+            ],
+            'recovery_steps': []
+        }
+        
+        # Generate specific recovery steps
+        if issues.get('authentication_issues'):
+            recovery_plan['recovery_steps'].append({
+                'step': 1,
+                'action': 'Fix authentication issues',
+                'details': 'Re-record cassettes with valid authentication',
+                'files': issues['authentication_issues'],
+                'command': 'VCR_MODE=record go test ./test/integration/... -run TestAuth',
+                'estimated_time': '2-4 hours'
+            })
+        
+        if issues.get('corrupted_cassettes'):
+            recovery_plan['recovery_steps'].append({
+                'step': 2,
+                'action': 'Restore corrupted cassettes',
+                'details': 'Re-record corrupted cassette files',
+                'files': issues['corrupted_cassettes'],
+                'command': 'VCR_MODE=record go test ./test/integration/... -run "TestSpecific"',
+                'estimated_time': '1-2 hours'
+            })
+        
+        if issues.get('missing_cassettes'):
+            recovery_plan['recovery_steps'].append({
+                'step': 3,
+                'action': 'Record missing cassettes',
+                'details': 'Create cassettes for new or missing test scenarios',
+                'files': issues['missing_cassettes'],
+                'command': 'VCR_MODE=record go test ./test/integration/... -run "TestNew"',
+                'estimated_time': '1-3 hours'
+            })
+        
+        if issues.get('outdated_cassettes'):
+            recovery_plan['recovery_steps'].append({
+                'step': 4,
+                'action': 'Update outdated cassettes',
+                'details': 'Refresh cassettes that may have stale data',
+                'files': issues['outdated_cassettes'],
+                'command': 'VCR_MODE=record_once go test ./test/integration/...',
+                'estimated_time': '1-2 hours'
+            })
+        
+        return recovery_plan
+    
+    def _estimate_recovery_time(self, issues: Dict[str, List[str]]) -> str:
+        """Estimate total recovery time"""
+        total_files = sum(len(issue_list) for issue_list in issues.values())
+        
+        if total_files <= 5:
+            return '2-4 hours'
+        elif total_files <= 15:
+            return '4-8 hours'
+        else:
+            return '1-2 days'
+    
+    def execute_recovery(self, recovery_plan: Dict) -> bool:
+        """Execute the recovery plan"""
+        if recovery_plan['status'] == 'healthy':
+            print("✅ No recovery needed")
+            return True
+        
+        print(f"🔧 Executing VCR recovery plan ({recovery_plan['summary']['estimated_recovery_time']})")
+        
+        for step in recovery_plan['recovery_steps']:
+            print(f"Step {step['step']}: {step['action']}")
+            print(f"Command: {step['command']}")
+            
+            # Execute recovery command
+            result = os.system(step['command'])
+            if result != 0:
+                print(f"❌ Step {step['step']} failed")
+                return False
+            else:
+                print(f"✅ Step {step['step']} completed")
+        
+        # Validate recovery
+        post_recovery_issues = self.diagnose_vcr_issues()
+        remaining_issues = sum(len(issue_list) for issue_list in post_recovery_issues.values())
+        
+        if remaining_issues == 0:
+            print("✅ VCR recovery completed successfully")
+            return True
+        else:
+            print(f"⚠️ Recovery partially successful. {remaining_issues} issues remain")
+            return False
+
+# Usage example
+if __name__ == '__main__':
+    recovery_manager = VCRRecoveryManager()
+    
+    # Diagnose issues
+    issues = recovery_manager.diagnose_vcr_issues()
+    
+    if any(len(issue_list) > 0 for issue_list in issues.values()):
+        # Generate recovery plan
+        plan = recovery_manager.generate_recovery_plan(issues)
+        
+        # Save plan for review
+        with open('vcr_recovery_plan.json', 'w') as f:
+            json.dump(plan, f, indent=2)
+        
+        print(f"❌ VCR issues detected. Recovery plan saved to vcr_recovery_plan.json")
+        print(f"Estimated recovery time: {plan['summary']['estimated_recovery_time']}")
+        
+        # Optionally execute recovery automatically
+        if os.getenv('AUTO_RECOVERY', 'false').lower() == 'true':
+            recovery_manager.execute_recovery(plan)
+        
+        exit(1 if plan['summary']['critical_issues'] > 0 else 0)
+    else:
+        print("✅ All VCR cassettes are healthy")
+```
+
+### Test Quality Errors
+
+#### Error Scenario: Low Test Coverage
+```bash
+#!/bin/bash
+# coverage-recovery.sh - Handle low test coverage scenarios
+
+set -e
+
+COVERAGE_THRESHOLD=80
+CRITICAL_PACKAGE_THRESHOLD=90
+
+echo "📊 Analyzing test coverage..."
+
+# Generate coverage report
+make coverage-report
+CURRENT_COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+
+echo "Current coverage: ${CURRENT_COVERAGE}%"
+
+if (( $(echo "$CURRENT_COVERAGE < $COVERAGE_THRESHOLD" | bc -l) )); then
+    echo "❌ Coverage below threshold (${COVERAGE_THRESHOLD}%)"
+    
+    # Identify packages with low coverage
+    echo "🔍 Identifying packages with low coverage..."
+    LOW_COVERAGE_PACKAGES=()
+    
+    while IFS= read -r line; do
+        if [[ $line =~ ^([^[:space:]]+)[[:space:]]+[[:digit:]]+\.[[:digit:]]+%$ ]]; then
+            package=$(echo "$line" | awk '{print $1}')
+            coverage=$(echo "$line" | awk '{print $3}' | sed 's/%//')
+            
+            # Check if package is critical (internal packages)
+            if [[ $package == *"internal/"* ]]; then
+                threshold=$CRITICAL_PACKAGE_THRESHOLD
+            else
+                threshold=$COVERAGE_THRESHOLD
+            fi
+            
+            if (( $(echo "$coverage < $threshold" | bc -l) )); then
+                LOW_COVERAGE_PACKAGES+=("$package:$coverage")
+            fi
+        fi
+    done < <(go tool cover -func=coverage.out | head -n -1)
+    
+    if [[ ${#LOW_COVERAGE_PACKAGES[@]} -gt 0 ]]; then
+        echo "📋 Packages requiring coverage improvement:"
+        for package_info in "${LOW_COVERAGE_PACKAGES[@]}"; do
+            package=$(echo "$package_info" | cut -d: -f1)
+            coverage=$(echo "$package_info" | cut -d: -f2)
+            echo "  - $package: ${coverage}%"
+        done
+        
+        # Generate coverage improvement plan
+        cat > coverage-improvement-plan.md << EOF
+# Test Coverage Improvement Plan
+
+## Current Status
+- Overall Coverage: ${CURRENT_COVERAGE}%
+- Target Coverage: ${COVERAGE_THRESHOLD}%
+- Packages Below Threshold: ${#LOW_COVERAGE_PACKAGES[@]}
+
+## Priority Packages
+$(printf '%s\n' "${LOW_COVERAGE_PACKAGES[@]}" | sed 's/^/- /' | sed 's/:/: /' | sed 's/$/%/')
+
+## Recovery Actions
+
+### Immediate Actions (Block Test Phase)
+1. Stop test phase progression
+2. Assign coverage improvement to development team
+3. Create coverage improvement tickets
+4. Set up pair programming sessions for complex packages
+
+### Coverage Improvement Strategy
+
+#### Phase 1: Critical Packages (1-2 days)
+Focus on internal/ packages with coverage < ${CRITICAL_PACKAGE_THRESHOLD}%:
+- Identify untested functions and methods
+- Write unit tests for core business logic
+- Add integration tests for complex workflows
+- Target: Bring all critical packages to ≥ ${CRITICAL_PACKAGE_THRESHOLD}%
+
+#### Phase 2: Standard Packages (2-3 days)
+Improve coverage for remaining packages:
+- Add edge case testing
+- Improve error path coverage
+- Add property-based tests where applicable
+- Target: Overall coverage ≥ ${COVERAGE_THRESHOLD}%
+
+#### Phase 3: Quality Enhancement (1 day)
+- Review test quality and maintainability
+- Refactor flaky or brittle tests
+- Add mutation testing validation
+- Update test documentation
+
+### Prevention Measures
+- Add coverage gates to CI/CD pipeline
+- Implement pre-commit coverage checks
+- Set up coverage trend monitoring
+- Create test writing guidelines and training
+
+EOF
+        
+        # Block test phase progression
+        echo "🚫 Blocking test phase due to insufficient coverage"
+        
+        # Create individual tickets for low coverage packages
+        for package_info in "${LOW_COVERAGE_PACKAGES[@]}"; do
+            package=$(echo "$package_info" | cut -d: -f1)
+            coverage=$(echo "$package_info" | cut -d: -f2)
+            
+            # Create GitHub issue (if available)
+            if command -v gh &> /dev/null; then
+                gh issue create \
+                    --title "Improve test coverage for $package" \
+                    --body "Current coverage: ${coverage}%. Target: ${COVERAGE_THRESHOLD}%. Priority: High" \
+                    --label "testing,coverage,priority-high" \
+                    --assignee "@dev-team"
+            fi
+        done
+        
+        exit 1
+    fi
+else
+    echo "✅ Coverage meets threshold (${COVERAGE_THRESHOLD}%)"
+fi
+
+# Check for coverage regression
+if [[ -f "baseline-coverage.txt" ]]; then
+    BASELINE_COVERAGE=$(cat baseline-coverage.txt)
+    REGRESSION_THRESHOLD=5
+    
+    COVERAGE_DIFF=$(echo "$BASELINE_COVERAGE - $CURRENT_COVERAGE" | bc -l)
+    
+    if (( $(echo "$COVERAGE_DIFF > $REGRESSION_THRESHOLD" | bc -l) )); then
+        echo "⚠️ Coverage regression detected: -${COVERAGE_DIFF}%"
+        echo "📋 Investigate recent changes that may have reduced coverage"
+        
+        # Find recent commits that might have affected coverage
+        git log --oneline --since="1 week ago" -- "*.go" | head -10
+        
+        exit 1
+    fi
+fi
+
+echo "✅ Test coverage validation completed"
+```
+
+## Build Phase Error Handling
+
+### Compilation and Build Errors
+
+#### Error Scenario: Dependency Version Conflicts
+```go
+// internal/tools/dependency_resolver.go
+package tools
+
+import (
+    "context"
+    "fmt"
+    "os/exec"
+    "regexp"
+    "strings"
+)
+
+// DependencyConflict represents a dependency version conflict
+type DependencyConflict struct {
+    Package         string `json:"package"`
+    RequiredVersion string `json:"required_version"`
+    ActualVersion   string `json:"actual_version"`
+    ConflictType    string `json:"conflict_type"`
+    Severity        string `json:"severity"`
+    Resolution      string `json:"resolution"`
+}
+
+// DependencyResolver handles dependency conflicts
+type DependencyResolver struct {
+    goModPath    string
+    conflicts    []DependencyConflict
+    resolutions  []ResolutionAction
+}
+
+// ResolutionAction represents an action to resolve dependency conflicts
+type ResolutionAction struct {
+    Action      string `json:"action"`
+    Package     string `json:"package"`
+    Version     string `json:"version"`
+    Rationale   string `json:"rationale"`
+    Risk        string `json:"risk"`
+    Timeline    string `json:"timeline"`
+}
+
+// DetectDependencyConflicts identifies version conflicts in go.mod
+func (dr *DependencyResolver) DetectDependencyConflicts(ctx context.Context) ([]DependencyConflict, error) {
+    conflicts := make([]DependencyConflict, 0)
+    
+    // Run go mod tidy to detect issues
+    cmd := exec.CommandContext(ctx, "go", "mod", "tidy")
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        // Parse go mod tidy output for conflicts
+        conflicts = append(conflicts, dr.parseGoModTidyErrors(string(output))...)
+    }
+    
+    // Check for indirect dependency conflicts
+    indirectConflicts, err := dr.checkIndirectDependencies(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("failed to check indirect dependencies: %w", err)
+    }
+    conflicts = append(conflicts, indirectConflicts...)
+    
+    // Check for security vulnerabilities in dependencies
+    vulnConflicts, err := dr.checkVulnerabilities(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("failed to check vulnerabilities: %w", err)
+    }
+    conflicts = append(conflicts, vulnConflicts...)
+    
+    // Check for license compatibility
+    licenseConflicts, err := dr.checkLicenseCompatibility(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("failed to check license compatibility: %w", err)
+    }
+    conflicts = append(conflicts, licenseConflicts...)
+    
+    return conflicts, nil
+}
+
+// parseGoModTidyErrors parses go mod tidy output for dependency conflicts
+func (dr *DependencyResolver) parseGoModTidyErrors(output string) []DependencyConflict {
+    conflicts := make([]DependencyConflict, 0)
+    lines := strings.Split(output, "\n")
+    
+    for _, line := range lines {
+        // Parse version conflict messages
+        if strings.Contains(line, "requires") && strings.Contains(line, "but") {
+            conflict := dr.parseVersionConflictLine(line)
+            if conflict != nil {
+                conflicts = append(conflicts, *conflict)
+            }
+        }
+        
+        // Parse missing dependency messages
+        if strings.Contains(line, "cannot find module") {
+            conflict := dr.parseMissingDependencyLine(line)
+            if conflict != nil {
+                conflicts = append(conflicts, *conflict)
+            }
+        }
+    }
+    
+    return conflicts
+}
+
+// checkVulnerabilities checks for known security vulnerabilities
+func (dr *DependencyResolver) checkVulnerabilities(ctx context.Context) ([]DependencyConflict, error) {
+    conflicts := make([]DependencyConflict, 0)
+    
+    // Run govulncheck
+    cmd := exec.CommandContext(ctx, "govulncheck", "./...")
+    output, err := cmd.CombinedOutput()
+    if err != nil {
+        // Parse vulnerability output
+        vulnPattern := regexp.MustCompile(`Vulnerability in ([^\s]+): (.+)`)
+        matches := vulnPattern.FindAllStringSubmatch(string(output), -1)
+        
+        for _, match := range matches {
+            if len(match) >= 3 {
+                conflicts = append(conflicts, DependencyConflict{
+                    Package:         match[1],
+                    ConflictType:    "security_vulnerability",
+                    Severity:        "high",
+                    RequiredVersion: "latest_secure",
+                    ActualVersion:   "vulnerable",
+                    Resolution:      fmt.Sprintf("Update %s to secure version", match[1]),
+                })
+            }
+        }
+    }
+    
+    return conflicts, nil
+}
+
+// GenerateResolutionPlan creates a plan to resolve all conflicts
+func (dr *DependencyResolver) GenerateResolutionPlan(conflicts []DependencyConflict) *ResolutionPlan {
+    plan := &ResolutionPlan{
+        Summary: ResolutionSummary{
+            TotalConflicts:    len(conflicts),
+            CriticalConflicts: dr.countConflictsBySeverity(conflicts, "critical"),
+            HighConflicts:     dr.countConflictsBySeverity(conflicts, "high"),
+            MediumConflicts:   dr.countConflictsBySeverity(conflicts, "medium"),
+            EstimatedTime:     dr.estimateResolutionTime(conflicts),
+        },
+        Actions: make([]ResolutionAction, 0),
+    }
+    
+    // Group conflicts by resolution strategy
+    strategies := dr.groupConflictsByStrategy(conflicts)
+    
+    for strategy, strategyConflicts := range strategies {
+        action := dr.generateStrategyAction(strategy, strategyConflicts)
+        plan.Actions = append(plan.Actions, action)
+    }
+    
+    return plan
+}
+
+// ExecuteResolution executes the dependency resolution plan
+func (dr *DependencyResolver) ExecuteResolution(ctx context.Context, plan *ResolutionPlan) error {
+    fmt.Printf("🔧 Executing dependency resolution plan (%s)\n", plan.Summary.EstimatedTime)
+    
+    for i, action := range plan.Actions {
+        fmt.Printf("Step %d: %s\n", i+1, action.Action)
+        
+        switch action.Action {
+        case "update_dependency":
+            if err := dr.updateDependency(ctx, action.Package, action.Version); err != nil {
+                return fmt.Errorf("failed to update %s: %w", action.Package, err)
+            }
+            
+        case "add_replace_directive":
+            if err := dr.addReplaceDirective(ctx, action.Package, action.Version); err != nil {
+                return fmt.Errorf("failed to add replace directive for %s: %w", action.Package, err)
+            }
+            
+        case "remove_dependency":
+            if err := dr.removeDependency(ctx, action.Package); err != nil {
+                return fmt.Errorf("failed to remove %s: %w", action.Package, err)
+            }
+            
+        default:
+            return fmt.Errorf("unknown resolution action: %s", action.Action)
+        }
+        
+        fmt.Printf("✅ Step %d completed\n", i+1)
+    }
+    
+    // Verify resolution
+    fmt.Println("🔍 Verifying resolution...")
+    if err := dr.verifyResolution(ctx); err != nil {
+        return fmt.Errorf("resolution verification failed: %w", err)
+    }
+    
+    fmt.Println("✅ Dependency resolution completed successfully")
+    return nil
+}
+```
+
+## Deploy Phase Error Handling
+
+### Deployment Pipeline Errors
+
+#### Error Scenario: Failed Production Deployment
+```bash
+#!/bin/bash
+# deployment-recovery.sh - Handle failed production deployments
+
+set -e
+
+DEPLOYMENT_ID=${1:-"latest"}
+ROLLBACK_TIMEOUT=300  # 5 minutes
+HEALTH_CHECK_TIMEOUT=120  # 2 minutes
+
+echo "🚨 Deployment failure detected for deployment: $DEPLOYMENT_ID"
+echo "Starting emergency recovery procedures..."
+
+# Function to log with timestamp
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
+
+# Function to check application health
+check_health() {
+    local max_attempts=12
+    local attempt=1
+    
+    while [[ $attempt -le $max_attempts ]]; do
+        if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+            return 0
+        fi
+        
+        log "Health check attempt $attempt/$max_attempts failed"
+        sleep 10
+        ((attempt++))
+    done
+    
+    return 1
+}
+
+# Function to rollback deployment
+rollback_deployment() {
+    log "🔄 Initiating deployment rollback..."
+    
+    # Get previous version
+    PREVIOUS_VERSION=$(get_previous_version)
+    if [[ -z "$PREVIOUS_VERSION" ]]; then
+        log "❌ Cannot determine previous version for rollback"
+        return 1
+    fi
+    
+    log "📦 Rolling back to version: $PREVIOUS_VERSION"
+    
+    # Stop current version
+    log "🛑 Stopping current deployment..."
+    systemctl stop grctool || true
+    
+    # Backup current deployment
+    BACKUP_DIR="/opt/grctool/backups/failed-deployment-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$BACKUP_DIR"
+    cp -r /opt/grctool/bin "$BACKUP_DIR/"
+    cp -r /opt/grctool/config "$BACKUP_DIR/"
+    
+    # Restore previous version
+    log "📥 Restoring previous version..."
+    if [[ -d "/opt/grctool/backups/$PREVIOUS_VERSION" ]]; then
+        cp -r "/opt/grctool/backups/$PREVIOUS_VERSION/bin"/* /opt/grctool/bin/
+        cp -r "/opt/grctool/backups/$PREVIOUS_VERSION/config"/* /opt/grctool/config/
+        chown -R grctool:grctool /opt/grctool/bin /opt/grctool/config
+    else
+        log "❌ Previous version backup not found: $PREVIOUS_VERSION"
+        return 1
+    fi
+    
+    # Start previous version
+    log "🚀 Starting previous version..."
+    systemctl start grctool
+    
+    # Wait for health check
+    log "🏥 Waiting for application to become healthy..."
+    if check_health; then
+        log "✅ Rollback successful - application is healthy"
+        return 0
+    else
+        log "❌ Rollback failed - application is not healthy"
+        return 1
+    fi
+}
+
+# Function to collect deployment diagnostics
+collect_diagnostics() {
+    log "🔍 Collecting deployment diagnostics..."
+    
+    DIAG_DIR="/tmp/deployment-diagnostics-$(date +%Y%m%d-%H%M%S)"
+    mkdir -p "$DIAG_DIR"
+    
+    # System information
+    uname -a > "$DIAG_DIR/system-info.txt"
+    df -h > "$DIAG_DIR/disk-usage.txt"
+    free -h > "$DIAG_DIR/memory-usage.txt"
+    
+    # Application logs
+    if [[ -f "/var/log/grctool/grctool.log" ]]; then
+        tail -1000 /var/log/grctool/grctool.log > "$DIAG_DIR/application.log"
+    fi
+    
+    # System logs
+    journalctl -u grctool --since="1 hour ago" > "$DIAG_DIR/systemd.log"
+    
+    # Configuration
+    cp /opt/grctool/config/.grctool.yaml "$DIAG_DIR/config.yaml" 2>/dev/null || true
+    
+    # Process information
+    ps aux | grep grctool > "$DIAG_DIR/processes.txt"
+    
+    # Network information
+    netstat -tulpn | grep 8080 > "$DIAG_DIR/network.txt" 2>/dev/null || true
+    
+    log "📋 Diagnostics collected in: $DIAG_DIR"
+    echo "$DIAG_DIR"
+}
+
+# Function to send alerts
+send_alert() {
+    local severity=$1
+    local message=$2
+    
+    # Send to PagerDuty/Slack/etc.
+    if [[ -n "$PAGERDUTY_INTEGRATION_KEY" ]]; then
+        curl -X POST "https://events.pagerduty.com/v2/enqueue" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"routing_key\": \"$PAGERDUTY_INTEGRATION_KEY\",
+                \"event_action\": \"trigger\",
+                \"payload\": {
+                    \"summary\": \"GRCTool Deployment Failure\",
+                    \"severity\": \"$severity\",
+                    \"source\": \"grctool-deployment\",
+                    \"custom_details\": {
+                        \"deployment_id\": \"$DEPLOYMENT_ID\",
+                        \"message\": \"$message\"
+                    }
+                }
+            }"
+    fi
+    
+    # Send to Slack
+    if [[ -n "$SLACK_WEBHOOK" ]]; then
+        curl -X POST "$SLACK_WEBHOOK" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"text\": \"🚨 GRCTool Deployment Failure\",
+                \"attachments\": [{
+                    \"color\": \"danger\",
+                    \"fields\": [
+                        {\"title\": \"Deployment ID\", \"value\": \"$DEPLOYMENT_ID\", \"short\": true},
+                        {\"title\": \"Severity\", \"value\": \"$severity\", \"short\": true},
+                        {\"title\": \"Message\", \"value\": \"$message\", \"short\": false}
+                    ]
+                }]
+            }"
+    fi
+}
+
+# Main recovery workflow
+log "🎯 Starting deployment recovery workflow"
+
+# Collect diagnostics first
+DIAG_DIR=$(collect_diagnostics)
+
+# Send initial alert
+send_alert "critical" "Deployment failure detected. Recovery procedures initiated."
+
+# Attempt rollback
+if rollback_deployment; then
+    log "✅ Rollback completed successfully"
+    send_alert "warning" "Rollback completed successfully. Previous version restored."
+    
+    # Create incident report
+    cat > "/tmp/incident-report-$(date +%Y%m%d-%H%M%S).md" << EOF
+# Deployment Incident Report
+
+## Summary
+- **Incident ID**: DEPLOY-$(date +%Y%m%d-%H%M%S)
+- **Deployment ID**: $DEPLOYMENT_ID
+- **Occurred At**: $(date)
+- **Status**: Resolved via rollback
+- **Duration**: N/A (immediate rollback)
+
+## Impact
+- Service availability temporarily affected
+- Rollback to previous stable version completed
+- No data loss occurred
+
+## Root Cause
+To be determined - requires analysis of diagnostics in $DIAG_DIR
+
+## Timeline
+- $(date): Deployment failure detected
+- $(date): Emergency rollback initiated
+- $(date): Previous version restored
+- $(date): Service health confirmed
+
+## Action Items
+- [ ] Analyze deployment failure root cause
+- [ ] Review deployment process for improvements
+- [ ] Update deployment validation checks
+- [ ] Conduct post-incident review
+
+## Diagnostics Location
+$DIAG_DIR
+EOF
+
+else
+    log "❌ Rollback failed - escalating to manual intervention"
+    send_alert "critical" "Automatic rollback failed. Manual intervention required immediately."
+    
+    # Create emergency procedures document
+    cat > "/tmp/emergency-procedures-$(date +%Y%m%d-%H%M%S).md" << EOF
+# Emergency Manual Recovery Procedures
+
+## Immediate Actions Required
+
+1. **Stop all services**
+   \`\`\`bash
+   systemctl stop grctool
+   \`\`\`
+
+2. **Check for conflicting processes**
+   \`\`\`bash
+   ps aux | grep grctool
+   kill -9 <pid_if_found>
+   \`\`\`
+
+3. **Restore from manual backup**
+   \`\`\`bash
+   cd /opt/grctool/backups
+   ls -la  # Find latest stable backup
+   cp -r stable-backup-YYYYMMDD/* /opt/grctool/
+   \`\`\`
+
+4. **Fix permissions**
+   \`\`\`bash
+   chown -R grctool:grctool /opt/grctool
+   chmod +x /opt/grctool/bin/grctool
+   \`\`\`
+
+5. **Start service**
+   \`\`\`bash
+   systemctl start grctool
+   systemctl status grctool
+   \`\`\`
+
+6. **Verify health**
+   \`\`\`bash
+   curl http://localhost:8080/health
+   \`\`\`
+
+## Diagnostics Location
+$DIAG_DIR
+
+## Escalation Contacts
+- On-call Engineer: [CONTACT]
+- System Administrator: [CONTACT]
+- Product Owner: [CONTACT]
+EOF
+
+    echo "📋 Emergency procedures documented in /tmp/emergency-procedures-*.md"
+    exit 1
+fi
+
+log "🎯 Deployment recovery workflow completed"
+```
+
+## Iterate Phase Error Handling
+
+### Continuous Improvement Errors
+
+#### Error Scenario: Metrics Collection Failures
+```python
+# scripts/metrics_recovery.py
+import json
+import time
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+class MetricsRecoveryManager:
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        self.failed_metrics = []
+        self.recovery_strategies = {
+            'prometheus_down': self.recover_prometheus,
+            'data_corruption': self.recover_corrupted_data,
+            'collection_timeout': self.recover_timeout_issues,
+            'storage_full': self.recover_storage_issues,
+            'authentication_failure': self.recover_auth_issues
+        }
+    
+    def diagnose_metrics_issues(self) -> Dict[str, List[str]]:
+        """Diagnose all metrics-related issues"""
+        issues = {
+            'prometheus_issues': [],
+            'collection_failures': [],
+            'data_quality_issues': [],
+            'storage_issues': [],
+            'authentication_issues': []
+        }
+        
+        # Check Prometheus health
+        if not self._check_prometheus_health():
+            issues['prometheus_issues'].append('Prometheus server not responding')
+        
+        # Check metrics collection endpoints
+        collection_status = self._check_collection_endpoints()
+        for endpoint, status in collection_status.items():
+            if not status['healthy']:
+                issues['collection_failures'].append(f"{endpoint}: {status['error']}")
+        
+        # Check data quality
+        quality_issues = self._check_data_quality()
+        issues['data_quality_issues'].extend(quality_issues)
+        
+        # Check storage
+        storage_issues = self._check_storage_health()
+        issues['storage_issues'].extend(storage_issues)
+        
+        return issues
+    
+    def _check_prometheus_health(self) -> bool:
+        """Check if Prometheus is healthy"""
+        try:
+            import requests
+            response = requests.get('http://localhost:9090/-/healthy', timeout=5)
+            return response.status_code == 200
+        except Exception as e:
+            self.logger.error(f"Prometheus health check failed: {e}")
+            return False
+    
+    def _check_collection_endpoints(self) -> Dict[str, Dict]:
+        """Check health of metrics collection endpoints"""
+        endpoints = {
+            'grctool_metrics': 'http://localhost:8080/metrics',
+            'system_metrics': 'http://localhost:9100/metrics',
+            'application_health': 'http://localhost:8080/health'
+        }
+        
+        results = {}
+        for name, url in endpoints.items():
+            try:
+                import requests
+                response = requests.get(url, timeout=10)
+                results[name] = {
+                    'healthy': response.status_code == 200,
+                    'response_time': response.elapsed.total_seconds(),
+                    'error': None
+                }
+            except Exception as e:
+                results[name] = {
+                    'healthy': False,
+                    'response_time': None,
+                    'error': str(e)
+                }
+        
+        return results
+    
+    def _check_data_quality(self) -> List[str]:
+        """Check for data quality issues in metrics"""
+        issues = []
+        
+        try:
+            # Check for missing data points
+            if self._has_missing_data_points():
+                issues.append('Missing data points detected in time series')
+            
+            # Check for abnormal values
+            if self._has_abnormal_values():
+                issues.append('Abnormal metric values detected')
+            
+            # Check for stale data
+            if self._has_stale_data():
+                issues.append('Stale metrics data detected')
+                
+        except Exception as e:
+            issues.append(f'Data quality check failed: {e}')
+        
+        return issues
+    
+    def generate_recovery_plan(self, issues: Dict[str, List[str]]) -> Dict:
+        """Generate comprehensive recovery plan for metrics issues"""
+        total_issues = sum(len(issue_list) for issue_list in issues.values())
+        
+        if total_issues == 0:
+            return {'status': 'healthy', 'actions': []}
+        
+        recovery_plan = {
+            'status': 'requires_recovery',
+            'summary': {
+                'total_issues': total_issues,
+                'critical_issues': len(issues.get('prometheus_issues', [])),
+                'estimated_recovery_time': self._estimate_recovery_time(issues)
+            },
+            'immediate_actions': [
+                'Stop automated deployments relying on metrics',
+                'Switch to manual monitoring mode',
+                'Alert on-call team'
+            ],
+            'recovery_steps': []
+        }
+        
+        # Generate specific recovery steps
+        step_number = 1
+        
+        if issues.get('prometheus_issues'):
+            recovery_plan['recovery_steps'].append({
+                'step': step_number,
+                'action': 'Restore Prometheus service',
+                'details': 'Restart Prometheus and verify configuration',
+                'commands': [
+                    'systemctl restart prometheus',
+                    'systemctl status prometheus',
+                    'curl http://localhost:9090/-/healthy'
+                ],
+                'estimated_time': '10-15 minutes'
+            })
+            step_number += 1
+        
+        if issues.get('collection_failures'):
+            recovery_plan['recovery_steps'].append({
+                'step': step_number,
+                'action': 'Fix metrics collection endpoints',
+                'details': 'Restart applications and verify metrics endpoints',
+                'commands': [
+                    'systemctl restart grctool',
+                    'curl http://localhost:8080/metrics',
+                    'curl http://localhost:8080/health'
+                ],
+                'estimated_time': '5-10 minutes'
+            })
+            step_number += 1
+        
+        if issues.get('storage_issues'):
+            recovery_plan['recovery_steps'].append({
+                'step': step_number,
+                'action': 'Resolve storage issues',
+                'details': 'Clean up disk space and verify storage health',
+                'commands': [
+                    'df -h',
+                    'find /var/lib/prometheus -name "*.tmp" -delete',
+                    'systemctl restart prometheus'
+                ],
+                'estimated_time': '15-30 minutes'
+            })
+            step_number += 1
+        
+        if issues.get('data_quality_issues'):
+            recovery_plan['recovery_steps'].append({
+                'step': step_number,
+                'action': 'Restore data quality',
+                'details': 'Regenerate metrics and validate data integrity',
+                'commands': [
+                    'grctool metrics regenerate --last-24h',
+                    'grctool metrics validate --check-integrity'
+                ],
+                'estimated_time': '30-60 minutes'
+            })
+        
+        return recovery_plan
+    
+    def execute_recovery(self, recovery_plan: Dict) -> bool:
+        """Execute the metrics recovery plan"""
+        if recovery_plan['status'] == 'healthy':
+            print("✅ No recovery needed")
+            return True
+        
+        print(f"🔧 Executing metrics recovery plan ({recovery_plan['summary']['estimated_recovery_time']})")
+        
+        for step in recovery_plan['recovery_steps']:
+            print(f"Step {step['step']}: {step['action']}")
+            print(f"Details: {step['details']}")
+            
+            for command in step.get('commands', []):
+                print(f"Executing: {command}")
+                # In a real implementation, you would execute these commands
+                # For safety, we'll just simulate here
+                time.sleep(1)  # Simulate command execution time
+            
+            print(f"✅ Step {step['step']} completed")
+        
+        # Verify recovery
+        post_recovery_issues = self.diagnose_metrics_issues()
+        remaining_issues = sum(len(issue_list) for issue_list in post_recovery_issues.values())
+        
+        if remaining_issues == 0:
+            print("✅ Metrics recovery completed successfully")
+            return True
+        else:
+            print(f"⚠️ Recovery partially successful. {remaining_issues} issues remain")
+            return False
+    
+    def _estimate_recovery_time(self, issues: Dict[str, List[str]]) -> str:
+        """Estimate total recovery time based on issues"""
+        critical_issues = len(issues.get('prometheus_issues', []))
+        total_issues = sum(len(issue_list) for issue_list in issues.values())
+        
+        if critical_issues > 0:
+            return '30-60 minutes'
+        elif total_issues > 5:
+            return '15-30 minutes'
+        else:
+            return '5-15 minutes'
+
+# Usage example
+if __name__ == '__main__':
+    recovery_manager = MetricsRecoveryManager()
+    
+    # Diagnose issues
+    issues = recovery_manager.diagnose_metrics_issues()
+    
+    if any(len(issue_list) > 0 for issue_list in issues.values()):
+        # Generate recovery plan
+        plan = recovery_manager.generate_recovery_plan(issues)
+        
+        # Save plan
+        with open('metrics_recovery_plan.json', 'w') as f:
+            json.dump(plan, f, indent=2)
+        
+        print(f"❌ Metrics issues detected. Recovery plan saved.")
+        print(f"Estimated recovery time: {plan['summary']['estimated_recovery_time']}")
+        
+        # Execute recovery if auto-recovery is enabled
+        import os
+        if os.getenv('AUTO_RECOVERY', 'false').lower() == 'true':
+            recovery_manager.execute_recovery(plan)
+        
+        exit(1)
+    else:
+        print("✅ All metrics systems are healthy")
+```
+
+## Cross-Phase Error Recovery
+
+### Workflow State Recovery
+```bash
+#!/bin/bash
+# workflow-state-recovery.sh - Recover corrupted workflow state
+
+set -e
+
+WORKFLOW_STATE_FILE=".helix-workflow-state.json"
+BACKUP_DIR=".helix-backups"
+
+echo "🔍 Checking HELIX workflow state integrity..."
+
+# Function to validate workflow state
+validate_workflow_state() {
+    local state_file=$1
+    
+    if [[ ! -f "$state_file" ]]; then
+        echo "❌ Workflow state file not found: $state_file"
+        return 1
+    fi
+    
+    # Check JSON syntax
+    if ! jq empty "$state_file" 2>/dev/null; then
+        echo "❌ Workflow state file has invalid JSON syntax"
+        return 1
+    fi
+    
+    # Check required fields
+    required_fields=("current_phase" "phase_states" "artifacts" "timestamps")
+    for field in "${required_fields[@]}"; do
+        if ! jq -e ".$field" "$state_file" >/dev/null 2>&1; then
+            echo "❌ Missing required field: $field"
+            return 1
+        fi
+    done
+    
+    # Check phase transition validity
+    current_phase=$(jq -r '.current_phase' "$state_file")
+    if [[ ! "$current_phase" =~ ^(frame|design|test|build|deploy|iterate)$ ]]; then
+        echo "❌ Invalid current phase: $current_phase"
+        return 1
+    fi
+    
+    echo "✅ Workflow state validation passed"
+    return 0
+}
+
+# Function to recover workflow state from backup
+recover_from_backup() {
+    echo "🔄 Attempting to recover workflow state from backup..."
+    
+    if [[ ! -d "$BACKUP_DIR" ]]; then
+        echo "❌ Backup directory not found: $BACKUP_DIR"
+        return 1
+    fi
+    
+    # Find latest valid backup
+    latest_backup=$(find "$BACKUP_DIR" -name "workflow-state-*.json" -type f | sort -r | head -1)
+    
+    if [[ -z "$latest_backup" ]]; then
+        echo "❌ No backup files found"
+        return 1
+    fi
+    
+    echo "📋 Found latest backup: $latest_backup"
+    
+    # Validate backup
+    if validate_workflow_state "$latest_backup"; then
+        # Backup current corrupted state
+        if [[ -f "$WORKFLOW_STATE_FILE" ]]; then
+            mv "$WORKFLOW_STATE_FILE" "$WORKFLOW_STATE_FILE.corrupted-$(date +%Y%m%d-%H%M%S)"
+        fi
+        
+        # Restore from backup
+        cp "$latest_backup" "$WORKFLOW_STATE_FILE"
+        echo "✅ Workflow state recovered from backup"
+        
+        # Show recovered state
+        echo "📊 Recovered workflow state:"
+        jq . "$WORKFLOW_STATE_FILE"
+        
+        return 0
+    else
+        echo "❌ Backup file is also corrupted"
+        return 1
+    fi
+}
+
+# Function to reconstruct workflow state
+reconstruct_workflow_state() {
+    echo "🔨 Reconstructing workflow state from artifacts..."
+    
+    # Determine current phase based on existing artifacts
+    current_phase="frame"
+    
+    if [[ -d "docs/helix/02-design" ]] && [[ -n "$(find docs/helix/02-design -name '*.md' -type f)" ]]; then
+        current_phase="design"
+    fi
+    
+    if [[ -d "test" ]] && [[ -n "$(find test -name '*_test.go' -type f)" ]]; then
+        current_phase="test"
+    fi
+    
+    if [[ -f "bin/grctool" ]] || [[ -n "$(find . -name '*.go' -path './internal/*' -type f)" ]]; then
+        current_phase="build"
+    fi
+    
+    if [[ -f "dist/grctool-linux-amd64" ]] || [[ -d "deploy" ]]; then
+        current_phase="deploy"
+    fi
+    
+    if [[ -f "docs/helix/06-iterate/01-roadmap-feedback.md" ]]; then
+        current_phase="iterate"
+    fi
+    
+    # Create new workflow state
+    cat > "$WORKFLOW_STATE_FILE" << EOF
+{
+  "current_phase": "$current_phase",
+  "phase_states": {
+    "frame": {
+      "status": "completed",
+      "completion_date": "$(date -Iseconds)",
+      "artifacts": [
+        "docs/helix/01-frame/01-product-requirements.md",
+        "docs/helix/01-frame/02-user-stories.md",
+        "docs/helix/01-frame/03-compliance-requirements.md"
+      ]
+    },
+    "design": {
+      "status": "$([ "$current_phase" != "frame" ] && echo "completed" || echo "pending")",
+      "completion_date": "$([ "$current_phase" != "frame" ] && date -Iseconds || echo "null")",
+      "artifacts": [
+        "docs/helix/02-design/01-system-architecture.md",
+        "docs/helix/02-design/02-security-architecture.md"
+      ]
+    },
+    "test": {
+      "status": "$([ "$current_phase" = "test" ] || [ "$current_phase" = "build" ] || [ "$current_phase" = "deploy" ] || [ "$current_phase" = "iterate" ] && echo "completed" || echo "pending")",
+      "completion_date": "$([ "$current_phase" = "test" ] || [ "$current_phase" = "build" ] || [ "$current_phase" = "deploy" ] || [ "$current_phase" = "iterate" ] && date -Iseconds || echo "null")",
+      "artifacts": [
+        "docs/helix/03-test/01-testing-strategy.md"
+      ]
+    },
+    "build": {
+      "status": "$([ "$current_phase" = "build" ] || [ "$current_phase" = "deploy" ] || [ "$current_phase" = "iterate" ] && echo "completed" || echo "pending")",
+      "completion_date": "$([ "$current_phase" = "build" ] || [ "$current_phase" = "deploy" ] || [ "$current_phase" = "iterate" ] && date -Iseconds || echo "null")",
+      "artifacts": [
+        "docs/helix/04-build/01-development-practices.md"
+      ]
+    },
+    "deploy": {
+      "status": "$([ "$current_phase" = "deploy" ] || [ "$current_phase" = "iterate" ] && echo "completed" || echo "pending")",
+      "completion_date": "$([ "$current_phase" = "deploy" ] || [ "$current_phase" = "iterate" ] && date -Iseconds || echo "null")",
+      "artifacts": [
+        "docs/helix/05-deploy/01-deployment-operations.md"
+      ]
+    },
+    "iterate": {
+      "status": "$([ "$current_phase" = "iterate" ] && echo "in_progress" || echo "pending")",
+      "completion_date": null,
+      "artifacts": [
+        "docs/helix/06-iterate/01-roadmap-feedback.md"
+      ]
+    }
+  },
+  "artifacts": {
+    "requirements": "docs/helix/01-frame/",
+    "design": "docs/helix/02-design/",
+    "tests": "docs/helix/03-test/",
+    "code": "internal/",
+    "deployment": "docs/helix/05-deploy/",
+    "metrics": "docs/helix/06-iterate/"
+  },
+  "timestamps": {
+    "workflow_started": "$(date -Iseconds)",
+    "last_updated": "$(date -Iseconds)",
+    "state_recovered": "$(date -Iseconds)"
+  },
+  "metadata": {
+    "version": "1.0",
+    "recovery_method": "artifact_reconstruction",
+    "git_commit": "$(git rev-parse HEAD 2>/dev/null || echo 'unknown')"
+  }
+}
+EOF
+    
+    echo "✅ Workflow state reconstructed successfully"
+    echo "📊 Reconstructed workflow state:"
+    jq . "$WORKFLOW_STATE_FILE"
+}
+
+# Main recovery logic
+if validate_workflow_state "$WORKFLOW_STATE_FILE"; then
+    echo "✅ Workflow state is valid"
+    exit 0
+fi
+
+echo "⚠️ Workflow state validation failed - attempting recovery..."
+
+# Try to recover from backup first
+if recover_from_backup; then
+    echo "✅ Recovery from backup successful"
+else
+    echo "⚠️ Backup recovery failed - attempting state reconstruction..."
+    
+    if reconstruct_workflow_state; then
+        echo "✅ State reconstruction successful"
+    else
+        echo "❌ All recovery methods failed"
+        
+        # Create minimal workflow state to allow progression
+        cat > "$WORKFLOW_STATE_FILE" << 'EOF'
+{
+  "current_phase": "frame",
+  "phase_states": {
+    "frame": {"status": "in_progress"},
+    "design": {"status": "pending"},
+    "test": {"status": "pending"},
+    "build": {"status": "pending"},
+    "deploy": {"status": "pending"},
+    "iterate": {"status": "pending"}
+  },
+  "artifacts": {},
+  "timestamps": {
+    "workflow_started": "REPLACE_WITH_CURRENT_TIME",
+    "last_updated": "REPLACE_WITH_CURRENT_TIME"
+  },
+  "metadata": {
+    "version": "1.0",
+    "recovery_method": "minimal_state"
+  }
+}
+EOF
+        
+        # Replace placeholders with actual timestamps
+        current_time=$(date -Iseconds)
+        sed -i "s/REPLACE_WITH_CURRENT_TIME/$current_time/g" "$WORKFLOW_STATE_FILE"
+        
+        echo "⚠️ Created minimal workflow state - manual verification required"
+        exit 1
+    fi
+fi
+
+echo "🎯 Workflow state recovery completed successfully"
+```
+
+---
+
+*These comprehensive error handling and recovery procedures ensure that the HELIX workflow remains resilient and can quickly recover from failures at any phase, maintaining the integrity and continuity of the GRC tool development process.*

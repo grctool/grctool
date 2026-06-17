@@ -43,7 +43,7 @@ erDiagram
     Control ||--o{ FrameworkCode : "mapped to"
 
     Policy {
-        IntOrString id PK "Tugboat ID (int or string)"
+        string id PK "GRCTool-native ID (string)"
         string name "Policy name"
         string description "Policy description"
         string framework "SOC2, ISO27001, etc."
@@ -53,7 +53,7 @@ erDiagram
     }
 
     Control {
-        int id PK "Tugboat ID"
+        string id PK "GRCTool-native ID (string)"
         string name "Control name"
         string body "Control description/body"
         string category "Control category"
@@ -64,7 +64,7 @@ erDiagram
     }
 
     EvidenceTask {
-        int id PK "Tugboat ID"
+        string id PK "GRCTool-native ID (string)"
         string name "Task name"
         string description "Task description"
         string guidance "Collection guidance"
@@ -84,7 +84,7 @@ erDiagram
     }
 
     EvidenceSubmission {
-        int task_id FK "References EvidenceTask"
+        string task_id FK "References EvidenceTask"
         string task_ref "ET-0001 format"
         string window "2025-Q4 collection window"
         string status "draft, validated, submitted, accepted, rejected"
@@ -97,7 +97,7 @@ erDiagram
 #### Policy
 - **Purpose**: High-level governance documents defining organizational security posture
 - **Source**: Synced from Tugboat Logic API
-- **Key Attributes**: id (IntOrString for API compatibility), name, framework, controls list
+- **Key Attributes**: id (string, GRCTool-native; Tugboat numeric ID tracked in ExternalIDs), name, framework, controls list
 - **Business Rules**: Policies are read-only after sync; interpolation variables substitute `{{organization.name}}` in content
 - **Volume**: ~40 policies per organization
 - **Growth Rate**: Stable; changes primarily during framework updates
@@ -146,7 +146,7 @@ The following structures are defined in `internal/models/` and represent the can
 
 | Field | Type | JSON Key | Constraints | Notes |
 |-------|------|----------|-------------|-------|
-| ID | int | `id` | Required, from Tugboat | Numeric Tugboat ID |
+| ID | string | `id` | Required | GRCTool-native ID; Tugboat numeric ID tracked in ExternalIDs |
 | Name | string | `name` | Required | Human-readable task name |
 | Description | string | `description` | Required | Task description |
 | Guidance | string | `guidance` | Optional | Collection guidance text |
@@ -161,7 +161,7 @@ The following structures are defined in `internal/models/` and represent the can
 
 | Field | Type | JSON Key | Constraints | Notes |
 |-------|------|----------|-------------|-------|
-| ID | int | `id` | Required | Tugboat ID |
+| ID | string | `id` | Required | GRCTool-native ID; Tugboat numeric ID tracked in ExternalIDs |
 | Name | string | `name` | Required | Control name |
 | Body | string | `body` | Required | Control description |
 | Category | string | `category` | Required | Control category |
@@ -175,7 +175,7 @@ The following structures are defined in `internal/models/` and represent the can
 
 | Field | Type | JSON/YAML Key | Constraints | Notes |
 |-------|------|---------------|-------------|-------|
-| TaskID | int | `task_id` | Required | Tugboat task ID |
+| TaskID | string | `task_id` | Required | GRCTool-native task ID; Tugboat numeric ID tracked in ExternalIDs |
 | TaskRef | string | `task_ref` | Format: ET-NNNN | User-facing reference |
 | Window | string | `window` | Format: YYYY-QN | Collection window |
 | Status | string | `status` | draft/validated/submitted/accepted/rejected | Lifecycle state |
@@ -189,7 +189,7 @@ The following structures are defined in `internal/models/` and represent the can
 | Field | Type | JSON/YAML Key | Constraints | Notes |
 |-------|------|---------------|-------------|-------|
 | TaskRef | string | `task_ref` | Format: ET-NNNN | Primary key in state cache |
-| TaskID | int | `task_id` | Required | Numeric Tugboat ID |
+| TaskID | string | `task_id` | Required | GRCTool-native task ID; Tugboat numeric ID tracked in ExternalIDs |
 | TugboatStatus | string | `tugboat_status` | pending/in_progress/completed | Remote status |
 | LocalState | LocalEvidenceState | `local_state` | Enum (see lifecycle) | Aggregated local state |
 | Windows | map[string]WindowState | `windows` | Keyed by window string | Per-window evidence state |
@@ -438,7 +438,7 @@ last_scan: "2025-10-22T14:00:00Z"
 tasks:
   ET-0001:
     task_ref: "ET-0001"
-    task_id: 327992
+    task_id: "327992"
     task_name: "GitHub Repository Access Controls"
     tugboat_status: "pending"
     tugboat_completed: false
@@ -452,7 +452,7 @@ tasks:
         submission_status: "draft"
   ET-0047:
     task_ref: "ET-0047"
-    task_id: 328041
+    task_id: "328041"
     local_state: "submitted"
     # ...
 ```
@@ -479,8 +479,8 @@ Summary caches use composite keys to ensure cache hits are relevant to the speci
 
 ```go
 type AIControlSummary struct {
-    ControlID int       // Control being summarized
-    TaskID    int       // Task context (summaries are task-specific)
+    ControlID string    // Control being summarized
+    TaskID    string    // Task context (summaries are task-specific)
     CacheKey  string    // Composite: "{control_id}_{task_id}_{hash}"
     // ...
 }
@@ -584,49 +584,52 @@ GRCTool is evolving from a Tugboat Logic data aggregator to the **system of reco
 
 The master index is the canonical registry of all compliance artifacts. Each entity — policy, control, control mapping, evidence task — has a GRCTool-native identity that is independent of any external system.
 
+Per ADR-011 and SD-004, the master index is **not** a separate `.index/` directory. It is the existing `StorageService` (implemented in `internal/storage/`) enriched with `ExternalIDs` and `SyncMetadata` fields on each domain entity. ADR-011 supersedes ADR-010's original `.index/` proposal: the storage layer already enumerates every entity (`GetAllPolicies()`, `GetAllControls()`, `GetAllEvidenceTasks()`), so it already serves as the entity registry. No separate index files (`policies.yaml`, `controls.yaml`, etc.) exist.
+
 #### Identity Model
 
 Every entity in the master index carries two identity layers:
 
 | Layer | Purpose | Example |
 |-------|---------|---------|
-| **GRCTool ID** | Canonical, stable identifier owned by GRCTool | `ET-0047`, `POL-0012`, `CTRL-CC6.8` |
-| **External IDs** | Map to identifiers in external systems | `tugboat:328041`, `github:issue/142` |
+| **GRCTool ID** | Canonical, stable identifier owned by GRCTool (the `ID string` field) | `ET-0047`, `POL-0012`, `CTRL-CC6.8` |
+| **External IDs** | `ExternalIDs map[string]string` mapping provider names to their native IDs | `{"tugboat": "328041"}`, `{"github": "issue/142"}` |
 
 The GRCTool ID is the primary key used in all local operations, relationship maps, and file naming. External IDs are stored as metadata for integration purposes and are never used as primary keys internally.
 
 #### Master Index Storage
 
-The master index extends the existing file-based storage (ADR-004) with an explicit registry:
+The master index **is** the existing file-based storage (ADR-004); it is not a new directory. Each entity JSON file carries the `ExternalIDs` and `SyncMetadata` fields, so the storage layer tracks which providers know about each entity and the per-provider sync state directly on the entity. No `.index/` directory and no separate registry files are created.
 
-```
-{data_dir}/
-+-- .index/                              # Master index (system of record)
-|   +-- policies.yaml                    # Canonical policy registry
-|   +-- controls.yaml                    # Canonical control registry
-|   +-- control_mappings.yaml            # Cross-framework control mappings
-|   +-- evidence_tasks.yaml              # Canonical evidence task registry
-|   +-- integrations.yaml                # External system ID mappings
-```
+The enriched `StorageService` provides:
 
-Each registry file maps GRCTool IDs to their metadata, external ID mappings, and sync state:
+- **Entity lookup by GRCTool ID** — `GetPolicy("POL-0001")` (already exists)
+- **Bidirectional external-ID lookup** — `GetPolicyByExternalID(provider, externalID)`, `GetControlByExternalID(provider, externalID)`, and `GetEvidenceTaskByExternalID(provider, externalID)` (new methods, implemented as a scan-and-filter over stored entities; acceptable for hundreds of entities per ADR-004)
+- **Sync state per provider** — read from `SyncMetadata.LastSyncTime[provider]` on the entity
+- **Conflict detection** — check `SyncMetadata.ConflictState` on the entity
+- **Cross-provider correlation** — match entities across providers via the `ExternalIDs` map
 
-```yaml
-# Example: evidence_tasks.yaml
-tasks:
-  ET-0047:
-    grctool_id: "ET-0047"
-    name: "GitHub Repository Access Controls"
-    external_ids:
-      tugboat: 328041
-    sync_state:
-      tugboat:
-        last_synced: "2026-01-15T10:00:00Z"
-        direction: "bidirectional"
-        conflict_policy: "local_wins"
-    owner: "security-team"
-    created_at: "2025-06-01T00:00:00Z"
-    updated_at: "2026-01-15T10:00:00Z"
+Each entity JSON file embeds its identity, external ID mappings, and sync state inline:
+
+```json
+// Example: an evidence task JSON file (ET-0047-328041-github_access.json)
+{
+  "id": "ET-0047",
+  "name": "GitHub Repository Access Controls",
+  "reference_id": "ET-0047",
+  "external_ids": {
+    "tugboat": "328041"
+  },
+  "sync_metadata": {
+    "last_sync_time": {
+      "tugboat": "2026-01-15T10:00:00Z"
+    },
+    "content_hash": {
+      "tugboat": "sha256:..."
+    },
+    "conflict_state": ""
+  }
+}
 ```
 
 ### Integration Point Contracts
@@ -666,7 +669,7 @@ Reconcile state between GRCTool and an external system. Sync compares timestamps
 | `manual` | Conflicts are flagged for human resolution; no automatic merge |
 | `newest_wins` | The most recently modified version is kept |
 
-Sync state is tracked per-entity per-integration in the master index registry files.
+Sync state is tracked per-entity per-integration in each entity's `SyncMetadata` field (stored inline in the entity JSON files via the enriched `StorageService`), not in separate registry files.
 
 ### Data Ownership Model
 
@@ -712,9 +715,9 @@ For existing deployments where Tugboat Logic is currently the source of truth, t
 
 ## References
 
-- [System Architecture](/home/erik/Projects/grctool/docs/helix/02-design/architecture/system-design.md)
-- [Interface Contracts](/home/erik/Projects/grctool/docs/helix/02-design/contracts/contracts.md)
-- [ADR-004: JSON-Based Local Storage](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-004-json-based-local-storage-for-evidence-data)
-- [ADR-010: System of Record Architecture](/home/erik/Projects/grctool/docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
-- [Models Source](/home/erik/Projects/grctool/internal/models/)
-- [Config Source](/home/erik/Projects/grctool/internal/config/config.go)
+- [System Architecture](docs/helix/02-design/architecture/system-design.md)
+- [Interface Contracts](docs/helix/02-design/contracts/contracts.md)
+- [ADR-004: JSON-Based Local Storage](docs/helix/02-design/adr/adr-index.md#adr-004-json-based-local-storage-for-evidence-data)
+- [ADR-010: System of Record Architecture](docs/helix/02-design/adr/adr-index.md#adr-010-system-of-record-architecture)
+- [Models Source](internal/models/)
+- [Config Source](internal/config/config.go)

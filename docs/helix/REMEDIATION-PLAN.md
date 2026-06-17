@@ -11,6 +11,8 @@ status: "active"
 
 # HELIX Documentation Remediation Plan
 
+> **⚠️ HISTORICAL — SUPERSEDED (as of 2026-06-17).** The remediation work described in this plan has been COMPLETED — all six phases now have README.md files, the documented subdirectory hierarchy, and GATE.yaml/input-gates.yml/enforcer.md workflow gates. Retained for historical context only and superseded by the docs/helix/06-iterate/alignment-reviews/.
+
 ## Executive Summary
 
 This remediation plan addresses critical documentation gaps identified in the GRCTool HELIX (High-Efficiency Low-Impact eXecution) implementation. The plan prioritizes security, compliance, and workflow effectiveness to enable successful adoption of HELIX methodologies across the development lifecycle.
@@ -413,11 +415,11 @@ gantt
 
 ## References
 
-- [[workflow-implementation-guide]] - Core HELIX workflow implementation
-- [[tool-integration-matrix]] - GRCTool command mapping to HELIX phases
-- [[performance-benchmarks]] - Success metrics and KPIs
-- [[error-recovery-procedures]] - Troubleshooting and recovery workflows
-- [[team-collaboration-patterns]] - Multi-team workflow coordination
+- *workflow-implementation-guide (planned, not yet authored)* - Core HELIX workflow implementation
+- *tool-integration-matrix (planned, not yet authored)* - GRCTool command mapping to HELIX phases
+- [Phase Performance Benchmarks](PHASE-PERFORMANCE-BENCHMARKS.md) - Success metrics and KPIs
+- [Error Handling Procedures](ERROR-HANDLING-PROCEDURES.md) - Troubleshooting and recovery workflows
+- *team-collaboration-patterns (planned, not yet authored)* - Multi-team workflow coordination
 
 ---
 

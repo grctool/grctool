@@ -840,10 +840,10 @@ helix_mapping: "Consolidated from 07-Planning/backlog.md user stories + comprehe
 
 ## References
 
-- [[product-requirements]] - Overall product vision and goals
-- [[compliance-requirements]] - SOC2 and ISO27001 specific requirements
-- [[architecture-decisions]] - Technical implementation decisions
-- [[feature-backlog]] - Detailed feature specifications and priorities
+- [Product Requirements](../prd/requirements.md) - Overall product vision and goals
+- [Compliance Requirements](../compliance-requirements/requirements.md) - SOC2 and ISO27001 specific requirements
+- [Architecture Decisions](../../02-design/adr/adr-index.md) - Technical implementation decisions
+- *feature-backlog (planned)* - Detailed feature specifications and priorities
 
 ## Missing User Stories for Existing Commands
 

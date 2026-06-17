@@ -81,7 +81,7 @@ Compliance evidence collection requires extracting data from diverse infrastruct
 - FR-M04: `storage-read` — path-safe file reading with format auto-detection
 - FR-M05: `storage-write` — path-safe file writing with directory management
 
-#### Utility Tools (3)
+#### Utility Tools (4)
 - FR-U01: `name-generator` — filesystem-friendly naming for entities
 - FR-U02: `grctool-run` — execute allowlisted grctool commands with structured output
 - FR-U03: `tugboat-sync-wrapper` — wrapped sync with structured output and selective resources
