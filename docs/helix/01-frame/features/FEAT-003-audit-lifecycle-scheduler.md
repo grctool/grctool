@@ -22,13 +22,19 @@ updated: 2026-04-02
 | Owner | TBD |
 | Target | TBD |
 
-**Implementation status (2026-04-02):** Lifecycle state machines for policies,
-controls, and evidence tasks are implemented in `internal/lifecycle/`. A
+**Implementation status (2026-06-17):** Lifecycle state machines for policies,
+controls, and evidence tasks are implemented in `internal/lifecycle/`, and a
 scheduler package exists in `internal/scheduler/` with cron expression support
 and an orchestrator. CLI commands exist under `grctool lifecycle` and
-`grctool schedule`. Remaining work: persistent lifecycle state storage,
-schedule execution end-to-end wiring, and audit period management. Tracked in
-hx-4585e374.
+`grctool schedule`. Persistence and execution — previously the open gaps — are
+now done: lifecycle state is persisted onto entities via the `StorageService`
+(`cmd/lifecycle.go`), scheduler state is persisted with atomic writes to
+`<data_dir>/.state/schedule_state.yaml` (`internal/scheduler/scheduler.go`
+`SaveState`/`LoadState`), and `grctool schedule run` executes real tool
+collection through the orchestrator using config-driven `TaskToolMappings`
+(`cmd/schedule.go`). Remaining work: the audit-PERIOD lifecycle state machine
+(only the policy, control, and evidence-task machines exist — 3 of 4 lifecycle
+models) and JSON output for `schedule run`. Tracked in hx-4585e374.
 
 ## Problem Statement
 
@@ -36,13 +42,20 @@ Evidence collection in GRCTool was originally ad-hoc, with no formal lifecycle
 model for policies, controls, or evidence tasks, and no scheduler for
 evidence collection cadences.
 
-**Current state (2026-04-02):** Lifecycle state machines (policy, control,
+**Current state (2026-06-17):** Lifecycle state machines (policy, control,
 evidence task) are implemented with validated transitions. A scheduler package
 with cron expression support and an orchestrator exists. CLI surfaces for
-`grctool lifecycle` and `grctool schedule` are registered. However, lifecycle
-state persistence and end-to-end schedule execution are not yet complete —
-the scheduler code exists but cannot durably store state across runs or
-execute a full evidence collection cycle autonomously.
+`grctool lifecycle` and `grctool schedule` are registered. Lifecycle state
+persistence and end-to-end schedule execution are now complete: lifecycle state
+is persisted onto entities via the `StorageService` (`cmd/lifecycle.go`),
+scheduler state is durably stored with atomic writes to
+`<data_dir>/.state/schedule_state.yaml`
+(`internal/scheduler/scheduler.go` `SaveState`/`LoadState`), and `grctool
+schedule run` executes real tool collection through the orchestrator using
+config-driven `TaskToolMappings` (`cmd/schedule.go`). The remaining gaps are
+the audit-PERIOD lifecycle state machine (only 3 of the 4 lifecycle models —
+policy, control, evidence task — are implemented) and JSON output for
+`schedule run`.
 
 Organizations operating under SOC 2 Type II and ISO 27001 need:
 

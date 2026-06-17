@@ -281,17 +281,17 @@ GRCTool coordinates compliance work across teams and auditors using a predictabl
 | FEAT-005 | CLI Framework & Configuration Management | P0 | Implemented |
 | FEAT-006 | Browser-Based Authentication | P0 | Implemented |
 | FEAT-007 | Tugboat Logic Data Synchronization | P0 | Implemented |
-| FEAT-008 | Evidence Collection Tool Framework (29 tools) | P0 | Implemented |
+| FEAT-008 | Evidence Collection Tool Framework (30 tools) | P0 | Implemented |
 | FEAT-009 | AI-Powered Evidence Generation | P0 | Implemented |
 | FEAT-010 | Evidence Submission & Lifecycle Management | P0 | Implemented |
 
 ### Planned / In Progress
 | Feature | Name | Priority | Status | Notes |
 |---------|------|----------|--------|-------|
-| FEAT-001 | AccountableHQ Bidirectional Policy Sync | P1 | Proposed | Provider stub exists; no real API integration yet |
-| FEAT-002 | Google Drive Bidirectional Sync | P1 | Proposed | Provider stub exists; no real Google API integration yet |
-| FEAT-003 | Document & Audit Lifecycle Scheduler | P0 | In Progress | Lifecycle state machines and scheduler code exist; persistence/execution incomplete |
-| FEAT-004 | Universal Document Provider Framework | P0 | In Progress | 22/33 acceptance criteria satisfied; interfaces, registry, domain model, Tugboat adapter done |
+| FEAT-001 | AccountableHQ Bidirectional Policy Sync | P1 | In Progress | Full SyncProvider + REST client built in `internal/providers/accountablehq/`; not yet wired at runtime (no factory registration) |
+| FEAT-002 | Google Drive Bidirectional Sync | P1 | In Progress | Full bidirectional GDrive SyncProvider built in `internal/providers/gdrive/` (Docs/Sheets/scope/conflict); not yet wired at runtime |
+| FEAT-003 | Document & Audit Lifecycle Scheduler | P0 | In Progress | Lifecycle + scheduler state persistence and real `schedule run` execution done; audit-period state machine pending |
+| FEAT-004 | Universal Document Provider Framework | P0 | In Progress | ~31/33 acceptance criteria satisfied; only append-only ID enforcement and runtime provider registration remain |
 
 ## References
 

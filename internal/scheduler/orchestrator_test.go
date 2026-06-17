@@ -265,8 +265,10 @@ func TestOrchestrator_Execute_EmptyPlan(t *testing.T) {
 	if len(summary.Results) != 0 {
 		t.Errorf("expected 0 results, got %d", len(summary.Results))
 	}
-	if summary.Duration <= 0 {
-		t.Error("expected positive duration")
+	// An empty plan does no work, so its measured duration can legitimately
+	// round to zero on coarse monotonic clocks; only require non-negative.
+	if summary.Duration < 0 {
+		t.Error("expected non-negative duration")
 	}
 }
 

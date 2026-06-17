@@ -25,7 +25,7 @@ backfill: true
 
 ## Overview
 
-GRCTool provides a registry of 29 specialized evidence collection tools that extract compliance-relevant data from infrastructure systems. Each tool encodes domain knowledge about a specific data source (Terraform, GitHub, Google Workspace) or compliance analysis task (relationship mapping, summary generation, prompt assembly). Tools are invocable individually via the CLI or orchestrated by the AI evidence generation pipeline.
+GRCTool provides a registry of 30 specialized evidence collection tools that extract compliance-relevant data from infrastructure systems. Each tool encodes domain knowledge about a specific data source (Terraform, GitHub, Google Workspace) or compliance analysis task (relationship mapping, summary generation, prompt assembly). Tools are invocable individually via the CLI or orchestrated by the AI evidence generation pipeline.
 
 ## Problem Statement
 
@@ -55,13 +55,14 @@ Compliance evidence collection requires extracting data from diverse infrastruct
 - FR-T06: `terraform-snippets` — pattern-based configuration snippet suggestions
 - FR-T07: `atmos-stack-analyzer` — multi-environment Atmos stack analysis
 
-#### GitHub Tools (6)
+#### GitHub Tools (7)
 - FR-G01: `github-permissions` — repository access controls, collaborators, teams
 - FR-G02: `github-security-features` — Dependabot, SAST, secret scanning configuration
 - FR-G03: `github-workflow-analyzer` — CI/CD workflow security, deployment controls, approval processes
 - FR-G04: `github-review-analyzer` — pull request review compliance, approval patterns
 - FR-G05: `github-deployment-access` — environment protection rules and deployment controls
 - FR-G06: `github-enhanced` — advanced repository search with date filtering and caching
+- FR-G07: `github-searcher` — search GitHub repository for security-related issues, pull requests, and discussions
 
 #### Google Workspace Tool (1)
 - FR-W01: `google-workspace` — evidence extraction from Drive, Docs, Sheets, Forms
@@ -106,7 +107,7 @@ Compliance evidence collection requires extracting data from diverse infrastruct
 
 **Acceptance Criteria:**
 
-- [x] `grctool tool --help` lists all 29 registered tools with descriptions
+- [x] `grctool tool --help` lists all 30 registered tools with descriptions
 - [x] Each tool has `--help` flag with usage, supported flags, and examples
 - [x] Tools are grouped by category in help output
 
@@ -194,7 +195,7 @@ Compliance evidence collection requires extracting data from diverse infrastruct
 
 | Metric | Target | Status |
 |--------|--------|--------|
-| Tool count | 29 registered tools | Met |
+| Tool count | 30 registered tools | Met |
 | Infrastructure coverage | Terraform, GitHub, Google Workspace | Met |
 | Tool isolation | Zero cross-tool failure propagation | Met |
 | Query performance | < 100ms for indexed queries | Met |

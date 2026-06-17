@@ -56,10 +56,10 @@ documented decision domain.
 
 | Feature | Status | Governing ADR(s) | Solution Design | Notes |
 |---------|--------|------------------|-----------------|-------|
-| FEAT-001 AccountableHQ Bidirectional Policy Sync | Proposed (P1) | ADR-010 | SD-001 | Depends on FEAT-004 provider framework; provider stub only, no API integration yet. |
-| FEAT-002 Google Drive Bidirectional Sync | Proposed (P1) | ADR-010, ADR-006 | SD-002 | Depends on FEAT-004; GDrive provider stub only; existing read-only `google_workspace.go` unaffected. |
-| FEAT-003 Document & Audit Lifecycle Scheduler | In Progress (P0) | ADR-010 | SD-003 | Lifecycle state machines and scheduler implemented; persistent state and end-to-end wiring outstanding. |
-| FEAT-004 Universal Document Provider Framework | In Progress (P0) | ADR-010, ADR-006, ADR-011 | SD-004 | Foundation for FEAT-001/002; 22 of 33 acceptance criteria met (see AR-2026-04-01-repo). |
+| FEAT-001 AccountableHQ Bidirectional Policy Sync | In Progress (built, not yet wired at runtime) | ADR-010 | SD-001 | Depends on FEAT-004 provider framework; provider built but not yet wired at runtime — no live API integration yet. |
+| FEAT-002 Google Drive Bidirectional Sync | In Progress (built, not yet wired at runtime) | ADR-010, ADR-006 | SD-002 | Depends on FEAT-004; GDrive provider built but not yet wired at runtime; existing read-only `google_workspace.go` unaffected. |
+| FEAT-003 Document & Audit Lifecycle Scheduler | In Progress (persistence + schedule execution done; audit-period state machine pending) | ADR-010 | SD-003 | Persistent state and schedule execution implemented; the audit-period state machine remains pending. |
+| FEAT-004 Universal Document Provider Framework | In Progress (~31/33; append-only ID + runtime registration pending) | ADR-010, ADR-006, ADR-011 | SD-004 | Foundation for FEAT-001/002; ~31 of 33 acceptance criteria met — append-only ID handling and runtime provider registration pending (see AR-2026-04-01-repo). |
 | FEAT-005 CLI Framework & Configuration | Implemented (P0) | ADR-002, ADR-001 *(implied)* | — | Backfilled. Implemented in `cmd/`, `internal/config/`. |
 | FEAT-006 Browser-Based Authentication | Implemented (P0) | ADR-003 *(implied)* | — | Backfilled. Implemented in `internal/auth/`, `cmd/auth.go`. |
 | FEAT-007 Tugboat Data Synchronization | Implemented (P0) | ADR-004, ADR-006 *(implied)* | — | Backfilled. Implemented in `internal/services/sync.go`, `internal/tugboat/`, `internal/storage/`. |

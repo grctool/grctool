@@ -123,7 +123,7 @@ Compliance teams need a tool that fits into existing developer and DevOps workfl
 - [x] Zerolog-based structured logging with trace/debug/info/warn/error levels
 - [x] Multiple logger outputs (console, file) with independent level configuration
 - [x] URL sanitization removes tokens and credentials from logged URLs
-- [x] Configurable field redaction for password, token, key, secret, api_key, cookie
+- [ ] Configurable field redaction for password, token, key, secret, api_key, cookie — **NOT yet implemented**: the `RedactionHook` in `internal/logger/zerolog_logger.go` is currently a no-op stub (`Run()` does nothing) and the configured redaction field list is unused. Consistent with security-requirements.md SEC-015 "[NOT YET IMPLEMENTED]".
 - [x] Component loggers via `logger.WithComponent(name)` for subsystem tracing
 
 ---

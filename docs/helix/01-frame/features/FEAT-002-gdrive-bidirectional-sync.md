@@ -2,7 +2,7 @@
 title: "FEAT-002: Google Drive Bidirectional Sync"
 phase: "01-frame"
 category: "feature"
-status: "Proposed"
+status: "In Progress"
 priority: "P1"
 tags: ["google-drive", "bidirectional-sync", "integration", "system-of-record"]
 related: ["adr-010", "adr-006", "data-design", "SD-002"]
@@ -16,7 +16,7 @@ updated: 2026-04-02
 
 | Field | Value |
 |-------|-------|
-| Status | Proposed |
+| Status | In Progress |
 | Priority | P1 |
 | Owner | TBD |
 | Dependencies | ADR-010 (System of Record), Google Workspace OAuth (existing), Master Index |
@@ -28,13 +28,19 @@ Compliance teams collaborate on policies and controls in Google Docs and Sheets.
 
 This creates a gap: policies and controls managed in GRCTool's master index cannot be published to Google Drive for collaborative review, and edits made by compliance team members in Google Docs are invisible to GRCTool. Organizations need their compliance artifacts accessible in the tools their teams already use, while maintaining GRCTool as the authoritative source.
 
-**Foundation status (2026-04-02):** The provider framework that FEAT-002
-depends on (FEAT-004) is partially implemented. The `DataProvider`,
-`SyncProvider`, and `ProviderRegistry` interfaces exist. Domain entities have
-`ExternalIDs` and `SyncMetadata` fields. A GDrive provider stub exists in
-`internal/providers/gdrive/` but has no real Google API integration. The
-existing read-only `google_workspace.go` tool is unaffected and continues to
-work for evidence extraction.
+**Implementation status (2026-06-17):** A full bidirectional Google Drive
+`SyncProvider` is implemented in `internal/providers/gdrive/`. It publishes
+policies as Google Docs, exports control matrices and evidence tasks as Google
+Sheets, supports selective sync scope via include/exclude globs, performs
+conflict detection and resolution, and detects changes using Drive
+modified-time. The FEAT-004 provider framework it builds on (`DataProvider`,
+`SyncProvider`, `ProviderRegistry`, domain `ExternalIDs` and `SyncMetadata`) is
+in place, and the existing read-only `google_workspace.go` tool is unaffected
+and continues to work for evidence extraction. Remaining work: (a) the provider
+is NOT yet registered at runtime — no factory registration wires it into the
+CLI; (b) there is no `grctool drive sync` CLI command to drive a sync cycle;
+and (c) the auditor read-only folder is resolved but not created, shared, or
+refreshed.
 
 Without bidirectional sync, teams face:
 

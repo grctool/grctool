@@ -59,7 +59,7 @@ Modern SaaS companies invest heavily in security infrastructure — infrastructu
 
 ### For Security Engineers
 - **Infrastructure-native compliance** — evidence extracted directly from Terraform, GitHub, and cloud configurations
-- **29 specialized collection tools** covering infrastructure, access controls, CI/CD, and security features
+- **30 specialized collection tools** covering infrastructure, access controls, CI/CD, and security features
 - **CLI-first workflow** that integrates with existing development toolchains
 
 ### For Organizations
@@ -72,7 +72,7 @@ Modern SaaS companies invest heavily in security infrastructure — infrastructu
 ### Phase 1: Compliance Automation (Current — v1.x)
 GRCTool automates evidence collection from a single compliance platform (Tugboat Logic) with deep infrastructure integration:
 - Browser-based authentication and data synchronization
-- 29 evidence collection tools across Terraform, GitHub, and Google Workspace
+- 30 evidence collection tools across Terraform, GitHub, and Google Workspace
 - AI-powered evidence generation, evaluation, review, and submission
 - Local storage with caching and template interpolation
 

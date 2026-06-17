@@ -4,7 +4,7 @@ phase: "01-frame"
 category: "features"
 tags: ["accountablehq", "policy-sync", "bidirectional", "integration", "system-of-record"]
 related: ["adr-010", "data-design", "contracts", "SD-001"]
-status: "Proposed"
+status: "In Progress"
 priority: "P1"
 created: 2026-03-17
 updated: 2026-04-02
@@ -16,7 +16,7 @@ updated: 2026-04-02
 
 | Field | Value |
 |-------|-------|
-| Status | Proposed |
+| Status | In Progress |
 | Priority | P1 |
 | Owner | TBD |
 | Target Phase | Phase 2 (Dual-Write) / Phase 3 (GRCTool-as-Source) |
@@ -27,13 +27,20 @@ updated: 2026-04-02
 
 Organizations using AccountableHQ for policy management need their policies synchronized with GRCTool's master index without manual import/export. Today, compliance teams maintain policies in AccountableHQ and separately manage compliance artifacts in GRCTool, leading to drift between systems, duplicated effort, and ambiguous source-of-truth ownership. As GRCTool transitions to system of record (ADR-010), AccountableHQ must become a bidirectional integration target -- policies flow in both directions with conflict detection, audit trails, and configurable automation.
 
-**Foundation status (2026-04-02):** The provider framework that FEAT-001
-depends on (FEAT-004) is partially implemented. The `DataProvider`,
-`SyncProvider`, and `ProviderRegistry` interfaces exist. Domain entities have
-`ExternalIDs` and `SyncMetadata` fields. An AccountableHQ provider stub exists
-in `internal/providers/accountablehq/` but has no real API integration. The
-AccountableHQ API itself requires discovery and credential setup before
-implementation can proceed.
+**Implementation status (2026-06-17):** The AccountableHQ integration is
+built but not yet activated. A full `SyncProvider` is implemented in
+`internal/providers/accountablehq/`, including import, write-back
+(`PushPolicy`), conflict detection and resolution across all four strategies
+(`local_wins`, `remote_wins`, `newest_wins`, `manual`), `DetectChanges`, and
+in-cycle audit logging. A real REST HTTP client backs the provider against the
+AccountableHQ API. The FEAT-004 provider framework it builds on
+(`DataProvider`, `SyncProvider`, `ProviderRegistry`, domain `ExternalIDs` and
+`SyncMetadata`) is in place. Remaining work: (a) the provider is NOT yet
+registered at runtime — no factory registration wires it into the CLI, so it
+is unreachable from the command surface; (b) there is no `grctool sync
+audit-log` CLI command to query the sync audit trail; and (c) scheduled-sync
+wiring (FEAT-003 integration) is not connected. In short, the feature is
+built-but-not-activated.
 
 ---
 

@@ -261,12 +261,12 @@ The VCR system automatically redacts sensitive headers during recording:
 
 | Level | Target | Current |
 |-------|--------|---------|
-| Overall (CI, `ci.yml`) | 15%+ | 22.4% |
+| Overall (CI, `ci.yml`) | 30%+ | 22.4% |
 | Overall (local, `make coverage-check`) | 80%+ | 22.4% |
 | Critical Packages | 90%+ | Varies |
 | Test Execution Time | <5s | ~3s |
 
-Note: The CI pipeline (`ci.yml`) enforces a 15% threshold, set realistically for the current state. The local `make coverage-check` target enforces 80%, which is the aspirational target. The `testing.yml` quality-gates job also checks against 80%, but `testing.yml` is currently disabled.
+Note: The CI pipeline (`ci.yml`) enforces a 30% threshold, set realistically for the current state. The local `make coverage-check` target enforces 80%, which is the aspirational target. The `testing.yml` quality-gates job also checks against 80%, but `testing.yml` is currently disabled.
 
 ### Running Coverage
 
@@ -309,7 +309,7 @@ go tool cover -func=temp.out
 The CI pipeline (`ci.yml`) runs coverage analysis in the `coverage` job:
 
 1. Runs `go test -coverprofile=coverage.out -covermode=atomic ./...`
-2. Checks against a **15% threshold** (set realistically for current state; `make coverage-check` uses 80% locally)
+2. Checks against a **30% threshold** (set realistically for current state; `make coverage-check` uses 80% locally)
 3. Uploads results to Codecov
 4. Generates HTML report as a build artifact
 

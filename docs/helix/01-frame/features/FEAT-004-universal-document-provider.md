@@ -21,14 +21,21 @@ updated: 2026-04-02
 | Owner | TBD |
 | Target Phase | Phase 1 (Foundation) |
 
-**Implementation status (2026-04-02):** The provider-framework foundation is
-partially shipped. Domain model unification (string IDs, `ExternalIDs`,
+**Implementation status (2026-06-17):** The provider-framework foundation is
+substantially shipped. Domain model unification (string IDs, `ExternalIDs`,
 `SyncMetadata`), the `DataProvider` and `SyncProvider` interfaces, the provider
 registry, and the refactored `TugboatDataProvider` are implemented and tested
-(22 of 33 acceptance criteria satisfied). Remaining work includes: ContentHash
-computation in providers, `grctool index list` CLI surface, ProviderInfo in
-registry List(), append-only ID enforcement, and write-idempotency tests. See
-the alignment review (AR-2026-04-01-repo) for the full acceptance matrix.
+(approximately 31 of 33 acceptance criteria satisfied). The previously-listed
+gaps are now closed: ContentHash computation is implemented
+(`internal/domain/content_hash.go`, used by all providers); `grctool index
+list` exists (`cmd/index.go`); `grctool provider status` exists
+(`cmd/provider.go`), backed by `ProviderInfo` / `ListProviderInfo` in the
+registry; `grctool sync status` exists; and the registry-driven sync
+orchestrator exists (`internal/sync/orchestrator.go`). The only material
+remaining gaps are: (a) append-only native-ID enforcement — no guard prevents
+ID reassignment; and (b) runtime provider factory registration — the registry
+is built but no `RegisterFactory` caller wires providers in at startup. See the
+alignment review (AR-2026-04-01-repo) for the full acceptance matrix.
 
 ---
 
@@ -46,12 +53,18 @@ implemented. All domain entity IDs are unified as `string`. `ExternalIDs` and
 Tugboat adapter has been refactored to implement `DataProvider` and populates
 `ExternalIDs["tugboat"]`. The `SyncService` uses the provider registry.
 
-**Remaining gaps:** The provider framework is not yet complete. ContentHash
-computation is unimplemented in providers (change detection is non-functional).
-The `grctool index list` CLI command does not exist. `ProviderRegistry.List()`
-returns names only, not capability/health metadata. Append-only ID assignment
-and write idempotency are not enforced or tested. These gaps are tracked in
-dedicated execution issues (hx-be3a9c50, hx-cb8e54b8, hx-e5b310b6).
+**Remaining gaps:** The provider framework is nearly complete. ContentHash
+computation is implemented (`internal/domain/content_hash.go`) and used by all
+providers for change detection. The `grctool index list`
+(`cmd/index.go`), `grctool provider status` (`cmd/provider.go`), and `grctool
+sync status` CLI commands all exist, and `ProviderRegistry` exposes
+capability/health metadata via `ProviderInfo` / `ListProviderInfo`. The
+registry-driven sync orchestrator exists (`internal/sync/orchestrator.go`). Two
+material gaps remain: append-only native-ID assignment is not enforced (no
+guard prevents ID reassignment), and runtime provider factory registration is
+absent — the registry is built but no `RegisterFactory` caller wires providers
+in at startup. These gaps are tracked in dedicated execution issues
+(hx-be3a9c50, hx-cb8e54b8, hx-e5b310b6).
 
 Three committed features depend on completing this framework:
 
