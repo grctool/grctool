@@ -23,6 +23,10 @@ coverage_*.out
 .claude/
 .claude*
 
+# DDx plugin-generated skill adapters (regenerable via `ddx plugin sync`;
+# source of truth is .ddx/plugins.lock.yaml)
+.agents/skills/
+
 # AI Context Cache (generated files)
 .ai-context/*.json
 .ai-context/*.txt
